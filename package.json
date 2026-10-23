@@ -1,0 +1,10 @@
+{
+  "name": "agent-grand-prix",
+  "private": true,
+  "type": "module",
+  "description": "Agent Grand Prix: the browser game (static, open index.html) and its WhatsApp agent (node agent/whatsapp.mjs).",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node agent/whatsapp.mjs"
+  }
+}

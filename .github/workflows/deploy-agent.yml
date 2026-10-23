@@ -1,0 +1,37 @@
+# Deploys the WhatsApp agent to your server whenever the game or agent code changes on main.
+# One-time setup, in the repo's Settings > Secrets and variables > Actions:
+#   SERVER_HOST       the server's public IP address
+#   SERVER_USER       the login name (ubuntu or opc on Oracle Cloud)
+#   SERVER_SSH_KEY    the whole private key file Oracle gave you (BEGIN ... END lines included)
+#   WHATSAPP_AGENT_TOKEN  the agent's API key from WhatsApp (Chat info > API key)
+name: Deploy WhatsApp agent
+on:
+  push:
+    branches: [main]
+    paths: ['agent/**', 'js/**', '.github/workflows/deploy-agent.yml']
+  workflow_dispatch:
+concurrency: deploy-agent
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the race engine still runs
+        run: node agent/selftest.mjs
+      - name: Copy to the server and (re)start the service
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          KEY: ${{ secrets.SERVER_SSH_KEY }}
+          TOKEN: ${{ secrets.WHATSAPP_AGENT_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HOST" ] || [ -z "$KEY" ] || [ -z "$TOKEN" ]; then echo '::warning::Server secrets are not set yet, skipping the deploy.'; exit 0; fi
+          install -m 600 /dev/null key && printf '%s\n' "$KEY" > key
+          SSH="ssh -i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 $USER@$HOST"
+          tar czf app.tgz agent js package.json
+          scp -i key -o StrictHostKeyChecking=accept-new app.tgz "$USER@$HOST:/tmp/agp-app.tgz"
+          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\n' "$TOKEN" '/var/lib/agp/state.json' "${{ vars.SITE_URL }}" | $SSH 'umask 077; cat > /tmp/agp.env'
+          $SSH 'bash -s' < agent/install.sh
+          rm -f key

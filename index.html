@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Agent Grand Prix</title>
+<meta name="description" content="A free browser racing game. Your AI drivers race; you are the team principal and call the strategy. A new Daily Grand Prix every day, from Abuja to Anchorage.">
+<meta name="theme-color" content="#f4f6f9">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,700;1,800&family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">
+{"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}
+</script>
+</head>
+<body>
+<div id="app" class="app">
+  <aside id="tower" class="tower panel" aria-label="Race order">
+    <div class="tower-head"><span>Order</span><button id="gapMode" class="mini" type="button">Interval</button></div>
+    <ol id="towerList" class="tower-list"></ol>
+  </aside>
+
+  <main id="stage" class="stage">
+    <canvas id="gl" aria-label="Race view. Tap a car to follow it."></canvas>
+    <div id="hud" class="hud" hidden>
+      <div class="hud-left">
+        <button id="menuBtn" class="chip icon" type="button" aria-label="Pause and menu">☰</button>
+        <div class="chip venue"><span id="hudFlag"></span><span id="hudCity"></span></div>
+        <div class="chip lap">LAP <b id="hudLap">1</b>/<span id="hudLaps">8</span></div>
+      </div>
+      <div class="hud-right">
+        <div class="chip wx" id="hudWx"></div>
+        <button id="soundBtn" class="chip icon" type="button" aria-label="Sound">🔊</button>
+        <div class="seg speed" role="group" aria-label="Race speed">
+          <button type="button" data-speed="1" class="on">1×</button><button type="button" data-speed="2">2×</button><button type="button" data-speed="4">4×</button>
+        </div>
+      </div>
+    </div>
+    <div id="camPill" class="cam-pill seg" role="group" aria-label="Camera" hidden>
+      <button type="button" data-cam="live" class="on">Live</button><button type="button" data-cam="overview">Overview</button><button type="button" data-cam="chase">Chase</button><button type="button" data-cam="fpv">Cockpit</button><button type="button" data-cam="tv">TV</button><button type="button" data-cam="pit">Pit</button>
+    </div>
+    <div id="follow" class="follow" hidden></div>
+    <button id="boost" class="boost" type="button" hidden aria-label="ERS boost"><b>BOOST</b><span><i></i></span><small></small></button>
+    <div id="stats" class="chips4" hidden></div>
+    <ol id="pitline" class="pitline" hidden aria-label="Pit stop">
+      <li>Box call</li><li>Pit entry</li><li>Stationary</li><li>Release</li><li>Back on track</li>
+    </ol>
+    <div class="chip sc scbar" id="hudSc" hidden></div>
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="lights" class="lights" hidden><i></i><i></i><i></i><i></i><i></i></div>
+  </main>
+
+  <nav class="tabs" id="tabs" role="tablist">
+    <button type="button" data-tab="wall" class="on">Pit wall</button>
+    <button type="button" data-tab="order">Order</button>
+    <button type="button" data-tab="radio">Radio <span id="radioDot" class="dot" hidden></span></button>
+  </nav>
+  <aside id="wall" class="wall panel" aria-label="Pit wall">
+    <section id="carCard" class="card car-card"></section>
+    <section id="controls" class="controls"></section>
+    <section class="radio-wrap">
+      <div class="sub">Team radio</div>
+      <ol id="radio" class="radio"></ol>
+    </section>
+  </aside>
+</div>
+
+<!-- screens -->
+<div id="screen" class="screen" hidden>
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
