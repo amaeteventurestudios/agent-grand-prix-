@@ -174,7 +174,7 @@ def wheel(name, key, segs, rim_detail=True):
     face = hw * s
     rim = [(0.0, face * 0.2), (0.06, face * 0.35), (0.16, face * 0.55), (rr - 0.02, face * 0.8), (rr, face * 0.97), (rr, -face * 0.9)] if rim_detail else [(0.0, face * 0.5), (rr, face * 0.95), (rr, -face * 0.9)]
     rm = lathe(name + '_rim', rim, segs)
-    paint(rm, lambda p, n: P1 if 0.185 < Vector((p.x, 0, p.z)).length < rr - 0.012 else MT)
+    paint(rm, lambda p, n: P2 if 0.185 < Vector((p.x, 0, p.z)).length < rr - 0.012 else MT)
     wob = join(name, [t, rm])
     if s < 0: pass
     wob.location = (x, y, r)
@@ -185,3 +185,14 @@ def empty(name, loc, parent):
     e = bpy.data.objects.new(name, None); e.location = loc; e.parent = parent
     bpy.context.collection.objects.link(e)
     return e
+
+def arch(x, yc, hw, zb, ztop, t, n=12):
+    """An open-bottomed arch section at x (a wheel tunnel): outer edge up and over, inner edge back."""
+    outer, inner = [], []
+    for i in range(n + 1):
+        a = math.pi * i / n
+        c, s = math.cos(a), math.sin(a)
+        ex = 2 / 3.2
+        outer.append(Vector((x, yc + hw * math.copysign(abs(c) ** ex, c), zb + (ztop - zb) * abs(s) ** ex)))
+        inner.append(Vector((x, yc + (hw - t) * math.copysign(abs(c) ** ex, c), zb + (ztop - t - zb) * abs(s) ** ex)))
+    return outer + inner[::-1]
