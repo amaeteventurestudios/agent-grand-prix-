@@ -1,5 +1,7 @@
-<title>Agent Grand Prix</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
+<title>Agent Grand Prix</title>
 <meta name="description" content="A free browser racing game. Your AI drivers race; you are the team principal and call the strategy. A new Daily Grand Prix every day, from Abuja to Anchorage.">
 <meta name="theme-color" content="#f4f6f9">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -9,8 +11,6 @@
 <script type="importmap">
 {"imports":{"three":"./vendor/three/three.module.min.js","three/addons/":"./vendor/three/addons/"}}
 </script>
-
-
 <div id="app" class="app">
   <aside id="tower" class="tower panel" aria-label="Race order">
     <div class="tower-head"><span>Order</span><button id="gapMode" class="mini" type="button">Interval</button></div>
@@ -44,6 +44,7 @@
     </ol>
     <div class="chip sc scbar" id="hudSc" hidden></div>
     <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="coach" class="coach" hidden aria-live="polite"></div>
     <div id="lights" class="lights" hidden><i></i><i></i><i></i><i></i><i></i></div>
   </main>
 
