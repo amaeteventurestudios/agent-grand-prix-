@@ -10,6 +10,7 @@ import { Paddock } from './paddock.js';
 import { Fleet, loadCar } from './cars.js';
 import { Stands, sweep } from './env.js';
 import { towerShapes, facadeMaterial, streetLamps } from './kit.js';
+import { treeGeo, mountainGeo, Boats, Clouds, rocks } from './nature.js';
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
@@ -592,25 +593,32 @@ export class World {
     // trees
     if (V.trees !== 'none' && V.treeDensity > 0) {
       const types = V.trees === 'mixed' ? ['pine', 'round'] : V.trees === 'tropical' ? ['palm', 'round'] : [V.trees];
+      // near the track (where the cameras are) the detailed tree, further out the light one
+      const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
+      const nearD = T.half + this.runoff + (this.lite ? 90 : 150);
       for (const ty of types) {
         const n = Math.round((this.lite ? 520 : 1300) * V.treeDensity / types.length);
-        const mesh = new THREE.InstancedMesh(treeGeometry(ty), new THREE.MeshLambertMaterial({ vertexColors: true }), n);
-        let k = 0, guard = 0;
-        while (k < n && guard++ < n * 30) {
+        const spots = [];
+        let guard = 0;
+        while (spots.length < n && guard++ < n * 30) {
           // cluster trees in groves
           const a = r() * Math.PI * 2, rad = Math.pow(r(), 0.75) * (this.radius + 560);
           const x = cx + Math.cos(a) * rad, z = cz + Math.sin(a) * rad;
           if (this.noise(x / 140, z / 140) < 0.45 - V.treeDensity * 0.15) continue;
           if (!free(x, z, T.half + this.runoff + 9)) continue;
-          const s = r.range(0.75, 1.35);
-          q.setFromAxisAngle(sv.set(0, 1, 0), r() * Math.PI * 2);
-          m4.compose(pv.set(x, this.height(x, z), z), q, sv.set(s, s * r.range(0.85, 1.2), s));
-          mesh.setMatrixAt(k, m4);
-          mesh.setColorAt(k, cc.setHSL(0, 0, r.range(0.8, 1.1)));
-          k++;
+          spots.push([x, z, r.range(0.75, 1.35), r.range(0.85, 1.2), r() * Math.PI * 2, r.range(0.8, 1.1)]);
         }
-        mesh.count = k; mesh.castShadow = true;
-        this.scene.add(mesh);
+        for (const near of [true, false]) {
+          const L = spots.filter(([x, z]) => (this.dist(x, z) < nearD) === near); if (!L.length) continue;
+          const mesh = new THREE.InstancedMesh(treeGeo(ty, near, hashString(V.id + ty)), treeMat, L.length);
+          L.forEach(([x, z, s, sy, rot, shade], k) => {
+            q.setFromAxisAngle(sv.set(0, 1, 0), rot);
+            m4.compose(pv.set(x, this.height(x, z), z), q, sv.set(s, s * sy, s));
+            mesh.setMatrixAt(k, m4); mesh.setColorAt(k, cc.setHSL(0, 0, shade));
+          });
+          mesh.castShadow = near || !this.lite;
+          this.scene.add(mesh);
+        }
       }
     }
     // city blocks: a low town wrapped round the circuit, a skyline of towers beyond it. Six tower
@@ -721,6 +729,43 @@ export class World {
     }
     this.buildMountains(r);
     this.buildLandmark(r);
+    this.buildNature(r);
+  }
+
+  // boats on the water, rocks and surf along the shore, clouds in the sky
+  buildNature(r) {
+    const V = this.venue, T = this.T, [cx, cz] = T.centroid;
+    if (V.water !== 'none') {
+      const yachty = V.landmark === 'yachts';
+      const nS = Math.round((this.lite ? 8 : 16) * (yachty ? 0.5 : 1)), nY = (this.lite ? 5 : 10) * (yachty ? 4 : 1);
+      const spots = [];
+      let guard = 0;
+      while (spots.length < nS + nY && guard++ < 6000) {
+        const a = r() * Math.PI * 2, d = r.range(this.radius * 0.3, this.radius + 900);
+        const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, l = this.land(x, z);
+        const yacht = spots.length >= nS;
+        if (l > (yacht && yachty ? -14 : -30) || l < -600) continue;
+        if (spots.some(([px, pz]) => Math.hypot(px - x, pz - z) < 30)) continue;
+        spots.push([x, z, r() * Math.PI * 2, yacht ? 1 : 0]);
+      }
+      this.boats = new Boats(spots, this.lite);
+      this.scene.add(this.boats.group);
+    }
+    if (V.water === 'coast' || V.water === 'harbour') {
+      const spots = [], n = this.lite ? 40 : 90;
+      let guard = 0;
+      while (spots.length < n && guard++ < 20000) {
+        const a = r() * Math.PI * 2, d = r.range(this.radius * 0.5, this.radius + 1200);
+        const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, l = this.land(x, z);
+        if (l > -2 || l < -16 || this.dist(x, z) < T.half + 30) continue;
+        spots.push([x, z, r.range(1.8, 5.5) * (r() < 0.15 ? 2 : 1)]);
+      }
+      if (spots.length) this.scene.add(rocks(spots, this.lite));
+    }
+    if (this.venue.time !== 'night') {
+      this.clouds = new Clouds(cx, cz, this.lite ? 7 : 14, hashString(V.id + 'clouds'), this.venue.time === 'dusk' ? '#ffd9bd' : '#ffffff', this.lite);
+      this.scene.add(this.clouds.group);
+    }
   }
 
   buildMountains(r) {
@@ -737,22 +782,13 @@ export class World {
       let a = r() * Math.PI * 2;
       if (avoid !== null) a = avoid + Math.PI + r.range(-1.6, 1.6);
       const d = r.range(1500, 2500), hgt = r.range(h0, h1), rad = hgt * r.range(1.6, 2.8);
-      const g = new THREE.ConeGeometry(rad, hgt, 9, 4);
-      g.translate(0, hgt / 2 - 4, 0);
-      const p = g.attributes.position, cols = new Float32Array(p.count * 3), c = new THREE.Color(), bc = col(base), sc = col('#f5f7fa');
-      for (let k = 0; k < p.count; k++) {
-        const y = p.getY(k);
-        if (y < hgt - 5) { p.setX(k, p.getX(k) * r.range(0.85, 1.15)); p.setZ(k, p.getZ(k) * r.range(0.85, 1.15)); p.setY(k, y + r.range(-0.08, 0.08) * hgt * (y > 0 ? 1 : 0)); }
-        c.copy(bc).multiplyScalar(0.85 + 0.3 * (y / hgt));
-        if (snowy && y > hgt * 0.55) c.lerp(sc, clamp((y / hgt - 0.55) * 4, 0, 1));
-        cols[k * 3] = c.r; cols[k * 3 + 1] = c.g; cols[k * 3 + 2] = c.b;
-      }
-      g.setAttribute('color', new THREE.BufferAttribute(cols, 3)); g.deleteAttribute('uv');
-      g.translate(cx + Math.cos(a) * d, 0, cz + Math.sin(a) * d);
+      const rockC = V.biome === 'desert' || V.biome === 'dunes' ? '#a5815c' : snowy ? '#6f6a66' : '#8a8070';
+      const g = mountainGeo({ h: hgt, r: rad, snow: snowy, base, rock: rockC, seed: Math.floor(r() * 1e6), rings: this.lite ? 5 : 7, segs: this.lite ? 12 : 16 });
+      g.translate(cx + Math.cos(a) * d, -4, cz + Math.sin(a) * d);
       geos.push(g);
     }
     if (!geos.length) return;
-    const m = mergeGeometries(geos); m.computeVertexNormals();
+    const m = mergeGeometries(geos);
     this.scene.add(new THREE.Mesh(m, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true })));
   }
 
@@ -834,21 +870,6 @@ export class World {
       for (let k = 0; k < 7; k++) { const s = 70 - k * 9; const b = new THREE.BoxGeometry(s, 9, s); b.translate(0, 4.5 + k * 9, 0); steps.push(vcolor(b, col(k % 2 ? '#d9cbb3' : '#c4b294'))); }
       const m = new THREE.Mesh(mergeGeometries(steps), new THREE.MeshLambertMaterial({ vertexColors: true }));
       m.position.set(x, 0, z); m.rotation.y = 0.6; S.add(m);
-    } else if (lm === 'yachts' && this.waterDir) {
-      const [cx, cz] = this.T.centroid, dir = this.waterDir;
-      const hull = new THREE.BoxGeometry(1, 1, 1); hull.translate(0, 0.5, 0);
-      const n = this.lite ? 24 : 50, ym = new THREE.InstancedMesh(hull, new THREE.MeshLambertMaterial({ color: '#f7f8fa' }), n);
-      const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sv = new THREE.Vector3(), pv = new THREE.Vector3();
-      let k = 0, guard = 0;
-      while (k < n && guard++ < 3000) {
-        const along = this.coast + r.range(20, 220), side = r.range(-500, 500);
-        const x = cx + dir[0] * along - dir[1] * side, z = cz + dir[1] * along + dir[0] * side;
-        if (this.land(x, z) > -12) continue;
-        const L = r.range(14, 40);
-        q.setFromAxisAngle(sv.set(0, 1, 0), Math.atan2(dir[0], dir[1]) + r.range(-0.3, 0.3));
-        m4.compose(pv.set(x, -0.6, z), q, sv.set(L * 0.28, L * 0.12, L)); ym.setMatrixAt(k++, m4);
-      }
-      ym.count = k; S.add(ym);
     } else if (lm === 'dunes') {
       const n = this.lite ? 14 : 26, geos = [];
       for (let k = 0; k < n; k++) {
@@ -1061,6 +1082,7 @@ export class World {
       this.scLamps[0].color.set(ph ? '#ffb020' : '#4a2a00'); this.scLamps[1].color.set(ph ? '#4a2a00' : '#ffb020');
     }
     if (this.paddock) this.paddock.update(race, dt, speed);
+    this.boats?.update(dt * speed); this.clouds?.update(dt * speed);
     this.stands?.update(dt * speed, this.cheer || 0, this.crowdLight);
     if (this.fleet) {
       const list = this.fleetList ||= [];
