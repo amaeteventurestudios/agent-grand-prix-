@@ -276,3 +276,48 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .app.attract .stage { border-radius: 0; }
 .stats-ovl{position:fixed;left:50%;transform:translateX(-50%);top:2px;z-index:99;font:600 11px/1.3 ui-monospace,Menlo,monospace;color:#d4ff3a;background:rgba(10,12,16,.72);padding:4px 7px;border-radius:6px;pointer-events:none}
 .statsopt{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.8;margin:6px 0 2px}
+/* pre-race: garage, tyre guide, coach option */
+.note { color: var(--mute); font-size: 14px; margin: 2px 0 8px; }
+.garage { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; margin: 6px 0 14px; }
+.car-tile { position: relative; display: grid; justify-items: center; text-align: center; gap: 2px; border: 1px solid var(--line); background: var(--panel2); border-radius: 12px; padding: 10px 8px 9px; cursor: pointer; color: var(--ink); }
+.car-tile svg { width: 30px; height: 60px; margin-bottom: 4px; }
+.car-tile b { font: 700 16px var(--f-ui); }
+.car-tile span { color: var(--mute); font-size: 12px; line-height: 1.25; }
+.car-tile em { font: 600 10px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--mute); background: var(--panel); border-radius: 6px; padding: 2px 6px; margin-top: 4px; font-style: normal; }
+.car-tile:disabled { opacity: .6; cursor: default; }
+.car-tile.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--panel); }
+.car-tile.on::after { content: '✓'; position: absolute; top: 6px; right: 8px; font: 700 14px var(--f-ui); color: var(--accent); }
+.tguide { display: grid; gap: 6px; margin: 6px 0 12px; }
+.tguide > div { display: grid; grid-template-columns: auto 64px 70px 1fr; gap: 8px; align-items: center; font-size: 13px; }
+.tguide b { font: 700 14px var(--f-ui); }
+.tguide i { display: block; height: 6px; border-radius: 3px; background: var(--panel2); overflow: hidden; }
+.tguide u { display: block; height: 100%; border-radius: 3px; filter: saturate(1.1); box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.tguide span { color: var(--mute); line-height: 1.3; }
+.tguide p { font-size: 13px; color: var(--mute); margin: 4px 0 0; }
+@media (max-width: 520px) { .tguide > div { grid-template-columns: auto 60px 1fr; } .tguide span { grid-column: 1 / -1; } }
+.coachopt { display: flex; gap: 10px; align-items: flex-start; background: var(--panel2); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; font-size: 13px; color: var(--mute); }
+.coachopt b { display: block; color: var(--ink); font: 700 15px var(--f-ui); }
+.coachopt input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); }
+/* pit wall: what the current choice does */
+.why { margin: 5px 2px 0; font-size: 12.5px; line-height: 1.35; color: var(--mute); }
+.why b { color: var(--ink); font-weight: 600; }
+/* race coach card */
+.coach { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); width: min(380px, calc(100% - 24px)); background: var(--panel); color: var(--ink); border-radius: 14px; padding: 10px 12px 10px; box-shadow: 0 6px 24px rgba(17, 24, 39, .22); border-left: 4px solid #d4ff3a; z-index: 6; animation: coachIn .25s ease-out; }
+.coach .ch { display: flex; justify-content: space-between; align-items: center; font: 700 12px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
+.coach .x { border: 0; background: none; font-size: 20px; line-height: 1; color: var(--mute); cursor: pointer; padding: 0 2px; }
+.coach p { margin: 4px 0 8px; font-size: 14px; line-height: 1.38; }
+.coach .acts { display: flex; gap: 6px; }
+.coach .acts button { border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 8px; padding: 8px 12px; font: 600 14px var(--f-ui); cursor: pointer; }
+.coach .acts .go { background: #111827; color: #fff; border-color: #111827; }
+@keyframes coachIn { from { opacity: 0; transform: translate(-50%, -6px); } }
+@media (max-width: 560px) { .coach { top: 48px; padding: 8px 10px; } .coach p { font-size: 13px; margin: 3px 0 6px; } }
+@media (max-width: 560px) {
+  .garage { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 112px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 4px; }
+  .car-tile { scroll-snap-align: start; }
+}
+.vpick { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin: 4px 0 12px; }
+.vpick button { border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 10px; padding: 8px 4px; display: grid; gap: 1px; cursor: pointer; }
+.vpick b { font: 700 15px var(--f-ui); }
+.vpick span { font-size: 11px; color: var(--mute); }
+.vpick button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--panel); }
+@media (max-width: 420px) { .vpick { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

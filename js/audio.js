@@ -46,6 +46,11 @@ export class Sound {
     return true;
   }
 
+  // the engine bed dips while the engineer is on the radio
+  duck(on) {
+    if (this.ctx && this.on) this.master.gain.setTargetAtTime(on ? this.vol * 0.4 : this.vol, this.ctx.currentTime, on ? 0.06 : 0.35);
+  }
+
   stop() {
     this.on = false;
     if (this.ctx) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08);

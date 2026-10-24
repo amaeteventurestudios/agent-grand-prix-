@@ -90,7 +90,7 @@ export class Race {
         grid: i + 1,
         dist: -10 - i * 9, lat: i % 2 ? -2.6 : 2.6, latT: 0, v: 0, prevDist: 0, prevLat: 0,
         tyre: { c: start, wear: 0, laps: 0, fresh: 0 }, used: [start], stops: 0,
-        ers: 0.6, pace: 'normal', ersMode: 'balanced', battle: 'neutral',
+        ers: 0.6, pace: 'normal', ersMode: 'balanced', battle: 'neutral', order: 'free', letBy: null, orderLap: -9,
         pitReq: null, pit: null, stopT: 0,
         pass: null, yieldT: 0, mistakeT: 0,
         finished: false, dnf: false, pos: i + 1,
@@ -144,6 +144,23 @@ export class Race {
       else if (!cmd.box && car.pitReq && !car.pit) { car.pitReq = null; this.emit('radio', 'Understood, staying out.', car, { from: 'driver' }); }
     }
     if ('auto' in cmd) car.auto = !!cmd.auto;
+    if (cmd.order) this.teamOrder(car, cmd.order);
+  }
+
+  mate(car) { return this.cars.find((o) => o !== car && o.team.id === car.team.id); }
+  // team orders: 'hold' (no fighting each other), 'free' (race), 'swap' (the car in front lets the other by)
+  teamOrder(car, order) {
+    const m = this.mate(car); if (!m) return;
+    if (order === 'swap') {
+      const [front, back] = car.dist >= m.dist ? [car, m] : [m, car];
+      if (front.dnf || back.dnf || front.pit || back.pit || front.dist - back.dist > this.track.L * 0.08) return false;
+      front.letBy = { id: back.id, t: 30 };
+      this.emit('order', `Team orders: ${front.code} lets ${back.code} through.`, front, { other: back.id });
+      return true;
+    }
+    car.order = m.order = order;
+    car.letBy = m.letBy = null;
+    this.emit('order', order === 'hold' ? `Team orders: ${car.code} and ${m.code} hold positions.` : `Team orders lifted: ${car.code} and ${m.code} are free to race.`, car, { other: m.id });
   }
 
   start() { this.started = true; this.emit('flag', 'Lights out! The race is on.', null); }
@@ -222,7 +239,13 @@ export class Race {
         const lapped = ahead.dist + L * 0.5 < car.dist;
         if (lapped) {
           ahead.yieldT = 3; ahead.yieldSide = car.lat > 0 ? -1 : 1;
-        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < 13 && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')) {
+        } else if (ahead.letBy && ahead.letBy.id === car.id && !car.pass && !ahead.pass && !this.sc && dS < 16) {
+          // a team order: the car in front backs off and leaves the other side open
+          const room = T.half - 1.6, side = ahead.lat > 0 ? -1 : 1;
+          car.pass = { id: ahead.id, side, lane: clamp(ahead.lat + side * CAR_W * 1.18, -room, room), t: 9 };
+          ahead.hold = { lat: ahead.lat, t: 10, by: car.id };
+        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < 13 && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')
+          && !(car.order === 'hold' && ahead.team.id === car.team.id)) {
           // most moves are made on the straights; with Attack or a boost a driver will also dive down the inside into a corner
           let p = 0.11 * (0.6 + car.traits.aggro) * clamp((car._vt - ahead.v) / 2, 0.25, 2);
           if (!str) p *= 0.35;
@@ -249,6 +272,15 @@ export class Race {
         const beside = ahead.pass && ahead.pass.id === car.id && dS < CAR_L;
         if (!clear && !beside && (!lapped || dS < 9)) car._vt = Math.min(car._vt, Math.max(ahead.v * 0.85, ahead.v + (dS - (car.battle === 'attack' ? 8.5 : 10)) * 0.7));
       }
+    }
+
+    // team orders: the car letting its teammate by eases off until the other is past (or the window closes)
+    for (const car of onTrack) {
+      if (!car.letBy) continue;
+      const m = this.byId.get(car.letBy.id);
+      car.letBy.t -= DT;
+      if (!m || m.dnf || m.pit || car.letBy.t <= 0 || m.dist > car.dist + CAR_L * 1.5) { car.letBy = null; continue; }
+      if (car.dist - m.dist < 60) car._vt *= 0.94;
     }
 
     // a car making a move: alongside it gets a run on the other (the tow, its battery and its nerve);
@@ -710,6 +742,11 @@ export class Race {
       return;
     }
     const close = car.ahead && car.dS < 40;
+    // the strategist's team order: a teammate on much fresher tyres right behind gets waved through
+    const m = this.mate(car), lapNow = this.lapOf(car);
+    if (m && !car.letBy && m.ahead === car && m.dS < 30 && m.tyre.wear + 0.3 < car.tyre.wear && lapNow - car.orderLap > 3 && this.lapsLeft(car) > 1 && !this.sc) {
+      car.orderLap = lapNow; this.teamOrder(car, 'swap');
+    }
     car.ersMode = car.ers < 0.2 ? 'harvest' : close && car.ers > 0.3 ? 'deploy' : car.ers > 0.85 ? 'deploy' : 'balanced';
     const left = this.lapsLeft(car);
     car.pace = left <= 2 && close ? 'push' : car.tyre.wear > 0.62 && car.plan.lap && left > 3 ? 'save' : 'normal';
