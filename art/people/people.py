@@ -1,7 +1,8 @@
 # Pit crew figures for Agent Grand Prix, built headless in Blender:
 #   blender -b --factory-startup -P art/people/people.py
 # Each figure is a skeleton of joints wrapped by a Skin modifier (an organic low-poly body), a helmet
-# with a dark visor, two poses (standing, kneeling at a wheel with the gun) and two levels of detail.
+# with a dark visor, six poses (standing, kneeling at a wheel with the gun, and four for watching the race on the garage
+# screen: arms up, a fist pump, hands on hips, hands on the helmet) and two levels of detail.
 # Vertex colours carry the look: RGB is the colour, A = 1 marks overalls the game tints with the team
 # colour. The figure faces +X, feet on the ground at the origin, about 1.8 m tall.
 import bpy, bmesh, math, os, json
@@ -10,8 +11,24 @@ from mathutils import Vector
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 bpy.ops.wm.read_factory_settings(use_empty=True)
 
+# arms for the standing poses that watch the race on the garage screen: (elbow, wrist, hand) per side
+ARMS = {
+    'cheer': {1: ((0.0, 0.33, 1.72), (0.02, 0.4, 1.95), (0.03, 0.42, 2.04)), -1: ((0.0, -0.33, 1.72), (0.02, -0.4, 1.95), (0.03, -0.42, 2.04))},
+    'pump': {1: ((0.03, 0.28, 1.74), (0.05, 0.3, 1.98), (0.06, 0.3, 2.06)), -1: ((0.06, -0.31, 1.2), (0.22, -0.2, 1.33), (0.28, -0.16, 1.37))},
+    'watch': {1: ((-0.08, 0.37, 1.2), (0.0, 0.23, 1.0), (0.02, 0.18, 0.96)), -1: ((-0.08, -0.37, 1.2), (0.0, -0.23, 1.0), (0.02, -0.18, 0.96))},
+    'despair': {1: ((0.02, 0.36, 1.6), (0.05, 0.2, 1.8), (0.06, 0.12, 1.83)), -1: ((0.02, -0.36, 1.6), (0.05, -0.2, 1.8), (0.06, -0.12, 1.83))},
+}
+
 def skel(pose):
     J = {}
+    if pose in ARMS:
+        J, E, R = skel('stand')
+        for s, (e, w, h) in ARMS[pose].items():
+            k = 'L' if s > 0 else 'R'
+            J[f'elb{k}'], J[f'wri{k}'], J[f'han{k}'] = e, w, h
+        if pose == 'cheer': J['head'] = (0.0, 0, 1.69); J['neck'] = (0.0, 0, 1.56)   # head back a touch
+        if pose == 'despair': J['head'] = (0.05, 0, 1.66)                          # head forward, hands on the helmet
+        return J, E, R
     if pose == 'stand':
         J.update(pelvis=(0, 0, 0.95), spine=(0, 0, 1.18), chest=(0.01, 0, 1.38), neck=(0.01, 0, 1.56), head=(0.02, 0, 1.68))
         for s in (1, -1):
@@ -64,10 +81,11 @@ def figure(pose, lod):
     # colour each face by the bone it is nearest to
     seg = [(a, b, Vector(J[a]), Vector(J[b])) for a, b in E]
     def nearest(p):
+        # distance to the skin surface, not the bone, so a hand resting on the body doesn't colour it
         best, bc = 1e9, None
         for a, b, A, B in seg:
             ab = B - A; t = max(0, min(1, (p - A).dot(ab) / max(ab.dot(ab), 1e-9)))
-            d = (A + ab * t - p).length
+            d = (A + ab * t - p).length - (R[a][0] * (1 - t) + R[b][0] * t)
             if d < best: best, bc = d, (a, b, t)
         return bc
     for poly in me.polygons: poly.use_smooth = True
@@ -102,7 +120,7 @@ def figure(pose, lod):
 
 report = {}
 mat = bpy.data.materials.new('crew'); mat.use_nodes = True
-for pose in ('stand', 'kneel'):
+for pose in ('stand', 'kneel', 'cheer', 'pump', 'watch', 'despair'):
     for lod in (0, 1):
         ob = figure(pose, lod)
         ob.data.materials.append(mat)

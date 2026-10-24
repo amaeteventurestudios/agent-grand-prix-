@@ -930,6 +930,13 @@ export class World {
     const halo = new THREE.CircleGeometry(3.3, 40); halo.rotateX(-Math.PI / 2); halo.scale(1.22, 1, 0.78);
     this.halo = new THREE.Mesh(halo, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -7 }));
     this.scene.add(this.ring, this.halo);
+    // your other car keeps a ring too (same colour, a little softer, gently pulsing), so both are easy to find
+    this.mineRings = [0, 1].map(() => {
+      const r = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8 }));
+      const h = new THREE.Mesh(halo, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.14, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -7 }));
+      r.renderOrder = 2; r.visible = h.visible = false; this.scene.add(r, h);
+      return { r, h };
+    });
     // the safety car: a silver saloon with an orange light bar
     const S = CAR_SCALE, sc = [
       part(new THREE.BoxGeometry(4.6, 0.75, 1.9), '#c9ced6', 0, 0.55, 0),
@@ -1066,6 +1073,7 @@ export class World {
     if (!this.lastWeather || Math.abs(this.lastWeather[0] - race.rain) > 0.02 || Math.abs(this.lastWeather[1] - race.wet) > 0.02) {
       this.setWeather(race.rain, race.wet); this.lastWeather = [race.rain, race.wet];
     }
+    let mr = 0;
     const blink = race.wet > 0.15 && Math.floor(performance.now() / 250) % 2 === 0;
     this.rainLightMat.color.set(blink ? '#ff2a2a' : '#3a0a0a');
     for (const c of race.cars) {
@@ -1092,9 +1100,16 @@ export class World {
       if (c.id === selectedId) {
         this.ring.position.set(g.position.x, 0.14, g.position.z); this.ring.rotation.y = g.rotation.y;
         this.halo.position.copy(this.ring.position); this.halo.rotation.y = g.rotation.y;
+      } else if (mineIds.includes(c.id) && g.visible && mr < 2) {
+        const { r, h } = this.mineRings[mr++];
+        r.position.set(g.position.x, 0.14, g.position.z); r.rotation.y = g.rotation.y;
+        h.position.copy(r.position); h.rotation.y = g.rotation.y;
+        r.visible = h.visible = true;
       }
     }
     this.ring.visible = this.halo.visible = !!selectedId && showRing;
+    for (let i = mr; i < 2; i++) this.mineRings[i].r.visible = this.mineRings[i].h.visible = false;
+    if (mr) { const k = 0.5 + 0.5 * Math.sin(performance.now() / 260); for (const { r, h } of this.mineRings) { r.material.opacity = 0.62 + 0.3 * k; h.material.opacity = 0.1 + 0.08 * k; } }
     // safety car on track, lights flashing
     const sc = race.sc && race.sc.kind === 'SC' ? race.sc : null;
     this.scCar.visible = !!sc;

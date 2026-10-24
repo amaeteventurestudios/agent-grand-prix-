@@ -1,6 +1,7 @@
 // The paddock: white pit building with open garages, team trucks, hospitality towers,
 // coloured pit boxes with gantries, tyre stacks, and a pit crew for each team that
-// waits by the garage, gets ready as its car comes in and swarms it during the stop.
+// waits by the garage, gets ready as its car comes in and swarms it during the stop. Your crew
+// watches the race on a screen at the front of the garage, and celebrates when your cars gain places.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sampleTrack } from './track.js';
@@ -11,8 +12,11 @@ import { facade, facadeMaterial } from './kit.js';
 const col = (h) => new THREE.Color(h);
 const tmp = {};
 const CREW = 16;
+const POSES = ['stand', 'kneel', 'cheer', 'pump', 'watch', 'despair'];
 const LF = 11;   // garage front, metres from the lane centre towards the garages
 const LB = 28;   // garage back wall
+const SCR = [0, 10.4];   // your garage's race screen (along, across)
+const CAM = [6.2, 4.4, 2.7];   // where the director's camera stands for a shot of your crew
 
 export class Paddock {
   constructor(world, teams, carGeo) {
@@ -133,6 +137,26 @@ export class Paddock {
     this.group.add(solid, ground);
     geos.concat(flat, glass).forEach((g) => g.dispose());
 
+    // your garage's race screen: live timing for your two cars, and the place you just gained
+    this.mineTeam = teams.find((t) => t.you) || null;
+    if (this.mineTeam) {
+      const sB = P.box[this.mineTeam.box];
+      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
+      this.scr = { cv, g: cv.getContext('2d'), tex: new THREE.CanvasTexture(cv), at: -1, flash: null };
+      this.scr.tex.colorSpace = THREE.SRGBColorSpace;
+      const a = sampleTrack(T, sB + SCR[0], P.lat + sd * SCR[1], {}), b = sampleTrack(T, sB + SCR[0], P.lat + sd * (SCR[1] - 1), {});
+      const ny = Math.atan2(b.x - a.x, b.z - a.z);
+      const face = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.8), new THREE.MeshBasicMaterial({ map: this.scr.tex, toneMapped: false }));
+      face.position.set(a.x + (b.x - a.x) * 0.07, 2.55, a.z + (b.z - a.z) * 0.07); face.rotation.y = ny;
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.0, 0.12), new THREE.MeshLambertMaterial({ color: '#15181e' }));
+      frame.position.set(a.x, 2.55, a.z); frame.rotation.y = ny;
+      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.6, 0.14), frame.material);
+      pole.position.set(a.x, 0.8, a.z);
+      frame.castShadow = pole.castShadow = true;
+      this.group.add(face, frame, pole);
+      this.drawScreen(null);
+    }
+
     // spare cars inside the garages, nose out
     this.spares = [];
     for (const t of teams) {
@@ -221,9 +245,12 @@ export class Paddock {
       };
       mat.customProgramCacheKey = () => 'agp-crew';
       const n = this.crew.length;
-      this.figs = {};
-      for (const key of ['stand_L0', 'stand_L1', 'kneel_L0', 'kneel_L1']) {
-        const o = scene.getObjectByName('crew_' + key);
+      this.figs = {}; this.figM = {};
+      scene.updateMatrixWorld(true);
+      for (const key of POSES.flatMap((p) => [p + '_L0', p + '_L1'])) {
+        const node = scene.getObjectByName('crew_' + key), o = node && (node.isMesh ? node : node.getObjectByProperty('isMesh', true));
+        if (!o) continue;
+        this.figM[key] = o.matrixWorld.clone();   // the compressed mesh's own scale and offset
         const im = new THREE.InstancedMesh(o.geometry, mat, n);
         im.castShadow = !this.w.lite; im.frustumCulled = false; im.count = 0;
         this.crew.forEach((m, i) => im.setColorAt(i, col(m.j === 15 ? '#ff7a1a' : m.team.c1)));
@@ -237,6 +264,11 @@ export class Paddock {
   slot(phase, j, a0 = 0) {
     const wa = 2.1 * CAR_SCALE, wl = 1.12 * CAR_SCALE;
     if (phase === 'idle') return [-5.6 + (j % 8) * 1.6, 7.6 + (j >= 8 ? 1.3 : 0)];
+    if (phase === 'watch') {   // a loose crescent in front of the screen, two rows deep
+      const row = j >= 8 ? 1 : 0, k = j % 8, th = (row ? 212 : 204) + k * (row ? 8.6 : 10.2) + (j * 37 % 5 - 2);
+      const r = row ? 5.3 : 3.7, rad = th * Math.PI / 180;
+      return [SCR[0] + Math.cos(rad) * r, SCR[1] + Math.sin(rad) * r];
+    }
     const wheel = Math.floor(j / 3), off = (j % 3) - 1;
     const ready = phase === 'ready';
     if (j < 12) {
@@ -262,9 +294,12 @@ export class Paddock {
         if ((c.pit && c.pit.phase === 'in') || (c.pitReq && !c.pit && d > -450 && d < 0)) phase = 'ready';
         if (c.pit && c.pit.phase === 'out' && d < 25 && phase === 'idle') phase = 'ready';
       }
+      if (phase === 'idle' && t === this.mineTeam) phase = 'watch';
       state.set(t.id, [phase, a0]);
     }
     const step = Math.min(1, dt * speed * 3.2);
+    const mood = this.mood && this.t < this.mood.until ? this.mood.kind : null;
+    if (this.scr && (this.t - this.scr.at > 0.4 || this.scr.dirty)) { this.scr.at = this.t; this.scr.dirty = false; this.drawScreen(race); }
     const F = this.figs;
     if (F) for (const im of Object.values(F)) im.count = 0;
     this.c ||= new THREE.Color();
@@ -278,12 +313,24 @@ export class Paddock {
       // face the car while working, the walking direction while moving
       sampleTrack(T, P.box[m.team.box] + m.a, P.lat + sd * m.l, tmp);
       const hd = Math.atan2(tmp.tz, tmp.tx);
-      let face;
+      let face, pose = 'stand', jump = 0;
       if (moving) face = Math.atan2(sd * dl, da);
       else if (phase === 'idle') face = -Math.PI / 2 * sd;
+      else if (phase === 'watch') {
+        face = Math.atan2(sd * (SCR[1] - m.l), SCR[0] - m.a);
+        if (mood === 'cheer') {
+          // arms up, fist pumps, jumping, turning to each other
+          const k = m.j % 3, ph = this.t * 8 + m.j * 1.3;
+          pose = k === 1 ? (Math.sin(this.t * 15 + m.j) > 0 ? 'pump' : 'cheer') : 'cheer';
+          jump = k === 0 ? Math.max(0, Math.sin(ph)) * 0.34 : Math.abs(Math.sin(ph * 0.8)) * 0.1;
+          // they turn round from the screen to celebrate (towards the director's camera), and to each other
+          face = Math.atan2(sd * (CAM[1] - m.l), CAM[0] - m.a) + Math.sin(this.t * 3.1 + m.j * 2.1) * 0.6;
+        } else if (mood === 'despair') pose = m.j % 2 ? 'despair' : 'watch';
+        else pose = m.j % 3 === 0 ? 'watch' : 'stand';
+      }
       else face = Math.atan2(-sd * m.l, a0 - m.a);
       m.face += Math.atan2(Math.sin(face - m.face), Math.cos(face - m.face)) * Math.min(1, step * 2);
-      const bob = phase === 'work' && !moving ? Math.abs(Math.sin(this.t * 14 + m.j)) * 0.08 : moving ? Math.abs(Math.sin(this.t * 10 + m.j)) * 0.06 : 0;
+      const bob = phase === 'work' && !moving ? Math.abs(Math.sin(this.t * 14 + m.j)) * 0.08 : moving ? Math.abs(Math.sin(this.t * 10 + m.j)) * 0.06 : jump;
       const crouch = phase === 'work' && m.j < 12 && !moving ? 0.78 : 1;
       this.q.setFromAxisAngle(this.v.set(0, 1, 0), -(hd + m.face * 1));
       this.sc.set(1, crouch, 1);
@@ -296,14 +343,58 @@ export class Paddock {
         if (d2 > (this.w.lite ? 150 : 260) ** 2) return;   // too small to see from here
         this.sc.set(1.1, 1.1, 1.1);
         this.m4.compose(this.v.set(tmp.x, kneel ? 0 : bob, tmp.z), this.q, this.sc);
-        const im = F[(kneel ? 'kneel' : 'stand') + (near ? '_L0' : '_L1')];
+        const key = (kneel ? 'kneel' : moving ? 'stand' : pose) + (near ? '_L0' : '_L1');
+        const im = F[key] || F['stand' + (near ? '_L0' : '_L1')];
         const k = im.count++;
-        im.setMatrixAt(k, this.m4); im.setColorAt(k, this.c.set(m.j === 15 ? '#ff7a1a' : m.team.c1));
+        im.setMatrixAt(k, this.m4.multiply(this.figM[key] || this.figM['stand' + (near ? '_L0' : '_L1')])); im.setColorAt(k, this.c.set(m.j === 15 ? '#ff7a1a' : m.team.c1));
       }
     });
     this.bodies.instanceMatrix.needsUpdate = true;
     this.helmets.instanceMatrix.needsUpdate = true;
     if (F) for (const im of Object.values(F)) { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
+  }
+
+  // your crew reacts to a place gained ('cheer') or lost ('despair') for a few seconds
+  celebrate(kind, info = null, sec = 4.5) {
+    if (!this.mineTeam) return;
+    this.mood = { kind, until: this.t + sec };
+    if (this.scr) { this.scr.flash = info && { ...info, kind, until: this.t + sec }; this.scr.dirty = true; }
+  }
+  // the director's shot of your crew: where the camera stands, the screen and the middle of the crew
+  shot() {
+    if (!this.mineTeam) return null;
+    const T = this.w.T, P = T.pit, sd = P.side, s = P.box[this.mineTeam.box];
+    const at = (a, l, y) => { sampleTrack(T, s + a, P.lat + sd * l, tmp); return new THREE.Vector3(tmp.x, y, tmp.z); };
+    return { cam: at(CAM[0], CAM[1], CAM[2]), screen: at(SCR[0], SCR[1], 2.5), crew: at(SCR[0] - 2.4, SCR[1] - 3.9, 1.3) };
+  }
+  drawScreen(race) {
+    const { g, cv, tex } = this.scr, W = cv.width, H = cv.height, t = this.mineTeam;
+    g.fillStyle = '#0b0e14'; g.fillRect(0, 0, W, H);
+    g.fillStyle = t.c1; g.fillRect(0, 0, W, 46);
+    g.fillStyle = '#ffffff'; g.font = 'bold 26px system-ui, sans-serif'; g.textBaseline = 'middle';
+    g.fillText('LIVE TIMING', 18, 24);
+    g.fillStyle = '#ff3b3b'; g.beginPath(); g.arc(W - 30, 23, 8, 0, Math.PI * 2); g.fill();
+    const f = this.scr.flash && this.t < this.scr.flash.until ? this.scr.flash : null;
+    if (f) {
+      const up = f.kind === 'cheer';
+      g.fillStyle = up ? '#1f9d4c' : '#b3262e'; g.fillRect(0, 46, W, H - 46);
+      g.fillStyle = '#ffffff'; g.textAlign = 'center';
+      g.font = 'bold 40px system-ui, sans-serif'; g.fillText(f.code, W / 2, 98);
+      g.font = 'bold 84px system-ui, sans-serif'; g.fillText(`P${f.from} ${up ? '▲' : '▼'} P${f.to}`, W / 2, 190);
+      g.textAlign = 'left'; tex.needsUpdate = true; return;
+    }
+    const cars = race ? race.cars.filter((c) => c.team === t || c.team.id === t.id) : [];
+    cars.forEach((c, i) => {
+      const y = 100 + i * 92;
+      g.fillStyle = '#1a2030'; g.fillRect(14, y - 36, W - 28, 76);
+      g.fillStyle = t.c2 || '#d4ff3a'; g.fillRect(14, y - 36, 8, 76);
+      g.fillStyle = '#ffffff'; g.font = 'bold 50px system-ui, sans-serif'; g.fillText(c.dnf ? 'OUT' : 'P' + c.pos, 36, y + 2);
+      g.font = 'bold 34px system-ui, sans-serif'; g.fillText(c.code, 190, y + 2);
+      g.fillStyle = '#9fb0c8'; g.font = '30px system-ui, sans-serif'; g.textAlign = 'right';
+      g.fillText(c.pit ? 'PIT' : c.pos === 1 ? 'LEADER' : '+' + Math.max(0, c.interval).toFixed(1), W - 30, y + 2);
+      g.textAlign = 'left';
+    });
+    tex.needsUpdate = true;
   }
 
   dispose() { this.disposed = true; this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }

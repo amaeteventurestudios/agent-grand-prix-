@@ -128,6 +128,15 @@ export class Cams {
     return true;
   }
 
+  // the director's cut to your garage: a quick pan from the race screen to your crew celebrating,
+  // then back to the shot you were watching
+  crewShot(shot, dur = 3.4) {
+    if (!shot || !['live', 'tv', 'drone'].includes(this.mode)) return false;
+    this.crewS = { ...shot, t: 0, dur, back: this.mode === 'drone' ? 'live' : this.mode };
+    this.mode = 'crew'; this.camera.near = 0.2; this.camera.updateProjectionMatrix();
+    return true;
+  }
+
   update(dt, sel) {
     if (this.mode === 'free') return; // tests place the camera themselves
     const follow = this.mode !== 'overview' && !!sel;
@@ -145,6 +154,20 @@ export class Cams {
 
   updateBase(dt, sel) {
     const c = this.camera, k = 1 - Math.exp(-dt * 6);
+    if (this.mode === 'crew') {
+      const S = this.crewS; S.t += dt;
+      if (S.t >= S.dur) { this.setMode(S.back); this.liveHd = undefined; }
+      else {
+        // a whip pan from the screen to the crew, then a slow push in
+        const u = S.t / S.dur, e = THREE.MathUtils.smoothstep(u, 0.12, 0.42);
+        c.position.copy(S.cam).lerp(S.crew, 0.12 * u);
+        this.look.copy(S.screen).lerp(S.crew, e);
+        c.lookAt(this.look);
+        const fov = c.aspect < 0.8 ? 66 : 48;
+        if (c.fov !== fov) { c.fov = fov; c.updateProjectionMatrix(); }
+        return;
+      }
+    }
     if (this.mode === 'drone') {
       const ps = this.droneIds.map((id) => this.world.carObjs.get(id)).filter(Boolean).map((o) => o.group.position);
       this.droneT -= dt;

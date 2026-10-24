@@ -55,20 +55,22 @@ export class Voice {
     }
     return this.buf.get(key);
   }
-  // parts: clip ids in order. prio calls jump the queue; anything older than 7 s is skipped.
+  // parts: clip ids in order. prio calls jump the queue; anything older than 9 s is skipped.
   say(parts, prio = false) {
     if (!this.id || !parts.length) return;
     parts.forEach((k) => this.load(k));
     const item = { parts, at: performance.now() };
     if (prio) this.q.unshift(item); else this.q.push(item);
-    if (this.q.length > 3) this.q.length = 3;
+    if (this.q.length > 5) this.q.length = 5;
     this.next();
   }
   stop() { this.q = []; }
+  // nothing playing or waiting, for the engineer's regular updates (they never push out a call)
+  idle() { return !!this.id && !this.busy && !this.q.length && performance.now() - (this.endAt || 0) > 1200; }
   async next() {
     if (this.busy) return;
     const item = this.q.shift(); if (!item) return;
-    if (performance.now() - item.at > 7000) return this.next();
+    if (performance.now() - item.at > 9000) return this.next();
     this.busy = true;
     try {
       const bufs = (await Promise.all(item.parts.map((k) => this.load(k)))).filter(Boolean);
@@ -82,7 +84,7 @@ export class Voice {
         await new Promise((res) => setTimeout(res, (t - x.currentTime) * 1000 + 250));
         this.duck?.(false);
       }
-    } finally { this.busy = false; }
+    } finally { this.busy = false; this.endAt = performance.now(); }
     this.next();
   }
   // the squelch at either end of a transmission

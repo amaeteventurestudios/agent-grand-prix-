@@ -106,7 +106,7 @@ function frame(now) {
     if (G.attractT > 9) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(cams.mode === 'live' ? 'tv' : 'live'); }
   }
   if (R && world) {
-    const showTags = cams.mode !== 'fpv' && cams.mode !== 'pit';
+    const showTags = cams.mode !== 'fpv' && cams.mode !== 'pit' && cams.mode !== 'crew';
     const focus = cams.mode === 'overview' ? cams.controls.target : cams.look;
     world.update(R, R.started && !G.paused ? clamp(G.acc / DT, 0, 1) : 1, dt, camera, G.attract && cams.mode === 'tv' ? null : G.sel, mine(), showTags,
       { speed: G.paused ? 0 : G.attract ? 1 : G.speed, focus, showRing: cams.mode !== 'fpv' });
@@ -256,6 +256,92 @@ function tick() {
   pitLine(R, f);
   boostBtn(R);
   coach(R);
+  engineer(R);
+}
+
+// ---------- the engineer in your ear ----------
+// Between the calls, the engineer keeps both drivers posted: every lap each car hears its position,
+// the gap ahead (or to a teammate), how the gap is moving, the car behind when it's close, and one of
+// tyres, battery, pace or laps to go. Mid-lap, a car in a fight hears the gap again. Rivals boxing
+// right ahead or behind get a call. These only play when the radio is quiet, so they never push out
+// a real call, and each car keeps only its newest update.
+const gapClip = (g) => (g < 3.05 ? 'n' + String(clamp(Math.round(g * 10), 1, 30)).padStart(2, '0') : g < 15.5 ? 's' + Math.round(g) : 's_big');
+const engState = () => (G.eng ||= { lap: new Map(), mid: new Map(), pend: new Map(), ia: new Map(), ib: new Map(), topic: 0, pits: new WeakSet() });
+function engineer(R) {
+  if (G.attract || G.ended || !R || !R.started || R.done || G.paused) return;
+  const E = engState();
+  const L = R.track.L;
+  for (const id of mine()) {
+    const c = R.byId.get(id); if (!c || c.dnf || c.finished) continue;
+    if (!E.lap.has(id)) E.lap.set(id, c.lapsDone);
+    if (c.lapsDone > E.lap.get(id)) { E.lap.set(id, c.lapsDone); E.pend.set(id, { kind: 'lap', at: performance.now() }); }
+    const frac = (((c.dist % L) + L) % L) / L;
+    if (frac > 0.5 && E.mid.get(id) !== c.lapsDone && c.lapsDone > 0) { E.mid.set(id, c.lapsDone); if (!E.pend.has(id)) E.pend.set(id, { kind: 'mid', at: performance.now() }); }
+    // a rival boxing right ahead or right behind
+    const ahead = R.order[c.pos - 2], behind = R.order[c.pos];
+    for (const [o, clip] of [[ahead, 'u_rival_pit'], [behind, 'u_rival_pit_b']]) {
+      if (o && !o.team.you && o.pit && o.pit.phase === 'in' && !E.pits.has(o.pit)) {
+        E.pits.add(o.pit);
+        if (Math.abs(o.gap - c.gap) < 6) say([carTag(id), clip]);
+      }
+    }
+  }
+  if (!voice.idle() || S.settings.sound === false || !voiceId()) return;
+  // the oldest waiting update, if it's still fresh
+  let best = null;
+  for (const [id, p] of E.pend) if (!best || p.at < best[1].at) best = [id, p];
+  if (!best) return;
+  const [id, p] = best; E.pend.delete(id);
+  if (performance.now() - p.at > 15000) return;
+  const parts = engUpdate(R, R.byId.get(id), p.kind, E);
+  if (parts) voice.say(parts);
+}
+function engUpdate(R, c, kind, E) {
+  if (!c || c.dnf || c.finished || c.pit) return null;
+  const ahead = R.order[c.pos - 2], behind = R.order[c.pos];
+  const ga = ahead && !ahead.dnf && !ahead.pit ? Math.max(0, c.interval) : null;
+  const gb = behind && !behind.dnf && !behind.pit && !behind.lapsDown ? Math.max(0, behind.interval) : null;
+  const pa = E.ia.get(c.id), pb = E.ib.get(c.id);
+  const parts = [carTag(c.id)];
+  const mateAhead = ahead && ahead.team.you, mateBehind = behind && behind.team.you;
+  if (kind === 'mid') {
+    // only worth a word when there's a fight on
+    if (ga !== null && ga < 1.3) {
+      parts.push(mateAhead ? 'u_mate_ahead' : 'u_ahead', gapClip(ga));
+      if (pa !== undefined && !mateAhead) parts.push(ga < pa - 0.15 ? 'u_catching' : ga > pa + 0.15 ? 'u_pulling' : null);
+    } else if (gb !== null && gb < 1.0) {
+      parts.push(mateBehind ? 'u_mate_behind' : 'u_behind', gapClip(gb));
+      if (pb !== undefined && !mateBehind && gb < pb - 0.15) parts.push('u_closing');
+    } else return null;
+    return parts.filter(Boolean);
+  }
+  // once a lap: position, the gap ahead and its trend, a close car behind, then one more thing
+  if (c.pos === 1) parts.push('u_leading'); else parts.push('p' + c.pos);
+  if (ga !== null && c.pos > 1) {
+    if (mateAhead && ga < 2.5) parts.push('u_mate_ahead');
+    else {
+      parts.push('u_ahead', gapClip(ga));
+      if (pa !== undefined) parts.push(ga < pa - 0.25 ? 'u_catching' : ga > pa + 0.25 && ga < 6 ? 'u_pulling' : null);
+    }
+  }
+  if (gb !== null && gb < 2.2) {
+    if (mateBehind) parts.push('u_mate_behind');
+    else { parts.push('u_behind', gapClip(gb)); if (pb !== undefined) parts.push(gb < pb - 0.25 ? 'u_closing' : gb > pb + 0.25 ? 'u_clearing' : null); }
+  } else if (c.pos === 1 && gb !== null) parts.push('u_behind', gapClip(gb));
+  if (ga !== null) E.ia.set(c.id, ga); if (gb !== null) E.ib.set(c.id, gb);
+  const togo = R.laps - c.lapsDone;
+  if (togo >= 2 && togo <= 10 && (togo <= 3 || c.lapsDone === Math.floor(R.laps / 2))) parts.push(togo <= 3 ? 'u_laps' + togo : 'u_half');
+  else {
+    const extras = [
+      () => (c.tyre.wear < 0.35 ? 'u_tyre_good' : c.tyre.wear < 0.62 ? 'u_tyre_ok' : 'u_tyre_worn'),
+      () => (c.ers > 0.95 ? 'u_bat_full' : c.ers < 0.15 ? 'u_bat_low' : null),
+      () => (c.lastLap && c.best < Infinity ? (c.lastLap < c.best * 1.004 ? 'u_pace' : c.lastLap > c.best * 1.02 && !R.sc && R.rain < 0.1 ? 'u_pace_slow' : null) : null),
+      () => (togo >= 4 && togo <= 10 ? 'u_laps' + togo : null),
+      () => (ga === null && gb === null ? 'u_clear' : null),
+    ];
+    for (let k = 0; k < extras.length; k++) { const x = extras[(E.topic + k) % extras.length](); if (x) { parts.push(x); E.topic = (E.topic + k + 1) % extras.length; break; } }
+  }
+  return parts.filter(Boolean);
 }
 
 // ERS boost: one tap deploys the battery for about 12 seconds, then back to what it was
@@ -498,7 +584,7 @@ $('#controls').addEventListener('click', (e) => {
   const t = e.target.closest('button'); if (!t || t.disabled) return;
   const R = G.race, id = G.mineSel || 'you-0';
   if (t.dataset.mine) { G.mineSel = t.dataset.mine; select(t.dataset.mine); return; }
-  if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); toast(c.auto ? `${c.code}: Autonomous. Your AI is in charge.` : `${c.code}: Team Principal. You're in charge.`); }
+  if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); say([carTag(id), c.auto ? 'c_auto' : 'c_manual']); toast(c.auto ? `${c.code}: Autonomous. Your AI is in charge.` : `${c.code}: Team Principal. You're in charge.`); }
   if (t.dataset.act === 'cancel') cmd({ box: null });
   if (t.dataset.box) cmd({ box: t.dataset.box });
   if (t.dataset.set) { const m = { pace: 'pace', ersMode: 'ers', battle: 'battle' }[t.dataset.set]; cmd({ [m]: t.dataset.val }); }
@@ -510,6 +596,9 @@ function cmd(c, id = G.mineSel || 'you-0') {
   if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); toast(`${car.code}: you took over the calls.`); }
   G.race.command(id, c);
   if (c.box) say([carTag(id), 'copy', 'b_' + c.box]);
+  else if ('box' in c) say([carTag(id), 'c_cancel']);
+  const set = c.pace || c.ers || c.battle;
+  if (set) say([carTag(id), 'c_' + set]);
   G.assisted = true;
   renderControls(true);
 }
@@ -545,6 +634,16 @@ function toast(text, hot) {
   d.textContent = text; if (hot) d.className = 'hot';
   box.append(d); while (box.children.length > 2) box.firstChild.remove();
   setTimeout(() => d.remove(), 3800);
+}
+// your crew in the garage watches the race on its screen: a place gained gets cheers (and, in Live,
+// a quick cut to them), a place lost gets hands on helmets
+let crewCutAt = -1e9;
+function crewReact(c, up, big = false) {
+  const pd = world?.paddock; if (!pd || !c) return;
+  pd.celebrate(up ? 'cheer' : 'despair', { code: c.code, from: up ? c.pos + 1 : c.pos - 1, to: c.pos }, big ? 7 : 4.5);
+  if (up) sound.roar(0.4);
+  const now = performance.now();
+  if (up && (big || now - crewCutAt > 22000) && cams.crewShot(pd.shot(), big ? 4.5 : 3.4)) crewCutAt = now;
 }
 // the TV director: cut to an aerial shot for a pit-exit battle or an incident, if you're watching Live
 let droneAt = -1e9;
@@ -601,10 +700,13 @@ function drainEvents() {
       if (e.kind === 'spin' || now - lastDnaSay > 25000) { lastDnaSay = now; say([carTag(e.car), 'd_' + e.kind], e.kind === 'spin'); }
     } else if (e.type === 'order' && (isMine || (e.other && my.includes(e.other)))) {
       addRadio({ from: 'engineer', text: e.text }); toast('📻 ' + e.text, true);
+      if (/lets .* through/.test(e.text)) say(['u_teamwork']);
     } else if (e.type === 'battle') {
       toast('🔥 ' + e.text, true); addRadio({ from: 'race', text: e.text });
       director([e.car, e.other], 12, true);
       sound.roar(0.5);
+      const hit = isMine ? e.car : e.other && my.includes(e.other) ? e.other : null;
+      if (hit) say([carTag(hit), 'u_fight']);
     } else if (e.type === 'pass' && (isMine || (e.other && my.includes(e.other)))) {
       toast(e.text, isMine); addRadio({ from: 'race', text: e.text });
       const both = isMine && e.other && my.includes(e.other), now = performance.now();
@@ -613,12 +715,13 @@ function drainEvents() {
         const who = isMine ? car : R.byId.get(e.other);
         say([carTag(who.id), isMine ? 'nice' : 'lost', 'p' + who.pos]);
       }
+      if (!both) crewReact(isMine ? car : R.byId.get(e.other), isMine);
     } else if (e.type === 'pass') {
       if (!lite || Math.random() < 0.5) toast(e.text);
       if (/for P[123]\b/.test(e.text)) sound.roar(0.55);
     } else if (e.type === 'fastest') {
       toast('⏱ ' + e.text); if (isMine) { addRadio({ from: 'race', text: e.text }); say([carTag(e.car), 'fastest']); }
-    } else if (e.type === 'mistake' && (isMine || car.pos <= 5)) toast(e.text);
+    } else if (e.type === 'mistake' && (isMine || car.pos <= 5)) { toast(e.text); if (isMine) { addRadio({ from: 'engineer', text: e.text }); say([carTag(e.car), 'u_mistake']); } }
   }
 }
 
@@ -889,7 +992,7 @@ function startRace(picks, auto) {
   const setup = setupRace({ venue: G.venue, seed: G.seed, team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon' });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
   world.setCars(G.race.cars);
-  G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; coachHide();
+  G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; coachHide();
   $('#radio').innerHTML = '';
   buildTower(); buildCard(); renderControls(true);
   $('#hud').hidden = false; $('#camPill').hidden = false;
@@ -1137,7 +1240,8 @@ window.__agp = {
     Object.assign(G, { kind, venue: v, seed: hashString((kind === 'daily' ? 'daily-' : 'quick-') + (kind === 'daily' ? n : v.id)), day: n, round: kind === 'season' ? S.season.round : null });
     startRace({}, false); lightsSequence(true);
   },
-  cam: setCam, tab: setTab, select, results, pre,
+  cam: setCam, tab: setTab, select, results, pre, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
+  voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
   car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
   info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr }),
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,

@@ -10,7 +10,16 @@ tyres, pit stops, battery, attack or defend, and the rain call. Static site, Thr
 Files: `js/data.js` (calendar, teams), `js/track.js` (original circuit generator), `js/sim.js` (deterministic 20 Hz race engine, Node-testable),
 `js/game.js` (race setup), `js/world.js` (3D world), `js/cams.js` (cameras), `js/main.js` (UI). `artifact.html` is `index.html` without the document wrapper, for the hosted preview.
 
-Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`.
+On track both of your cars carry a ring (the one you follow is brightest). The race engineer talks to
+your drivers all race (`js/main.js`, `engineer()`): every lap each car hears its position, the gap
+ahead and behind and whether it's closing, plus tyres, battery, pace or laps to go; a car in a fight
+hears the gap again mid-lap; every button you press is confirmed by voice. These updates only play
+when the radio is quiet, so real calls always come first. Radio lines are in `art/voice/lines.json`,
+recorded for all 13 voices by `art/voice/gen.py`. Your crew watches a live timing screen at the front
+of your garage (`js/paddock.js`) and celebrates places gained (with a quick cut to them in Live and TV
+view) or holds their helmets when one is lost; poses come from `art/people/people.py`.
+
+Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`.
 
 ## WhatsApp agent
 
