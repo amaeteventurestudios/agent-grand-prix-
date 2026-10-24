@@ -140,8 +140,9 @@ export class Sound {
       const sel = c.id === selId, cockpit = mode === 'fpv' && sel;
       if (v.dPrev !== null && !paused) v.vr += ((d - v.dPrev) / dtA - v.vr) * Math.min(1, dtA * 10);
       v.dPrev = d;
+      if (!Number.isFinite(v.vr)) v.vr = 0;   // a camera jump can leave a bad value; never pass one to Web Audio
       const dop = cockpit || paused ? 1 : Math.max(0.72, Math.min(1.3, C_SOUND / (C_SOUND + v.vr)));
-      const fc = rpm / 120 * pitch * dop * (c.ersMode === 'deploy' ? 1.01 : 1);   // one engine cycle
+      const fc = (Number.isFinite(rpm) ? rpm : IDLE) / 120 * pitch * dop * (c.ersMode === 'deploy' ? 1.01 : 1);   // one engine cycle
       v.o1.frequency.setTargetAtTime(fc, t, 0.03);
       v.o2.frequency.setTargetAtTime(fc, t, 0.03);
       v.pulse.frequency.setTargetAtTime(fc * 6, t, 0.03);
@@ -159,11 +160,12 @@ export class Sound {
       vol *= 0.55 + 0.45 * load;
       if (v.cut > 0) vol *= 0.3;
       if (paused) vol = 0;
+      if (!Number.isFinite(vol)) vol = 0;
       v.out.gain.setTargetAtTime(vol, t, v.cut > 0 ? 0.008 : 0.05);
       v.send.gain.setTargetAtTime(cockpit ? 0.05 : 0.5 * Math.min(1, d / 40), t, 0.1);
       if (v.pan) {
         const dx = p.x - cp.x, dz = p.z - cp.z, dl = Math.hypot(dx, dz) || 1;
-        v.pan.pan.setTargetAtTime(cockpit ? 0 : Math.max(-0.9, Math.min(0.9, (dx * rx + dz * rz) / dl)), t, 0.05);
+        v.pan.pan.setTargetAtTime(cockpit ? 0 : Math.max(-0.9, Math.min(0.9, (dx * rx + dz * rz) / dl || 0)), t, 0.05);
       }
     }
     for (const v of this.voices) if (!v.id) v.out.gain.setTargetAtTime(0, t, 0.08);

@@ -7,7 +7,7 @@
 // metres, style plus a glass tint between the two glass colours as its fraction (2.5 = style 2,
 // halfway tint), and the height of the first floor line. Styles:
 //   0 plain wall, 1 glass curtain wall, 2 punched windows in a painted wall, 3 balconies,
-//   4 glass with a lit edge (neon) at night.
+//   4 glass with a lit edge (neon) at night, 5 punched windows in a painted wall with neon.
 // Roofs (faces pointing up) always show the plain wall colour.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
@@ -65,7 +65,7 @@ export function facadeMaterial(pal, { glass = '#2c4a66', glass2 = glass, lit = 0
             vec2 f = vec2(fract(u / ww), fract(v / vFac.y));
             // how much of this point is glass: curtain walls are nearly all glass, punched windows less
             float glass;
-            if (style < 1.5 || style > 3.5) {
+            if (style < 1.5 || (style > 3.5 && style < 4.5)) {
               float mull = step(0.06, f.x) * step(f.x, 0.94);
               float band = step(0.16, f.y);
               glass = mull * band;
@@ -76,7 +76,7 @@ export function facadeMaterial(pal, { glass = '#2c4a66', glass2 = glass, lit = 0
             // far away the grid gets finer than a pixel: fade it to its average so it doesn't shimmer
             vec2 fw = fwidth(vec2(u / ww, v / vFac.y));
             float aa = clamp(max(fw.x, fw.y) * 2.5 - 0.6, 0.0, 1.0);
-            glass = mix(glass, (style < 1.5 || style > 3.5) ? 0.8 : 0.32, aa);
+            glass = mix(glass, (style < 1.5 || (style > 3.5 && style < 4.5)) ? 0.8 : 0.32, aa);
             if (style > 2.5 && style < 3.5) {
               // balconies: a pale slab and a shadow under it on every floor
               float slab = step(f.y, 0.12);

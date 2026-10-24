@@ -14,11 +14,13 @@ const B = {
   alpine:  { ground: '#7d9c62', verge: '#6d8f56', soil: '#7d6a55' },
   tundra:  { ground: '#8a9c78', verge: '#7b8f6c', soil: '#6f6a60' },
   volcanic:{ ground: '#7aa055', verge: '#6a9249', soil: '#4b4440' },
+  sahel:   { ground: '#bfb37a', verge: '#a9a865', soil: '#b5623c' },
+  moss:    { ground: '#6f8f5a', verge: '#5f7f4e', soil: '#3f3d3a' },
 };
 
 // time: day | dusk | night | midnight (low summer sun)
 // water: none | coast | lagoon | river | harbour
-// trees: palm | pine | round | acacia | mixed | none
+// trees: palm | pine | round | acacia | baobab | cherry | mixed | tropical | sahel | none
 // hills: none | low | hills | peaks | snow | alps
 // rain: chance of at least one shower during the race; storm: how heavy it can get
 export const CALENDAR = [
@@ -47,7 +49,7 @@ export const CALENDAR = [
     city01: .15, hills: 'hills', landmark: 'wheel', temp: 20, rain: .45, storm: .9, wear: 1.05,
     note: 'Flowing corners in green hills, a big wheel over the paddock, and typhoon-season rain.' },
   { id: 'shanghai', city: 'Shanghai', country: 'China', flag: '🇨🇳', region: 'East Asia',
-    circuit: 'Huangpu Circuit', biome: 'city', time: 'day', water: 'river', trees: 'round', treeDensity: .4,
+    circuit: 'Huangpu Circuit', biome: 'city', time: 'night', water: 'river', trees: 'round', treeDensity: .4,
     city01: 1, hills: 'none', temp: 21, rain: .35, storm: .6, wear: 1.05,
     note: 'Wide riverside layout with the skyline on the far bank.' },
   { id: 'kingston', city: 'Kingston', country: 'Jamaica', flag: '🇯🇲', region: 'Caribbean',
@@ -130,6 +132,26 @@ const EXTRA = [
     circuit: 'Lagoon City Circuit', biome: 'tropic', time: 'dusk', water: 'lagoon', trees: 'tropical', treeDensity: .7,
     city01: 1, hills: 'none', landmark: 'lagos', street: true, temp: 31, rain: .45, storm: .8, wear: 1.1,
     note: 'Golden hour on the lagoon: a white cable-stayed bridge, the causeway traffic and the island towers across the water.' },
+  { id: 'dakar', city: 'Dakar', country: 'Senegal', flag: '🇸🇳', region: 'West Africa',
+    circuit: 'Corniche Circuit', biome: 'sahel', time: 'day', water: 'coast', trees: 'sahel', treeDensity: .45,
+    city01: .75, hills: 'none', landmark: 'dakar', temp: 29, rain: .15, storm: .5, wear: 1.05,
+    note: 'Along the Atlantic corniche: red cliffs and surf, baobabs over the track and a lighthouse on the headland.' },
+  { id: 'nairobi', city: 'Nairobi', country: 'Kenya', flag: '🇰🇪', region: 'East Africa',
+    circuit: 'Highlands Circuit', biome: 'savanna', time: 'day', water: 'none', trees: 'acacia', treeDensity: .6,
+    city01: .8, hills: 'hills', landmark: 'nairobi', temp: 24, rain: .4, storm: .6, wear: .95, grip: .99,
+    note: 'Flat-topped acacias, the city on its ridge and a snow-capped peak far away. Thin air at 1,700 m.' },
+  { id: 'capetown', city: 'Cape Town', country: 'South Africa', flag: '🇿🇦', region: 'Southern Africa',
+    circuit: 'Table Bay Circuit', biome: 'temper', time: 'day', water: 'harbour', trees: 'mixed', treeDensity: .5,
+    city01: .6, hills: 'none', landmark: 'tablemountain', temp: 22, rain: .25, storm: .5, wear: 1,
+    note: 'Under the flat top of Table Mountain, past painted houses and the harbour. The wind off the bay is strong.' },
+  { id: 'tokyo', city: 'Tokyo', country: 'Japan', flag: '🇯🇵', region: 'East Asia',
+    circuit: 'Bay Lights Circuit', biome: 'city', time: 'dusk', water: 'harbour', trees: 'cherry', treeDensity: .35,
+    city01: 1, hills: 'none', landmark: 'tokyo', street: true, temp: 18, rain: .75, storm: .7, wear: .95,
+    note: 'Neon and rain at dusk, under the red lattice tower and the stacked expressways.' },
+  { id: 'iceland', city: 'Reykjanes', country: 'Iceland', flag: '🇮🇸', region: 'Europe',
+    circuit: 'Basalt Coast Circuit', biome: 'moss', time: 'day', water: 'coast', trees: 'none', treeDensity: 0,
+    city01: .15, hills: 'snow', landmark: 'iceland', temp: 8, rain: .55, storm: .6, wear: .7, grip: .98,
+    note: 'Black basalt columns, moss, a glacier in the mist and sea stacks in the surf. Cold track, low grip.' },
   { id: 'newdelhi', city: 'New Delhi', country: 'India', flag: '🇮🇳', region: 'South Asia',
     circuit: 'Yamuna Circuit', biome: 'park', time: 'day', water: 'river', trees: 'round', treeDensity: .75,
     city01: .9, hills: 'none', temp: 31, rain: .3, storm: .8, wear: 1.1,
@@ -139,7 +161,7 @@ const EXTRA = [
     city01: .3, hills: 'snow', temp: 18, rain: .35, storm: .6, wear: .85,
     note: 'Between the Black Sea and the snowy Caucasus. Smooth tarmac, gentle on tyres.' },
   { id: 'miami', city: 'Miami', country: 'USA', flag: '🇺🇸', region: 'North America',
-    circuit: 'Biscayne Bay Circuit', biome: 'tropic', time: 'day', water: 'harbour', trees: 'palm', treeDensity: .8,
+    circuit: 'Biscayne Bay Circuit', biome: 'tropic', time: 'night', water: 'harbour', trees: 'palm', treeDensity: .8,
     city01: .9, hills: 'none', landmark: 'yachts', temp: 30, rain: .45, storm: .9, wear: 1.1,
     note: 'Palms, yachts and towers on the bay. Steamy, with thunderstorms that build by the afternoon.' },
   { id: 'austin', city: 'Austin', country: 'USA', flag: '🇺🇸', region: 'North America',

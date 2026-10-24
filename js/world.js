@@ -11,7 +11,7 @@ import { Fleet, loadCar } from './cars.js';
 import { Stands, sweep } from './env.js';
 import { towerShapes, facadeMaterial, streetLamps } from './kit.js';
 import { treeGeo, mountainGeo, Boats, Clouds, rocks } from './nature.js';
-import { lagos } from './landmarks.js';
+import { lagos, dakar, nairobi, capeTown, tokyo, iceland, singapore, shanghai, miami, lasVegas } from './landmarks.js';
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
@@ -190,7 +190,10 @@ export class World {
     this.sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
     this.sky.renderOrder = -1;
     scene.add(this.sky);
-    scene.fog = new THREE.Fog(P.fog, 1400, 5200);
+    // Iceland sits in sea mist
+    const misty = venue.id === 'iceland';
+    this.fogBase = misty ? ['#cdd6dc', 420, 3200] : [P.fog, 1400, 5200];
+    scene.fog = new THREE.Fog(...this.fogBase);
 
     // lights
     this.hemi = new THREE.HemisphereLight(P.sky, P.gnd, P.hemi);
@@ -595,7 +598,7 @@ export class World {
     const free = (x, z, d) => this.dist(x, z) > d && !this.kept(x, z) && this.land(x, z) > 8 && !this.onRoad(x, z);
     // trees
     if (V.trees !== 'none' && V.treeDensity > 0) {
-      const types = V.trees === 'mixed' ? ['pine', 'round'] : V.trees === 'tropical' ? ['palm', 'round'] : [V.trees];
+      const types = { mixed: ['pine', 'round'], tropical: ['palm', 'round'], sahel: ['baobab', 'acacia'], cherry: ['cherry', 'round'] }[V.trees] || [V.trees];
       // near the track (where the cameras are) the detailed tree, further out the light one
       const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
       const nearD = T.half + this.runoff + (this.lite ? 90 : 150);
@@ -632,13 +635,13 @@ export class World {
       const shapes = towerShapes(this.lite), kinds = Object.keys(shapes);
       const lists = Object.fromEntries(kinds.map((k) => [k, []]));
       const neonCity = this.pal.lamps && ['lasvegas', 'singapore', 'shanghai', 'miami', 'suzuka', 'baku', 'jeddah', 'abudhabi', 'kualalumpur'].includes(V.id);
-      const desert = V.biome === 'desert' || V.biome === 'dunes';
+      const desert = V.biome === 'desert' || V.biome === 'dunes' || V.biome === 'sahel';
       let k = 0, guard = 0;
       const a0 = this.waterDir ? Math.atan2(this.waterDir[1], this.waterDir[0]) : r() * Math.PI * 2;
       const across = this.farBank !== undefined;
       this.cityAngle = across ? a0 : (V.water !== 'none' ? a0 + Math.PI : a0);
       const towerWalls = ['#f2f3f5', '#d9dde3', '#e8e2d6', '#c9ced6', '#eef0f2', '#bfc6cf'];
-      const townWalls = desert ? ['#e9dcc3', '#dccaa6', '#f1e7d4', '#cdb894', '#e3d2b5'] : ['#ffffff', '#f3ece0', '#f6e3b8', '#e9c9b4', '#cfe3e8', '#e6efd9', '#f4d6d0', '#fff6e8', '#d8e1ef'];
+      const townWalls = V.id === 'capetown' ? ['#f2a7c3', '#9fd36a', '#7ec8e3', '#f7d55a', '#5fd0b8', '#c79be8', '#ff9f6b', '#ffffff'] : desert ? ['#e9dcc3', '#dccaa6', '#f1e7d4', '#cdb894', '#e3d2b5'] : ['#ffffff', '#f3ece0', '#f6e3b8', '#e9c9b4', '#cfe3e8', '#e6efd9', '#f4d6d0', '#fff6e8', '#d8e1ef'];
       let town = false;
       const roofs = [], roofTones = ['#b4533a', '#c8693f', '#3f6fa6', '#2f8a58', '#8a3b34', '#d9d2c4'], tops = [];
       while (k < nB && guard++ < nB * 40) {
@@ -812,7 +815,9 @@ export class World {
     const toward = this.waterDir ? Math.atan2(this.waterDir[1], this.waterDir[0]) : undefined;
     const vc = (g, f) => { const p = g.attributes.position, c = new Float32Array(p.count * 3), cc = new THREE.Color(); for (let i = 0; i < p.count; i++) { f(cc, p.getX(i), p.getY(i), p.getZ(i)); c[i * 3] = cc.r; c[i * 3 + 1] = cc.g; c[i * 3 + 2] = cc.b; } g.setAttribute('color', new THREE.BufferAttribute(c, 3)); if (g.attributes.uv) g.deleteAttribute('uv'); return g; };
     if (V.id === 'abuja') this.millennium(r);
-    if (lm === 'lagos') this.landmarks = lagos(this, r);
+    const LM = { lagos, dakar, nairobi, tablemountain: capeTown, tokyo, iceland }, BY = { singapore, shanghai, miami, lasvegas: lasVegas };
+    const fn = LM[lm] || BY[V.id];
+    if (fn) this.landmarks = fn(this, r);
     if (V.id === 'kigali') this.dome(r);
     if (lm === 'asorock') {
       // a huge granite dome, streaked darker where rain runs down it
@@ -1030,8 +1035,9 @@ export class World {
       this.skyCols[i * 3] = c.r; this.skyCols[i * 3 + 1] = c.g; this.skyCols[i * 3 + 2] = c.b;
     }
     this.skyGeo.attributes.color.needsUpdate = true;
-    this.scene.fog.color.copy(col(P.fog).lerp(grey, k));
-    this.scene.fog.near = 1400 - 1150 * k; this.scene.fog.far = 5200 - 3900 * k;
+    const [fc, fn, ff] = this.fogBase;
+    this.scene.fog.color.copy(col(fc).lerp(grey, k));
+    this.scene.fog.near = fn * (1 - 0.82 * k); this.scene.fog.far = ff * (1 - 0.75 * k);
     this.sun.intensity = P.sunI * (1 - 0.65 * k);
     this.hemi.intensity = P.hemi * (1 - 0.2 * k);
     this.trackMat.shininess = 8 + 80 * wet;
