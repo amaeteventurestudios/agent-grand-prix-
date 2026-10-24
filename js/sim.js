@@ -8,6 +8,7 @@
 // Team Principal mode only gets advice, and the human makes the calls.
 import { rng, clamp } from './rng.js';
 import { COMPOUNDS, POINTS } from './data.js';
+import { driverPlan } from './track.js';
 
 export const DT = 0.05;
 const LOOP = 25; // timing loop spacing, m
@@ -70,6 +71,8 @@ export class Race {
   constructor(opts) {
     Object.assign(this, { track: opts.track, venue: opts.venue, seed: opts.seed, laps: opts.laps });
     this.r = rng(opts.seed);
+    // Driver DNA's own risks draw from a separate stream, so they never shift the race's other dice
+    this.rd = rng((opts.seed ^ 0x5eed1234) >>> 0);
     this.t = 0; this.tick = 0;
     this.weather = opts.weather;
     this.rain = 0; this.wet = this.weather.wet0;
@@ -100,7 +103,10 @@ export class Race {
         mismatch: 0, plan: null, think: this.r.range(0, 1), advised: {},
         speedMul: 1 - 0.045 * (1 - traits.pace), wobble: 1, penalty: 0,
         failing: null, puncture: false, cleared: false, onTrackStop: false,
+        dna: e.dna || null, dnaHash: e.dna ? e.dna.hash : null, sv: null, lastTurn: -1, pressT: 0,
+        tele: { lockups: 0, wides: 0, spins: 0, att: 0, contacts: 0, mistakes: 0, wearSum: 0, dist: 0 },
       };
+      car.sv = driverPlan(T, car.dna).v;
       car.latT = car.lat; car.prevDist = car.dist; car.prevLat = car.lat;
       car.plan = this.planStops(car);
       return car;
@@ -154,7 +160,8 @@ export class Race {
     if (order === 'swap') {
       const [front, back] = car.dist >= m.dist ? [car, m] : [m, car];
       if (front.dnf || back.dnf || front.pit || back.pit || front.dist - back.dist > this.track.L * 0.08) return false;
-      front.letBy = { id: back.id, t: 30 };
+      const obey = front.dna ? front.dna.obey : 1;
+      front.letBy = { id: back.id, t: 30, wait: 4 * Math.max(0, 1 - obey), slow: 0.94 - 0.03 * Math.max(0, obey - 1) };
       this.emit('order', `Team orders: ${front.code} lets ${back.code} through.`, front, { other: back.id });
       return true;
     }
@@ -200,13 +207,19 @@ export class Race {
       f *= 1 + 0.015 * clamp(car.dist / (this.laps * L), 0, 1); // fuel burn
       if (car.pace === 'push') f *= 1.008; else if (car.pace === 'save') f *= 0.99;
       if (car.battle === 'defend') f *= 0.998;
+      const d = car.dna;
+      if (d) {
+        f *= d.pace;                                                   // tyre care costs a little pace
+        if (w > 0) f *= 1 + (d.wetPace - 1) * w;                       // wet confidence
+        if (car.pressT > 0) f *= d.defendCost;                         // covering the car behind
+      }
       // battery
       let boost = 1;
       if (car.ersMode === 'deploy' && str && car.ers > 0) { boost = 1.03; car.ers -= 0.035 * dt; }
-      else if (car.ersMode === 'balanced' && str && car.ers > 0) { boost = 1.01; car.ers -= 0.011 * dt; }
+      else if (car.ersMode === 'balanced' && str && car.ers > 0) { const k = d ? d.deploy : 1; boost = 1 + 0.01 * k; car.ers -= 0.011 * k * dt; }
       else if (car.ersMode === 'harvest') { boost = 0.994; car.ers += 0.016 * dt; }
       car.ers = clamp(car.ers + (str ? 0 : 0.008 * dt), 0, 1);
-      let vt = T.v[i] * f * boost;
+      let vt = car.sv[i] * f * boost;
       if (car.finished) vt *= 0.55;
       car.vt = vt;
       if (car.mistakeT > 0) { car.mistakeT -= dt; vt = Math.min(vt, car.mistakeV); }
@@ -228,6 +241,7 @@ export class Race {
         if (d < dS && d < 60) { dS = d; ahead = o; }
       }
       car.ahead = ahead; car.dS = dS;
+      if (ahead && dS < 20) ahead.pressT = 1;   // someone is right behind: a defender covers
       if (!ahead) { car.drs = false; continue; }
       const str = T.straight[i];
       // slipstream and the overtaking aid inside 30 m on straights
@@ -239,12 +253,12 @@ export class Race {
         const lapped = ahead.dist + L * 0.5 < car.dist;
         if (lapped) {
           ahead.yieldT = 3; ahead.yieldSide = car.lat > 0 ? -1 : 1;
-        } else if (ahead.letBy && ahead.letBy.id === car.id && !car.pass && !ahead.pass && !this.sc && dS < 16) {
+        } else if (ahead.letBy && ahead.letBy.id === car.id && !(ahead.letBy.wait > 0) && !car.pass && !ahead.pass && !this.sc && dS < 16) {
           // a team order: the car in front backs off and leaves the other side open
           const room = T.half - 1.6, side = ahead.lat > 0 ? -1 : 1;
           car.pass = { id: ahead.id, side, lane: clamp(ahead.lat + side * CAR_W * 1.18, -room, room), t: 9 };
           ahead.hold = { lat: ahead.lat, t: 10, by: car.id };
-        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < 13 && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')
+        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < (car.dna ? car.dna.passGap : 13) && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')
           && !(car.order === 'hold' && ahead.team.id === car.team.id)) {
           // most moves are made on the straights; with Attack or a boost a driver will also dive down the inside into a corner
           let p = 0.11 * (0.6 + car.traits.aggro) * clamp((car._vt - ahead.v) / 2, 0.25, 2);
@@ -252,6 +266,12 @@ export class Race {
           if (car.battle === 'attack') p *= 1.7;
           if (car.ersMode === 'deploy' && car.ers > 0.05) p *= 1.4;
           if (ahead.battle === 'defend') p *= 0.45;
+          // Driver DNA: eagerness, corners or straights, the other's defending, teammates
+          if (car.dna) {
+            p *= car.dna.passP; if (!str) p *= Math.max(0.2, car.dna.cornerPass);
+            if (ahead.team.id === car.team.id) p *= car.dna.coop > 0 ? 1 - 0.8 * car.dna.coop : 1 - 0.5 * car.dna.coop;
+          }
+          if (ahead.dna && ahead.dna.defend > 0) p *= 1 - ahead.dna.defend;
           if (this.venue.street) p *= 0.5;
           if (r() < p) {
             // pull out to whichever side has room for a whole car
@@ -261,6 +281,7 @@ export class Race {
             if (Math.abs(ahead.lat + side * CAR_W * 1.18) > room) side = -side;
             const lane = clamp(ahead.lat + side * CAR_W * 1.18, -room, room);
             if (Math.abs(lane - ahead.lat) >= CAR_W) {
+              car.tele.att++;
               car.pass = { id: ahead.id, side, lane, t: 9 };
               ahead.hold = { lat: ahead.lat, t: 10, by: car.id };
             }
@@ -280,7 +301,8 @@ export class Race {
       const m = this.byId.get(car.letBy.id);
       car.letBy.t -= DT;
       if (!m || m.dnf || m.pit || car.letBy.t <= 0 || m.dist > car.dist + CAR_L * 1.5) { car.letBy = null; continue; }
-      if (car.dist - m.dist < 60) car._vt *= 0.94;
+      if (car.letBy.wait > 0) { car.letBy.wait -= DT; continue; }   // a reluctant driver takes a moment
+      if (car.dist - m.dist < 60) car._vt *= car.letBy.slow ?? 0.94;
     }
 
     // a car making a move: alongside it gets a run on the other (the tow, its battery and its nerve);
@@ -325,6 +347,8 @@ export class Race {
       if (car.pace === 'push') wr *= 1.5; else if (car.pace === 'save') wr *= 0.65;
       if (car.battle === 'attack') wr *= 1.1;
       wr *= 1.25 - 0.45 * car.traits.tyre;
+      if (car.dna) wr *= car.dna.wear;
+      car.tele.wearSum += wr; car.tele.dist += car.v * dt;
       if (car.tyre.c === 'I') wr *= 1 + Math.max(0, 0.25 - w) * 12;
       if (car.tyre.c === 'W') wr *= 1 + Math.max(0, 0.45 - w) * 11;
       car.tyre.wear = Math.min(1.05, car.tyre.wear + wr);
@@ -341,7 +365,8 @@ export class Race {
         const os = ((o.dist % L) + L) % L; let d = s0 - os; if (d < -L / 2) d += L; if (d > L / 2) d -= L;
         if (!car.pass.contactChecked && Math.abs(d) < 2 && !o.pit && !o.dnf) {
           car.pass.contactChecked = true;
-          const pc = 0.012 * (car.battle === 'attack' ? 1.6 : 1) * (o.battle === 'defend' ? 1.5 : 1) * (1 + 3 * w) * (this.venue.street ? 1.6 : 1);
+          const pc = 0.012 * (car.battle === 'attack' ? 1.6 : 1) * (o.battle === 'defend' ? 1.5 : 1) * (1 + 3 * w) * (this.venue.street ? 1.6 : 1)
+            * (car.dna ? car.dna.contact : 1) * (o.dna ? o.dna.contact : 1);
           if (this.r() < pc) { this.contact(car, o); car.pass = null; }
         }
         // out of time and still alongside: back off and tuck in behind rather than turn in on it
@@ -366,6 +391,13 @@ export class Race {
       car.lat += clamp(latT - car.lat, -rate * dt, rate * dt);
       // mistakes
       if (!car.pit && !T.straight[i] && car.mistakeT <= 0 && !car.finished) this.maybeMistake(car, w, i);
+      if (car.pressT > 0) car.pressT -= dt;
+      // Driver DNA: each corner, the risks a driver's style takes
+      if (car.dna) {
+        const n = T.turnAt[i];
+        if (n < 0) car.lastTurn = -1;
+        else if (n !== car.lastTurn) { car.lastTurn = n; if (!car.pit && !car.finished && car.mistakeT <= 0 && car.dist > 0 && !this.sc) this.dnaCorner(car, n, w); }
+      }
       if (!car.pit && !car.finished && !car.failing && car.dist > 0) this.reliability(car, dt);
       // pit entry
       const s1 = ((car.dist % L) + L) % L;
@@ -418,7 +450,7 @@ export class Race {
           if (!first && (car.player || this.lapOf(car) > this.laps / 2)) this.emit('fastest', `Fastest lap: ${car.code}, ${fmtLap(lapT)}`, car);
         }
       }
-      car.wobble = 1 + this.r.range(-0.0025, 0.0025);
+      car.wobble = 1 + this.r.range(-0.0025, 0.0025) * (car.dna ? car.dna.variance : 1);
       if (car.finished) return;
       if (this.flag) { this.finishCar(car); return; }
       if (ln >= this.laps) {
@@ -518,6 +550,25 @@ export class Race {
     return new Set(car.used).size >= 2;
   }
 
+  // A corner's risks for a driver with DNA: braking late can lock a wheel, a committed line can run
+  // wide, confidence in the wet can spin. Each event names the settings behind it.
+  dnaCorner(car, n, w) {
+    const d = car.dna, r = this.rd, P = car.dnaProfile ? car.dnaProfile.params : null;
+    const worn = 1 + car.tyre.wear;
+    const why = (keys) => keys.filter((k) => P && P[k] > 55).sort((a, b) => P[b] - P[a]);
+    if (d.lockup > 0 && r() < 0.02 * d.lockup * worn) {
+      car.mistakeT = 1.4; car.mistakeV = car.v * 0.7; car.tyre.wear = Math.min(1.05, car.tyre.wear + 0.02); car.tele.lockups++;
+      this.emit('dna', `${car.code} locks up into Turn ${n + 1}.`, car, { kind: 'lockup', turn: n + 1, keys: why(['late_braking', 'entry_speed']) });
+    } else if (d.wide > 0 && r() < 0.016 * d.wide * worn) {
+      const big = r() < 0.2;   // now and then it's a proper trip across the run-off
+      car.mistakeT = big ? 2.2 : 1.5; car.mistakeV = big ? 10 : car.v * 0.66; car.offT = big ? 1.8 : 0.9; car.offSide = Math.sign(this.track.k[this.track.apex[n]]) > 0 ? -1 : 1; car.tele.wides++;
+      this.emit('dna', `${car.code} runs wide at Turn ${n + 1}.`, car, { kind: 'wide', turn: n + 1, keys: why(['corner_commitment', 'kerb_usage', 'entry_speed']) });
+    } else if (w > 0.2 && d.wetRisk > 0 && r() < 0.02 * d.wetRisk * w) {
+      car.mistakeT = 2.0; car.mistakeV = 12; car.offT = 1.4; car.offSide = 1; car.tele.spins++;
+      this.emit('dna', `${car.code} spins at Turn ${n + 1} on the wet track.`, car, { kind: 'spin', turn: n + 1, keys: why(['wet_confidence', 'throttle_aggression']) });
+    }
+  }
+
   maybeMistake(car, w, i) {
     let p = 0.00006;
     if (car.tyre.wear > 0.8) p *= 4;
@@ -526,7 +577,9 @@ export class Race {
     if (car.pace === 'push') p *= 1.8;
     if (car.battle === 'attack') p *= 1.3;
     p *= 1.4 - 0.6 * (w > 0.3 ? car.traits.wet : car.traits.pace);
+    if (car.dna) p *= car.dna.mistakes;
     if (this.r() > p) return;
+    car.tele.mistakes++;
     const big = this.r() < 0.22;
     if (big) {
       car.mistakeT = 2.2; car.mistakeV = 9;
@@ -577,7 +630,7 @@ export class Race {
       other.mistakeT = 1.5; other.mistakeV = other.v * 0.6;
       if (!other.puncture && r() < 0.4) { other.puncture = true; other.pitReq ||= isDry(other.tyre.c) ? this.dryChoice(other) : other.tyre.c; this.emit('incident', `${other.code} has a puncture after the contact.`, other); }
     } else {
-      for (const c of [car, o]) { c.mistakeT = 1.6; c.mistakeV = c.v * 0.55; c.offT = 1.2; c.offSide = c.lat >= 0 ? 1 : -1; }
+      for (const c of [car, o]) { c.mistakeT = 1.6; c.mistakeV = c.v * 0.55; c.offT = 1.2; c.offSide = c.lat >= 0 ? 1 : -1; c.tele.contacts++; }
       this.emit('incident', `Contact! ${car.code} and ${o.code} touch wheels and both go wide.`, car, { other: o.id });
     }
   }
@@ -683,7 +736,7 @@ export class Race {
     const w = this.wet, c = car.tyre.c, left = this.lapsLeft(car);
     const want = idealCompound(w);
     let call = null, why = '';
-    const delay = 3 + (1 - car.traits.brain) * 22;
+    const delay = (3 + (1 - car.traits.brain) * 22) * (car.dna ? car.dna.changeDelay : 1);
     if (want && isDry(c)) {
       car.mismatch += 1;
       if (car.mismatch > delay && left > 0) { call = want; why = w > 0.7 ? 'The track is soaked. Full wets.' : 'It\'s wet out here. Inters.'; }

@@ -2,7 +2,9 @@
 import { VENUES, TEAMS } from './data.js';
 import { hashString } from './rng.js';
 import { generateTrack } from './track.js';
-import { Race, makeWeather, qualify, lapsFor } from './sim.js';
+import { Race, qualify, lapsFor } from './sim.js';
+import { simInputs, slotOf } from './dna.js';
+import { weatherFor } from './weather.js';
 
 export const EPOCH = Date.UTC(2026, 9, 23); // Daily Grand Prix #1: 23 October 2026, Abuja
 
@@ -40,14 +42,17 @@ export function roster(team, withPlayer = true) {
   return entries;
 }
 
-export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false }) {
+// dna: the locked Driver DNA profiles for your two cars ({ car1, car2 }, see js/dna.js), or none
+// for the engine's own behaviour. weather: a weather source id (js/weather.js).
+export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated' }) {
   const track = trackFor(venue);
   const L = laps || lapsFor(track);
   const entries = roster(team, withPlayer);
   for (const e of entries) {
     if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; }
+    if (e.team.you && dna) { const p = dna[slotOf(e.id)]; e.dna = simInputs(p); e.dnaProfile = p; }
   }
   const grid = qualify(entries, venue, seed);
-  const weather = makeWeather(venue, seed, L * track.lapTime * 1.1);
+  const weather = weatherFor(source, venue, seed, L * track.lapTime * 1.1);
   return { track, laps: L, grid, weather, make: () => new Race({ track, venue, seed, laps: L, grid, weather }) };
 }

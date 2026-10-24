@@ -1,11 +1,15 @@
-// The race engineer's voice: short lines recorded once with Kokoro (art/voice/gen.py), joined
+// The race engineer's voice: short lines recorded once with Kokoro and Piper (art/voice/gen.py), joined
 // into calls like "Car two. These tyres are finished. Box for mediums?" and played through a
-// radio filter with a squelch click. Clips load on first use; stale calls are dropped.
+// radio filter with a squelch click. Each voice is one file of clips (assets/voice/<id>.js), loaded
+// when the voice is picked; a clip is decoded on first use. Stale calls are dropped.
 export const VOICES = [
-  { id: 'michael', name: 'Michael', note: 'American' },
-  { id: 'george', name: 'George', note: 'British' },
-  { id: 'heart', name: 'Heart', note: 'American' },
-  { id: 'emma', name: 'Emma', note: 'British' },
+  { id: 'michael', name: 'Michael', note: 'American' }, { id: 'george', name: 'George', note: 'British' },
+  { id: 'lewis', name: 'Lewis', note: 'British' }, { id: 'daniel', name: 'Daniel', note: 'British' },
+  { id: 'fable', name: 'Fable', note: 'British' }, { id: 'nicola', name: 'Nicola', note: 'Italian' },
+  { id: 'alex', name: 'Alex', note: 'Spanish' }, { id: 'santa', name: 'Santa', note: 'Spanish' },
+  { id: 'alexpt', name: 'Alex', note: 'Portuguese' }, { id: 'santapt', name: 'Santa', note: 'Portuguese' },
+  { id: 'thorsten', name: 'Thorsten', note: 'German' }, { id: 'ronnie', name: 'Ronnie', note: 'Dutch' },
+  { id: 'gilles', name: 'Gilles', note: 'French' },
 ];
 const COMMON = ['car1', 'car2', 'q_S', 'q_M', 'q_H', 'q_I', 'q_W', 'b_S', 'b_M', 'b_H', 'w_window', 'w_finished', 'lights', 'nice', 'lost', 'goodstop', 'k_chase', 'k_defend', 'k_team'];
 
@@ -32,12 +36,22 @@ export class Voice {
     }
     return this.ctx;
   }
+  pack() {
+    const id = this.id;
+    this.packs ||= new Map();
+    if (!this.packs.has(id)) this.packs.set(id, import(`../${this.base}${id}.js`).then((m) => m.default).catch(() => ({})));
+    return this.packs.get(id);
+  }
   load(k) {
     if (!this.id) return Promise.resolve(null);
     const key = this.id + '/' + k;
     if (!this.buf.has(key)) {
-      this.buf.set(key, fetch(this.base + key + '.mp3').then((r) => (r.ok ? r.arrayBuffer() : null))
-        .then((ab) => ab && this.context()?.decodeAudioData(ab)).catch(() => null));
+      this.buf.set(key, this.pack().then((p) => {
+        if (!p[k]) return null;
+        const bin = atob(p[k]), u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        return this.context()?.decodeAudioData(u8.buffer);
+      }).catch(() => null));
     }
     return this.buf.get(key);
   }

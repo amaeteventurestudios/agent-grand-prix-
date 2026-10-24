@@ -10,6 +10,8 @@ import { MODELS } from './cars.js';
 import { Cams } from './cams.js';
 import { Sound } from './audio.js';
 import { Voice, VOICES } from './voice.js';
+import { raceDNA } from './dnastore.js';
+import { PARAMS } from './dna.js';
 import * as store from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -19,6 +21,8 @@ const params = new URLSearchParams(location.search);
 const touch = matchMedia('(pointer: coarse)').matches;
 const lite = params.has('lite') || touch;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Driver DNA: ?dna=off races with the engine's own driving (the rollback switch)
+const dnaOn = params.get('dna') !== 'off';
 const S = store.load();
 // which car everyone races: a modelled car, or null for the simple one (?car=falcon or ?car=classic)
 const carModel = () => { const q = params.get('car'); return q ? (q === 'classic' ? null : q) : S.settings.car === undefined ? 'falcon' : S.settings.car; };
@@ -159,7 +163,7 @@ const sound = new Sound();
 // the engineer on the radio: speaks the calls so you don't have to read them
 const voice = new Voice();
 voice.duck = (on) => sound.duck(on);
-const voiceId = () => (S.settings.voice === undefined ? 'michael' : S.settings.voice);
+const voiceId = () => (S.settings.voice === undefined || (S.settings.voice && !VOICES.some((v) => v.id === S.settings.voice)) ? 'michael' : S.settings.voice);
 const carTag = (id) => (id === 'you-1' ? 'car2' : 'car1');
 let lastPassSay = -1e9;
 function say(parts, prio) { if (S.settings.sound !== false && voiceId()) voice.say(parts, prio); }
@@ -580,6 +584,12 @@ function drainEvents() {
       if (hit && /Puncture|puncture/.test(e.text)) say([carTag(hit), 'puncture'], true);
       else if (hit && /Contact/.test(e.text)) say([carTag(hit), 'contact']);
       if (car && (car.pos <= 6 || isMine)) director([car.id], 7);
+    } else if (e.type === 'dna' && isMine) {
+      // a moment the driver's DNA caused, with the settings behind it
+      const prof = G.setup?.grid.find((g) => g.id === e.car)?.dnaProfile;
+      const why = (e.keys || []).slice(0, 2).map((k) => `${PARAMS.find((p) => p.key === k).label} ${prof ? prof.params[k] : ''}`.trim()).join(', ');
+      addRadio({ from: 'engineer', text: e.text + (why ? ` (Driver DNA: ${why})` : '') });
+      toast('⚠️ ' + e.text, true);
     } else if (e.type === 'order' && (isMine || (e.other && my.includes(e.other)))) {
       addRadio({ from: 'engineer', text: e.text }); toast('📻 ' + e.text, true);
     } else if (e.type === 'battle') {
@@ -868,7 +878,7 @@ function startRace(picks, auto) {
   G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set();
   app.classList.remove('attract');
   loadVenue(G.venue);
-  const setup = setupRace({ venue: G.venue, seed: G.seed, team: team(), startCompounds: picks, auto });
+  const setup = setupRace({ venue: G.venue, seed: G.seed, team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn) });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
   world.setCars(G.race.cars);
   G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; coachHide();

@@ -163,7 +163,7 @@ def join(name, obs):
 def tris(ob):
     return sum(len(p.vertices) - 2 for p in ob.data.polygons)
 
-def wheel(name, key, segs, rim_detail=True):
+def wheel(name, key, segs, rim_detail=True, ring=P2):
     x, y, r, w = WHEELS[key]
     s = 1 if y > 0 else -1
     hw = w / 2
@@ -174,7 +174,7 @@ def wheel(name, key, segs, rim_detail=True):
     face = hw * s
     rim = [(0.0, face * 0.2), (0.06, face * 0.35), (0.16, face * 0.55), (rr - 0.02, face * 0.8), (rr, face * 0.97), (rr, -face * 0.9)] if rim_detail else [(0.0, face * 0.5), (rr, face * 0.95), (rr, -face * 0.9)]
     rm = lathe(name + '_rim', rim, segs)
-    paint(rm, lambda p, n: P2 if 0.185 < Vector((p.x, 0, p.z)).length < rr - 0.012 else MT)
+    paint(rm, lambda p, n: ring if 0.185 < Vector((p.x, 0, p.z)).length < rr - 0.012 else MT)
     wob = join(name, [t, rm])
     if s < 0: pass
     wob.location = (x, y, r)

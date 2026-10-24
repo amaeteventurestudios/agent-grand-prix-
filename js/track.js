@@ -193,8 +193,17 @@ export function generateTrack(seed, venue = {}) {
   const box = []; for (let t = 0; t < 10; t++) box.push(boxStart + t * boxSpacing);
   const pit = { side, inS, outS, box, lat: side * (half + 11), speed: 30 };
 
+  // corners: the slowest point of each braking zone, numbered round the lap (Turn 1, Turn 2...)
+  const apex = [];
+  for (let i = 0; i < N; i++) {
+    const a = v[(i - 1 + N) % N], c = v[(i + 1) % N];
+    if (v[i] <= a && v[i] < c && v[i] < vmax * 0.85 && (!apex.length || i - apex[apex.length - 1] > 25)) apex.push(i);
+  }
+  const turnAt = new Int16Array(N).fill(-1);
+  apex.forEach((ai, n) => { for (let j = -30; j <= 6; j++) turnAt[(ai + j + N) % N] = n; });
+
   return {
-    seed, N, L: N, x, z, tx, tz, k, v, ideal, straight, lapTime, width, half,
+    seed, N, L: N, x, z, tx, tz, k, v, ideal, straight, lapTime, width, half, vmax, apex, turnAt,
     centroid: [cx, cz], bounds: { minX, maxX, minZ, maxZ }, pit, tries, street,
   };
 }
@@ -213,3 +222,30 @@ export function sampleTrack(T, s, lat, out) {
 }
 
 export const idx = (T, s) => ((Math.floor(s) % T.N) + T.N) % T.N;
+
+// A driver's own speed plan: the same calculation as the track's, with that driver's share of the
+// car's cornering grip, braking and traction (Driver DNA, js/dna.js simInputs). All shares stay
+// within the car's limits; a Balanced driver gets the track's own plan back.
+export function driverPlan(T, d) {
+  if (!d || (d.lateral === 1 && d.brake === 1 && d.exit === 1 && d.entry === 1)) return { v: T.v, lapTime: T.lapTime };
+  T.plans ||= new Map();
+  const key = [d.lateral, d.brake, d.exit, d.entry].map((x) => x.toFixed(4)).join(':');
+  if (T.plans.has(key)) return T.plans.get(key);
+  const N = T.N, k = T.k, vmax = T.vmax, v = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    let c = Math.sqrt(A_LAT * d.lateral / Math.max(Math.abs(k[i]), 1e-5));
+    // entry: on the way into a corner (it is tightening) the driver carries more or less speed
+    if (Math.abs(k[(i + 6) % N]) > Math.abs(k[i]) * 1.05) c *= d.entry;
+    v[i] = Math.min(vmax, c);
+  }
+  const accel = (sp) => (13 * (1 - sp / (vmax * 1.05)) + 1.5) * d.exit;
+  const brake = BRAKE * d.brake;
+  for (let pass = 0; pass < 3; pass++) {
+    for (let i = 0; i < N; i++) { const a = (i - 1 + N) % N; v[i] = Math.min(v[i], Math.sqrt(v[a] * v[a] + 2 * accel(v[a]))); }
+    for (let i = N - 1; i >= 0; i--) { const b = (i + 1) % N; v[i] = Math.min(v[i], Math.sqrt(v[b] * v[b] + 2 * brake)); }
+  }
+  let lapTime = 0; for (let i = 0; i < N; i++) lapTime += 1 / v[i];
+  const plan = { v, lapTime };
+  T.plans.set(key, plan);
+  return plan;
+}
