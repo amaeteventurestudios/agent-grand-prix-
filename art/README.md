@@ -16,3 +16,11 @@ blender -b art/cars/falcon.blend -P art/cars/render.py -- /tmp/falcon 0 '#c6f53a
 Livery mask: each vertex colour is R primary paint, G secondary paint, B light strip, and A finish (1 paint, 0.55 carbon, 0.8 metal, 0 rubber). `js/cars.js` tints it with each team's colours, so one file serves every livery.
 
 Budgets per car: LOD 0 at most 30k triangles, LOD 1 8k, LOD 2 1.5k, and 450 KB compressed. Blender's GPL licence doesn't apply to the models; gltfpack is MIT.
+
+## People
+
+`people/people.py` builds the pit crew: a joint skeleton wrapped by Blender's Skin modifier, a helmet with a dark visor, a standing and a kneeling pose, two levels of detail each. Vertex colour alpha 1 marks the overalls that `js/paddock.js` tints with the team colour.
+
+```
+blender -b --factory-startup -P art/people/people.py
+```

@@ -63,6 +63,8 @@ export function qualify(entries, venue, seed) {
     .sort((a, b) => b.q - a.q).map((x) => x.e);
 }
 
+const CAR_W = 2.9, CAR_L = 7.6;   // a car's footprint on screen, in metres
+
 export class Race {
   // opts: track, venue, seed, laps, grid (entries in grid order), weather
   constructor(opts) {
@@ -214,23 +216,52 @@ export class Race {
       // slipstream and the overtaking aid inside 30 m on straights
       car.drs = str && dS < 32 && this.lapOf(car) > 1;
       if (str && dS < 45) car._vt *= 1 + 0.012 * (1 - dS / 45) + (car.drs ? 0.022 : 0);
-      const sameLine = Math.abs(car.lat - ahead.lat) < 2.3;
-      if (dS < 20 && sameLine) {
+      // cars are about 2.9 m wide and 7.3 m long on screen: anything closer than that side by side is the same line
+      const sameLine = Math.abs(car.lat - ahead.lat) < CAR_W;
+      if (dS < 22 && sameLine) {
         const lapped = ahead.dist + L * 0.5 < car.dist;
         if (lapped) {
           ahead.yieldT = 3; ahead.yieldSide = car.lat > 0 ? -1 : 1;
-        } else if (!car.pass && !this.sc && str && car._vt > ahead.v + 0.4) {
-          let p = 0.07 * (0.6 + car.traits.aggro) * clamp((car._vt - ahead.v) / 2, 0.25, 2);
+        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < 13 && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')) {
+          // most moves are made on the straights; with Attack or a boost a driver will also dive down the inside into a corner
+          let p = 0.11 * (0.6 + car.traits.aggro) * clamp((car._vt - ahead.v) / 2, 0.25, 2);
+          if (!str) p *= 0.35;
           if (car.battle === 'attack') p *= 1.7;
+          if (car.ersMode === 'deploy' && car.ers > 0.05) p *= 1.4;
           if (ahead.battle === 'defend') p *= 0.45;
           if (this.venue.street) p *= 0.5;
           if (r() < p) {
-            car.pass = { id: ahead.id, side: ahead.lat > 0.5 ? -1 : ahead.lat < -0.5 ? 1 : (r() < 0.5 ? 1 : -1), t: 6 };
+            // pull out to whichever side has room for a whole car
+            const room = T.half - 1.6;
+            const k = !str ? Math.sign(T.k[i]) || 1 : 0;   // in a corner, the inside
+            let side = k || (ahead.lat > 0.5 ? -1 : ahead.lat < -0.5 ? 1 : (r() < 0.5 ? 1 : -1));
+            if (Math.abs(ahead.lat + side * CAR_W * 1.18) > room) side = -side;
+            const lane = clamp(ahead.lat + side * CAR_W * 1.18, -room, room);
+            if (Math.abs(lane - ahead.lat) >= CAR_W) {
+              car.pass = { id: ahead.id, side, lane, t: 9 };
+              ahead.hold = { lat: ahead.lat, t: 10, by: car.id };
+            }
           }
         }
-        if (!car.pass || car.pass.id !== ahead.id) {
-          if (!lapped || dS < 9) car._vt = Math.min(car._vt, ahead.v + (dS - 10) * 0.7);
-        }
+        // until it has pulled out alongside, a car stays a car length behind
+        const clear = car.pass && car.pass.id === ahead.id && Math.abs(car.lat - ahead.lat) >= CAR_W * 0.92;
+        // (a car that is passing this one, alongside, is not one to queue behind)
+        const beside = ahead.pass && ahead.pass.id === car.id && dS < CAR_L;
+        if (!clear && !beside && (!lapped || dS < 9)) car._vt = Math.min(car._vt, Math.max(ahead.v * 0.85, ahead.v + (dS - (car.battle === 'attack' ? 8.5 : 10)) * 0.7));
+      }
+    }
+
+    // a car making a move: alongside it gets a run on the other (the tow, its battery and its nerve);
+    // out of time it backs off and tucks in behind rather than turn in on it
+    for (const car of onTrack) {
+      if (!car.pass) continue;
+      const o = this.byId.get(car.pass.id);
+      if (!o) continue;
+      if (o.hold && o.hold.by === car.id) o.hold.t = Math.max(o.hold.t, 0.5);   // it keeps its line until the move is done
+      if (car.pass.abort) { car._vt = Math.min(car._vt, o.v * 0.93); continue; }
+      if (Math.abs(car.lat - o.lat) >= CAR_W * 0.92) {
+        const str = T.straight[Math.floor(((car.dist % L) + L) % L)];
+        car._vt *= 1 + (str ? 0.03 : 0.015) + (car.battle === 'attack' ? 0.01 : 0) + (car.ersMode === 'deploy' && car.ers > 0 ? 0.015 : 0);
       }
     }
 
@@ -239,6 +270,12 @@ export class Race {
       if (this.t < car.react) continue;
       const s0 = ((car.dist % L) + L) % L, i = Math.floor(s0);
       let vt = car._vt;
+      // a car coming in brakes for the pit entry on the way to the line
+      if (!car.pit && car.pitReq && !car.finished && car.dist > 0) {
+        let rel = s0; if (rel > L / 2) rel -= L;
+        const toEntry = T.pit.inS - rel;
+        if (toEntry > 0 && toEntry < 250) vt = Math.min(vt, 44 + Math.sqrt(2 * 24 * toEntry));
+      }
       // pit lane
       if (car.pit) vt = this.pitLane(car, vt, s0);
       if (car.stopT > 0) {
@@ -246,7 +283,7 @@ export class Race {
         if (car.stopT <= 0) this.finishStop(car);
         continue;
       }
-      if (vt > car.v) car.v = Math.min(vt, car.v + (13 * (1 - car.v / 92) + 1.5) * dt * (car.pace === 'push' ? 1.03 : 1));
+      if (vt > car.v) car.v = Math.min(vt, car.v + (13 * (1 - car.v / 92) + 1.5) * dt * (car.pace === 'push' ? 1.03 : 1) * (car.pass && !car.pass.abort ? 1.3 : 1));
       else car.v = Math.max(vt, car.v - 46 * dt);
       car.v = Math.max(0, car.v);
       car.dist += car.v * dt;
@@ -261,18 +298,26 @@ export class Race {
       car.tyre.wear = Math.min(1.05, car.tyre.wear + wr);
       // lateral: racing line, overtaking lane, lapped cars moving aside, pit lane
       let latT = T.ideal[i];
+      if (car.hold && car.hold.t > 0) { car.hold.t -= dt; latT = car.hold.lat; }   // keeps its line while being passed
       if (car.pass) {
         const o = this.byId.get(car.pass.id);
         car.pass.t -= dt;
-        latT = car.pass.side * 3.6;
+        // the lane is a car's width off the other car, wherever it is
+        const room = T.half - 1.6;
+        car.pass.lane = clamp(o.lat + car.pass.side * CAR_W * 1.18, -room, room);
+        latT = car.pass.lane;
         const os = ((o.dist % L) + L) % L; let d = s0 - os; if (d < -L / 2) d += L; if (d > L / 2) d -= L;
         if (!car.pass.contactChecked && Math.abs(d) < 2 && !o.pit && !o.dnf) {
           car.pass.contactChecked = true;
           const pc = 0.012 * (car.battle === 'attack' ? 1.6 : 1) * (o.battle === 'defend' ? 1.5 : 1) * (1 + 3 * w) * (this.venue.street ? 1.6 : 1);
           if (this.r() < pc) { this.contact(car, o); car.pass = null; }
         }
-        if (car.pass && (d > 7 || car.pass.t <= 0 || o.pit || o.dnf)) {
+        // out of time and still alongside: back off and tuck in behind rather than turn in on it
+        if (car.pass && car.pass.t <= 0 && !car.pass.abort && d > -CAR_L && d <= CAR_L + 2.5 && !o.pit && !o.dnf) car.pass.abort = true;
+        if (car.pass && car.pass.abort && d > -CAR_L - 1 && car.pass.t > -6) { /* keep the lane until clear behind */ }
+        else if (car.pass && (d > CAR_L + 2.5 || car.pass.t <= 0 || o.pit || o.dnf)) {
           if (d > 0 && d < L / 2 && !o.pit && !o.dnf && !o.finished) this.overtook(car, o);
+          if (o.hold && o.hold.by === car.id) o.hold = null;
           car.pass = null;
         }
       }
@@ -285,7 +330,7 @@ export class Race {
       }
       if (car.pit) latT = car.pitLat;
       if (car.finished) latT = T.ideal[i] * 0.5;
-      const rate = car.pit ? 7 : car.offT > 0 || car.failing ? 6 : 2.6;
+      const rate = car.pit ? 12 : car.offT > 0 || car.failing ? 6 : car.pass ? 3.6 : 2.6;
       car.lat += clamp(latT - car.lat, -rate * dt, rate * dt);
       // mistakes
       if (!car.pit && !T.straight[i] && car.mistakeT <= 0 && !car.finished) this.maybeMistake(car, w, i);
@@ -299,6 +344,7 @@ export class Race {
       this.timing(car);
     }
 
+    this.separate();
     this.safetyCar(dt);
 
     // order: a finished car keeps the distance at which it took the flag
@@ -377,9 +423,12 @@ export class Race {
       if (rel > P.inS + 10) vt = Math.min(vt, Math.max(P.speed, 30 + (P.inS + 35 - rel) * 1.6));
       const mateStopped = this.cars.some((o) => o !== car && o.team.id === car.team.id && o.stopT > 0);
       const teamBox = P.box[car.team.box] - (mateStopped ? 10 : 0);
-      if (rel >= teamBox - 0.5 && rel < teamBox + 20) {
+      // brake into the box on a steady curve, and stop there once across in the lane
+      vt = Math.min(vt, Math.sqrt(2 * 26 * Math.max(0, teamBox - rel)) + 1.5);
+      if (rel >= teamBox - 0.6 && rel < teamBox + 20) {
         car.pit.phase = 'stop';
-        car.dist += teamBox - rel;
+        if (Math.abs(teamBox - rel) < 3) car.dist += teamBox - rel;
+        car.lat = car.pitLat; car.prevLat = car.lat;
         const mate = this.cars.find((o) => o !== car && o.team.id === car.team.id && o.stopT > 0);
         let stop = 2.2 + this.r.range(0, 0.7);
         if (this.r() < 0.04) { stop += this.r.range(2, 4); this.slowStop = car.id; }
@@ -559,6 +608,32 @@ export class Race {
       const lead = this.order.find((c) => !c.dnf && !c.finished);
       if (lead && Math.floor(lead.dist / L) > Math.floor(lead.prevDist / L)) {
         this.sc = null; this.emit('sc', 'GREEN FLAG! The race is back on!', lead, { phase: 'green' });
+      }
+    }
+  }
+
+  // no car drives through another: side by side they keep a car's width apart, nose to tail a car's length
+  separate() {
+    const L = this.track.L, room = this.track.half - 1.4;
+    const cars = this.cars.filter((c) => !c.dnf && !c.pit && !c.finished && c.dist > 0 && !(c.stopT > 0));
+    for (let a = 0; a < cars.length; a++) for (let b = a + 1; b < cars.length; b++) {
+      const A = cars[a], B = cars[b];
+      let d = (A.dist - B.dist) % L; if (d > L / 2) d -= L; if (d < -L / 2) d += L;
+      if (Math.abs(d) >= CAR_L) continue;
+      const dl = A.lat - B.lat;
+      if (Math.abs(dl) >= CAR_W) continue;
+      const passing = (A.pass && A.pass.id === B.id) || (B.pass && B.pass.id === A.id);
+      if (passing || Math.abs(d) < CAR_L * 0.6) {
+        // alongside: ease apart sideways, the passing car doing most of the moving
+        const push = Math.min(0.14, (CAR_W - Math.abs(dl)) * 0.5) * (dl >= 0 ? 1 : -1);
+        const wa = A.pass && A.pass.id === B.id ? 0.8 : B.pass && B.pass.id === A.id ? 0.2 : 0.5;
+        A.lat = clamp(A.lat + push * wa * 2, -room, room);
+        B.lat = clamp(B.lat - push * (1 - wa) * 2, -room, room);
+      } else {
+        // nose to tail: the one behind lifts
+        const [back, front] = d < 0 ? [A, B] : [B, A];
+        const gap = Math.abs(d);
+        back.dist -= Math.min(0.8, CAR_L - gap); back.v = Math.min(back.v, front.v);
       }
     }
   }

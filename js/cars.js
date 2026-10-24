@@ -8,18 +8,24 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 export const MODELS = [{ id: 'falcon', name: 'Falcon' }];
 
-const cache = new Map();
-export function loadCar(id) {
-  if (!cache.has(id)) {
-    cache.set(id, new Promise((res, rej) => {
+// a compressed GLB from assets/ (path without the extension); some hosts won't serve .glb files,
+// so the same file can come as a base64 module beside it
+const files = new Map();
+export function loadGLB(path) {
+  if (!files.has(path)) {
+    files.set(path, new Promise((res, rej) => {
       const l = new GLTFLoader(); l.setMeshoptDecoder(MeshoptDecoder);
-      const ok = (g) => res(parse(g.scene, id));
-      // some hosts won't serve .glb files; then the same file comes as a base64 module beside it
-      const fallback = () => import(`../assets/vehicles/${id}/${id}.glb.js`)
-        .then((m) => { const b = Uint8Array.from(atob(m.default), (c) => c.charCodeAt(0)); l.parse(b.buffer, '', ok, rej); }).catch(rej);
-      l.load(new URL(`../assets/vehicles/${id}/${id}.glb`, import.meta.url).href, ok, undefined, fallback);
+      const fallback = () => import(`../assets/${path}.glb.js`)
+        .then((m) => { const b = Uint8Array.from(atob(m.default), (c) => c.charCodeAt(0)); l.parse(b.buffer, '', (g) => res(g.scene), rej); }).catch(rej);
+      l.load(new URL(`../assets/${path}.glb`, import.meta.url).href, (g) => res(g.scene), undefined, fallback);
     }));
   }
+  return files.get(path);
+}
+
+const cache = new Map();
+export function loadCar(id) {
+  if (!cache.has(id)) cache.set(id, loadGLB(`vehicles/${id}/${id}`).then((scene) => parse(scene, id)));
   return cache.get(id);
 }
 

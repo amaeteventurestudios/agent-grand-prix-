@@ -187,8 +187,9 @@ export function generateTrack(seed, venue = {}) {
   const side = ((x[0] + nx0 * 30 - cx) ** 2 + (z[0] + nz0 * 30 - cz) ** 2) > ((x[0] - nx0 * 30 - cx) ** 2 + (z[0] - nz0 * 30 - cz) ** 2) ? 1 : -1;
   const before = Math.round(straightLen * 0.62), after = straightLen - before;
   const inS = -Math.round(before * 0.62), outS = Math.round(after * 0.62);
-  const boxSpacing = Math.min(16, Math.floor((outS - inS - 60) / 9));
-  const boxStart = inS + 30;
+  // the first box sits far enough down the lane for a car to slow from the entry and move across
+  const boxSpacing = Math.min(16, Math.floor((outS - inS - 80) / 9));
+  const boxStart = inS + 48;
   const box = []; for (let t = 0; t < 10; t++) box.push(boxStart + t * boxSpacing);
   const pit = { side, inS, outS, box, lat: side * (half + 11), speed: 30 };
 

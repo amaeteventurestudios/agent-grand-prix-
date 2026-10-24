@@ -81,6 +81,7 @@ let last = performance.now(), fpsT = 0, fpsN = 0, uiT = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  cheerBurst *= Math.exp(-dt * 0.5);
   const R = G.race;
   if (R && R.started && !G.paused && !R.done) {
     G.acc += dt * (G.attract ? 1 : G.speed);
@@ -154,6 +155,9 @@ $('#menuBtn').addEventListener('click', pauseMenu);
 
 // engine sound: on by default, remembered on this device; it starts with the first tap of a race
 const sound = new Sound();
+// the crowd in the stands reacts to the same moments the crowd sound does
+let cheerBurst = 0;
+{ const roar = sound.roar.bind(sound); sound.roar = (k = 0.6) => { roar(k); cheerBurst = Math.max(cheerBurst, k); }; }
 function soundIcon() { const b = $('#soundBtn'), on = S.settings.sound !== false; b.textContent = on ? '🔊' : '🔇'; b.setAttribute('aria-label', on ? 'Sound on. Turn sound off' : 'Sound off. Turn sound on'); b.classList.toggle('off', !on); }
 function setSound(on) {
   S.settings.sound = on; store.save(); soundIcon();
@@ -196,6 +200,7 @@ function tick() {
   if (R.sc) sc.textContent = R.sc.kind === 'VSC' ? 'VIRTUAL SAFETY CAR' : R.sc.phase === 'in' ? 'SC IN THIS LAP' : 'SAFETY CAR';
   // the crowd gets louder over the last laps
   sound.excite = clamp((R.leaderLap() - (R.laps - 3)) / 3, 0, 1);
+  if (world) world.cheer = Math.min(1, Math.max(sound.excite, cheerBurst * 1.4));
   // tower
   const ol = $('#towerList'), my = mine();
   for (const c of R.order) {

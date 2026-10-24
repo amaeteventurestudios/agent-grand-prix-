@@ -8,6 +8,7 @@ import { sampleTrack } from './track.js';
 import { COMPOUNDS } from './data.js';
 import { Paddock } from './paddock.js';
 import { Fleet, loadCar } from './cars.js';
+import { Stands } from './env.js';
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
@@ -203,6 +204,7 @@ export class World {
     this.buildGround(r);
     this.buildTrack(r);
     this.buildPits(r);
+    this.crowdLight = new THREE.Color().setScalar({ day: 1, dusk: 0.78, night: 0.82, midnight: 0.95 }[venue.time] ?? 1);
     this.buildStands(r);
     this.buildScenery(r);
     this.buildCars();
@@ -487,25 +489,9 @@ export class World {
   }
 
   buildStands(r) {
-    const T = this.T, P = T.pit, sd = P.side, h = T.half;
-    const parts = [], crowdPos = [];
-    const stand = (s0, s1, lat0, dir, rows = 6) => {
-      for (let q = 0; q < rows; q++) {
-        const la = lat0 + dir * q * 2.2;
-        const g = ribbon(T, s0, s1, la, la + dir * 2.2, 0.6 + q * 1.3, () => col(q % 2 ? '#c9ccd2' : '#b4b8c0'), 4);
-        parts.push(g);
-        for (let s = s0 + 1; s < s1; s += 1.6) {
-          if (r() < 0.8) { sampleTrack(T, s, la + dir * 1.2, tmp); crowdPos.push([tmp.x, 0.6 + q * 1.3, tmp.z]); }
-        }
-      }
-      const back = wall(T, s0, s1, lat0 + dir * rows * 2.2, 0.6 + rows * 1.3 + 3, () => col('#9aa0aa'), 4);
-      parts.push(back);
-      const roof = ribbon(T, s0, s1, lat0 - dir * 0.5, lat0 + dir * (rows * 2.2 + 0.5), 0.6 + rows * 1.3 + 3, () => col('#eef0f3'), 4);
-      parts.push(roof);
-    };
-    const runoff = this.runoff;
-    stand(P.inS + 10, P.outS - 10, -sd * (h + runoff + 3), -sd, 7);
-    // a couple more at the slowest corners
+    const T = this.T, P = T.pit, sd = P.side, h = T.half, runoff = this.runoff;
+    const specs = [{ s0: P.inS + 10, s1: P.outS - 10, lat0: -sd * (h + runoff + 3), dir: -sd, rows: this.lite ? 12 : 14 }];
+    // more at the slowest corners
     const corners = [];
     for (let i = 0; i < T.N; i += 10) corners.push([i, Math.abs(T.k[i])]);
     corners.sort((a, b) => b[1] - a[1]);
@@ -516,20 +502,9 @@ export class World {
       if (i < P.outS + 100 || i > T.N + P.inS - 100) continue;
       used.push(i);
       const out = -Math.sign(T.k[i]);
-      stand(i - 40, i + 40, out * (h + runoff + 3), out, 5);
+      specs.push({ s0: i - 40, s1: i + 40, lat0: out * (h + runoff + 3), dir: out, rows: 10 });
     }
-    this.scene.add(new THREE.Mesh(mergeGeometries(parts), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide })));
-    parts.forEach((g) => g.dispose());
-    const n = this.lite ? Math.min(crowdPos.length, 700) : crowdPos.length;
-    const crowd = new THREE.InstancedMesh(new THREE.BoxGeometry(0.6, 1.1, 0.6), new THREE.MeshLambertMaterial({ color: '#ffffff' }), n);
-    const m4 = new THREE.Matrix4(), cc = new THREE.Color();
-    const shirts = ['#e8303a', '#1f4fd1', '#f2c230', '#2fb75a', '#ffffff', '#111111', '#ef6fa6', '#f08a24', '#6cc0ea'];
-    for (let k = 0; k < n; k++) {
-      const p = crowdPos[Math.floor(k * crowdPos.length / n)];
-      m4.makeTranslation(p[0], p[1] + 0.55, p[2]); crowd.setMatrixAt(k, m4);
-      crowd.setColorAt(k, cc.set(shirts[Math.floor(r() * shirts.length)]));
-    }
-    this.scene.add(crowd);
+    this.stands = new Stands(this, r, specs);
   }
 
   // a ring road round the circuit, clear of the paddock: the town lines it
@@ -969,6 +944,7 @@ export class World {
   // place cars: alpha blends between the last two simulation steps
   update(race, alpha, dt, camera, selectedId, mineIds, showTags, { speed = 1, focus = null, showRing = true } = {}) {
     const T = this.T;
+    this.camera = camera;
     if (!this.lastWeather || Math.abs(this.lastWeather[0] - race.rain) > 0.02 || Math.abs(this.lastWeather[1] - race.wet) > 0.02) {
       this.setWeather(race.rain, race.wet); this.lastWeather = [race.rain, race.wet];
     }
@@ -1011,6 +987,7 @@ export class World {
       this.scLamps[0].color.set(ph ? '#ffb020' : '#4a2a00'); this.scLamps[1].color.set(ph ? '#4a2a00' : '#ffb020');
     }
     if (this.paddock) this.paddock.update(race, dt, speed);
+    this.stands?.update(dt * speed, this.cheer || 0, this.crowdLight);
     if (this.fleet) {
       const list = this.fleetList ||= [];
       list.length = 0;

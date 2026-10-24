@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { sampleTrack } from './track.js';
 import { ribbon, vcolor, CAR_SCALE } from './world.js';
+import { loadGLB } from './cars.js';
 
 const col = (h) => new THREE.Color(h);
 const tmp = {};
@@ -152,6 +153,34 @@ export class Paddock {
     this.m4 = new THREE.Matrix4(); this.q = new THREE.Quaternion(); this.v = new THREE.Vector3(); this.sc = new THREE.Vector3(1, 1, 1);
     this.t = 0;
     this.update(null, 0, 1);
+    this.loadCrew();
+  }
+
+  // the modelled crew (art/people): standing and kneeling, near and far; until it loads, the simple figures stand in
+  loadCrew() {
+    loadGLB('people/crew').then((scene) => {
+      if (this.disposed) return;
+      const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+      // overalls (vertex alpha 1) take the team colour; helmets, visors, gloves and boots keep their own
+      mat.onBeforeCompile = (sh) => {
+        sh.vertexShader = sh.vertexShader.replace('#include <color_vertex>', `
+          vColor = vec4(color.rgb, 1.0);
+          #ifdef USE_INSTANCING_COLOR
+            vColor.rgb = mix(color.rgb, color.rgb * instanceColor.rgb, color.a);
+          #endif`);
+      };
+      mat.customProgramCacheKey = () => 'agp-crew';
+      const n = this.crew.length;
+      this.figs = {};
+      for (const key of ['stand_L0', 'stand_L1', 'kneel_L0', 'kneel_L1']) {
+        const o = scene.getObjectByName('crew_' + key);
+        const im = new THREE.InstancedMesh(o.geometry, mat, n);
+        im.castShadow = !this.w.lite || key.endsWith('L1'); im.frustumCulled = false; im.count = 0;
+        this.crew.forEach((m, i) => im.setColorAt(i, col(m.j === 15 ? '#ff7a1a' : m.team.c1)));
+        this.group.add(im); this.figs[key] = im;
+      }
+      this.bodies.visible = this.helmets.visible = false;
+    }).catch(() => {});
   }
 
   // where crew member j stands, in box coordinates (a along, l across), for each phase
@@ -186,6 +215,9 @@ export class Paddock {
       state.set(t.id, [phase, a0]);
     }
     const step = Math.min(1, dt * speed * 3.2);
+    const F = this.figs;
+    if (F) for (const im of Object.values(F)) im.count = 0;
+    this.c ||= new THREE.Color();
     this.crew.forEach((m, i) => {
       const [phase, a0] = state.get(m.team.id);
       const [ta, tl] = this.slot(phase, m.j, a0);
@@ -208,10 +240,20 @@ export class Paddock {
       this.m4.compose(this.v.set(tmp.x, bob, tmp.z), this.q, this.sc);
       this.bodies.setMatrixAt(i, this.m4);
       this.helmets.setMatrixAt(i, this.m4);
+      if (F) {
+        const kneel = crouch < 1;
+        const cam = this.w.camera, near = !cam || cam.position.distanceToSquared(this.v) < (this.w.lite ? 30 : 45) ** 2;
+        this.sc.set(1.1, 1.1, 1.1);
+        this.m4.compose(this.v.set(tmp.x, kneel ? 0 : bob, tmp.z), this.q, this.sc);
+        const im = F[(kneel ? 'kneel' : 'stand') + (near ? '_L0' : '_L1')];
+        const k = im.count++;
+        im.setMatrixAt(k, this.m4); im.setColorAt(k, this.c.set(m.j === 15 ? '#ff7a1a' : m.team.c1));
+      }
     });
     this.bodies.instanceMatrix.needsUpdate = true;
     this.helmets.instanceMatrix.needsUpdate = true;
+    if (F) for (const im of Object.values(F)) { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
   }
 
-  dispose() { this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
+  dispose() { this.disposed = true; this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
 }

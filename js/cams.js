@@ -14,6 +14,66 @@ export class Cams {
     this.controls.addEventListener('start', () => { this.idle = 0; this.autoRotate = false; });
     this.mode = 'overview'; this.look = new THREE.Vector3(); this.idle = 0; this.autoRotate = !reduce;
     this.tvIdx = -1;
+    // look around: in every camera but Overview a drag swings the view round the car (or round the
+    // cockpit), a pinch or the wheel zooms, and a few seconds after letting go it eases back
+    this.oYaw = 0; this.oPitch = 0; this.oZoom = 1; this.oIdle = 9; this.basePos = new THREE.Vector3();
+    const ptrs = new Map();
+    let pinch = 0;
+    dom.addEventListener('pointerdown', (e) => { ptrs.set(e.pointerId, [e.clientX, e.clientY, e.clientX, e.clientY]); pinch = 0; });
+    dom.addEventListener('pointermove', (e) => {
+      const p = ptrs.get(e.pointerId); if (!p || this.mode === 'overview' || this.mode === 'free') return;
+      const dx = e.clientX - p[0], dy = e.clientY - p[1]; p[0] = e.clientX; p[1] = e.clientY;
+      if (ptrs.size === 1) {
+        if (Math.hypot(e.clientX - p[2], e.clientY - p[3]) < 6) return;   // a tap still picks a car
+        const fpv = this.mode === 'fpv';
+        this.oYaw += dx * (fpv ? -0.004 : 0.007);
+        this.oPitch = THREE.MathUtils.clamp(this.oPitch + dy * (fpv ? -0.003 : 0.004), fpv ? -0.5 : -0.9, fpv ? 0.5 : 1.1);
+      } else if (ptrs.size === 2) {
+        const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        if (pinch) this.oZoom = THREE.MathUtils.clamp(this.oZoom * pinch / d, 0.35, 3);
+        pinch = d;
+      }
+      this.oIdle = 0;
+    });
+    const up = (e) => { ptrs.delete(e.pointerId); pinch = 0; };
+    addEventListener('pointerup', up); addEventListener('pointercancel', up);
+    dom.addEventListener('wheel', (e) => {
+      if (this.mode === 'overview' || this.mode === 'free') return;
+      e.preventDefault();
+      this.oZoom = THREE.MathUtils.clamp(this.oZoom * Math.exp(e.deltaY * 0.0012), 0.35, 3); this.oIdle = 0;
+    }, { passive: false });
+    this.dragging = () => ptrs.size > 0;
+  }
+
+  // swing the camera round what it is looking at by the look-around offsets
+  lookAround(dt) {
+    const c = this.camera;
+    if (!this.dragging()) {
+      this.oIdle += dt;
+      if (this.oIdle > 2.5) {
+        const e = 1 - Math.exp(-dt * 1.8);
+        this.oYaw -= this.oYaw * e; this.oPitch -= this.oPitch * e; this.oZoom += (1 - this.oZoom) * e;
+      }
+    }
+    if (Math.abs(this.oYaw) < 1e-4 && Math.abs(this.oPitch) < 1e-4 && Math.abs(this.oZoom - 1) < 1e-4) return;
+    if (this.mode === 'fpv') {
+      // in the cockpit: turn the head
+      const dir = v2.copy(this.look).sub(c.position);
+      dir.applyAxisAngle(up, this.oYaw);
+      const side = new THREE.Vector3().crossVectors(dir, up).normalize();
+      dir.applyAxisAngle(side, this.oPitch);
+      c.lookAt(v1.copy(c.position).add(dir));
+      const fov = THREE.MathUtils.clamp(c.fov * this.oZoom, 30, 100);
+      if (Math.abs(c.fov - fov) > 0.01) { c.fov = fov; c.updateProjectionMatrix(); }
+      return;
+    }
+    const t = this.look, rel = v2.copy(c.position).sub(t);
+    const sp = new THREE.Spherical().setFromVector3(rel);
+    sp.radius *= this.oZoom; sp.theta += this.oYaw;
+    sp.phi = THREE.MathUtils.clamp(sp.phi - this.oPitch, 0.12, 1.36);
+    c.position.copy(t).add(v1.setFromSpherical(sp));
+    if (c.position.y < 1.6) c.position.y = 1.6;
+    c.lookAt(t);
   }
 
   setWorld(world) {
@@ -44,7 +104,7 @@ export class Cams {
   }
 
   setMode(m) {
-    this.mode = m;
+    this.mode = m; this.oYaw = this.oPitch = 0; this.oZoom = 1;
     this.camera.near = m === 'overview' ? 4 : m === 'fpv' ? 0.08 : m === 'live' ? 1 : 0.5;
     this.camera.updateProjectionMatrix();
     this.controls.enabled = m === 'overview';
@@ -69,6 +129,21 @@ export class Cams {
   }
 
   update(dt, sel) {
+    if (this.mode === 'free') return; // tests place the camera themselves
+    const follow = this.mode !== 'overview' && !!sel;
+    // each camera works from where it would be without the look-around swing
+    if (follow && this.swung) this.camera.position.copy(this.basePos);
+    const fovBase = this.fovBase;
+    if (follow && this.swung && fovBase && this.camera.fov !== fovBase) { this.camera.fov = fovBase; this.camera.updateProjectionMatrix(); }
+    this.updateBase(dt, sel);
+    this.swung = false;
+    if (!follow || this.mode === 'overview') { this.oYaw = this.oPitch = 0; this.oZoom = 1; return; }
+    this.basePos.copy(this.camera.position); this.fovBase = this.camera.fov;
+    this.lookAround(dt);
+    this.swung = true;
+  }
+
+  updateBase(dt, sel) {
     const c = this.camera, k = 1 - Math.exp(-dt * 6);
     if (this.mode === 'drone') {
       const ps = this.droneIds.map((id) => this.world.carObjs.get(id)).filter(Boolean).map((o) => o.group.position);
