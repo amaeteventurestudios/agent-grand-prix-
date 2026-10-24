@@ -4,3 +4,4 @@ agent/state.json
 assets/**/*.glb.js
 __pycache__/
 *.blend1
+art/voice/clips/

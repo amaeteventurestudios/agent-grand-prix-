@@ -60,8 +60,19 @@ export function rainAt(W, t) {
 
 export function qualify(entries, venue, seed) {
   const r = rng(seed ^ 0x51ed);
-  return entries.map((e) => ({ e, q: e.traits.pace * (venue.grip ? 1 : 1) + r.range(-0.07, 0.07) }))
+  return entries.map((e, i) => ({ e, q: e.traits.pace * (venue.grip ? 1 : 1) + r.range(-0.07, 0.07) + (e.dna ? oneLap(e.dna, seed, i) : 0) }))
     .sort((a, b) => b.q - a.q).map((x) => x.e);
+}
+// Driver DNA over one qualifying lap: leaning harder on brakes, entry and grip finds time on fresh
+// tyres, but the chance of spoiling the lap grows with the square of it, so the expected gain peaks
+// around 75 and is gone at 100. Careful drivers give a little away. Balanced adds 0 and draws no
+// dice; its own random stream, so the rest of the grid is untouched.
+function oneLap(d, seed, i) {
+  const x = d.qx || 0;
+  if (!x) return 0;
+  if (x < 0) return 0.06 * x;
+  const r = rng((seed ^ 0x0a1a9 ^ (i * 0x9e37)) >>> 0);
+  return 0.12 * x - (r() < x * x ? 0.12 : 0);
 }
 
 const CAR_W = 2.9, CAR_L = 7.6;   // a car's footprint on screen, in metres
@@ -551,15 +562,16 @@ export class Race {
   }
 
   // A corner's risks for a driver with DNA: braking late can lock a wheel, a committed line can run
-  // wide, confidence in the wet can spin. Each event names the settings behind it.
+  // wide, confidence in the wet can spin. The odds grow with the square, so a moderate style is cheap
+  // and an extreme one is not. Each event names the settings behind it.
   dnaCorner(car, n, w) {
     const d = car.dna, r = this.rd, P = car.dnaProfile ? car.dnaProfile.params : null;
     const worn = 1 + car.tyre.wear;
     const why = (keys) => keys.filter((k) => P && P[k] > 55).sort((a, b) => P[b] - P[a]);
-    if (d.lockup > 0 && r() < 0.02 * d.lockup * worn) {
+    if (d.lockup > 0 && r() < 0.016 * d.lockup * d.lockup * worn) {
       car.mistakeT = 1.4; car.mistakeV = car.v * 0.7; car.tyre.wear = Math.min(1.05, car.tyre.wear + 0.02); car.tele.lockups++;
       this.emit('dna', `${car.code} locks up into Turn ${n + 1}.`, car, { kind: 'lockup', turn: n + 1, keys: why(['late_braking', 'entry_speed']) });
-    } else if (d.wide > 0 && r() < 0.016 * d.wide * worn) {
+    } else if (d.wide > 0 && r() < 0.012 * d.wide * d.wide * worn) {
       const big = r() < 0.2;   // now and then it's a proper trip across the run-off
       car.mistakeT = big ? 2.2 : 1.5; car.mistakeV = big ? 10 : car.v * 0.66; car.offT = big ? 1.8 : 0.9; car.offSide = Math.sign(this.track.k[this.track.apex[n]]) > 0 ? -1 : 1; car.tele.wides++;
       this.emit('dna', `${car.code} runs wide at Turn ${n + 1}.`, car, { kind: 'wide', turn: n + 1, keys: why(['corner_commitment', 'kerb_usage', 'entry_speed']) });

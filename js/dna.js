@@ -20,7 +20,7 @@ export const GROUPS = [
 export const PARAMS = [
   { key: 'late_braking', group: 'corners', label: 'Late braking', lo: 'Brakes early, with margin', hi: 'Brakes as late as the car allows', gain: 'Shorter braking zones', cost: 'More lock-ups and flat spots' },
   { key: 'entry_speed', group: 'corners', label: 'Entry vs exit', lo: 'Slow in, fast out', hi: 'Carries speed into the corner', gain: 'Faster corner entry, easier dives', cost: 'Slower exits, more running wide' },
-  { key: 'corner_commitment', group: 'corners', label: 'Corner commitment', lo: 'Leaves grip in reserve', hi: 'Uses nearly all the grip', gain: 'Higher corner speed', cost: 'Tyre wear and more mistakes' },
+  { key: 'corner_commitment', group: 'corners', label: 'Corner commitment', lo: 'Leaves grip in reserve', hi: 'Uses nearly all the grip', gain: 'Higher corner speed, a better grid slot', cost: 'Tyre wear and more mistakes' },
   { key: 'kerb_usage', group: 'corners', label: 'Kerb use', lo: 'Stays off the kerbs', hi: 'Rides every kerb', gain: 'A little time in each corner', cost: 'Tyre wear and the odd big moment' },
   { key: 'throttle_aggression', group: 'corners', label: 'Throttle aggression', lo: 'Gentle on the power', hi: 'Full power early', gain: 'Faster exits in the dry', cost: 'Wheelspin, worse in the wet' },
   { key: 'pass_eagerness', group: 'racecraft', label: 'Overtaking eagerness', lo: 'Waits for a sure thing', hi: 'Tries every chance', gain: 'More passing attempts', cost: 'More contact and aborted moves' },
@@ -37,6 +37,18 @@ export const PARAMS = [
   { key: 'teammate_cooperation', group: 'team', label: 'Teammate cooperation', lo: 'Races the teammate hard', hi: 'Helps the teammate', gain: 'Fewer team clashes', cost: 'Slow to fight a teammate for position' },
 ];
 export const KEYS = PARAMS.map((p) => p.key);
+// what turning a setting DOWN gains and costs (PARAMS[].gain / cost describe turning it up)
+export const LOW = {
+  late_braking: ['Fewer lock-ups', 'Longer braking zones'], entry_speed: ['Better exits, tidier lines', 'Slower into corners, fewer dives'],
+  corner_commitment: ['Saves tyres, fewer mistakes', 'Lower corner speed'], kerb_usage: ['Kinder to the tyres', 'A little slower in each corner'],
+  throttle_aggression: ['Better traction in the wet', 'Slower exits in the dry'], pass_eagerness: ['Less contact', 'Fewer passing attempts'],
+  gap_acceptance: ['Cleaner moves', 'Has to be closer to try'], slipstream_patience: ['More chances into corners', 'Riskier corner dives'],
+  defending: ['Keeps its lap time when attacked', 'Easier to pass'], side_by_side_caution: ['Wins more wheel-to-wheel fights', 'More collisions'],
+  tyre_care: ['Quicker laps', 'Shorter stints, more wear'], energy_deployment: ['Charge in reserve for fights', 'Slower on the straights'],
+  wet_confidence: ['Rarely spins in the rain', 'Slower on a wet track'], grip_change_response: ['Never stops too soon', 'Slow onto the right tyres'],
+  consistency: ['The odd stand-out lap', 'More mistakes, uneven laps'], team_order_compliance: ['Fights for its place', 'Swaps happen slowly'],
+  teammate_cooperation: ['Races for itself', 'More team clashes'],
+};
 
 // the Quick dials: each moves its settings together (a minus sign moves one the other way)
 export const QUICK = [
@@ -50,12 +62,15 @@ export const QUICK = [
   { key: 'consistency', label: 'Consistency', maps: ['consistency', 'side_by_side_caution'], lo: 'Spectacular', hi: 'Steady', cost: 'Fewer stand-out moves' },
 ];
 
+export const QUICK_LOW = { braking: 'Longer braking zones', cornering: 'Lower corner speed', overtaking: 'Fewer chances taken', defending: 'Easier to pass',
+  tyres: 'More wear, maybe an extra stop', throttle: 'Slower exits', wet: 'Slow in the rain', consistency: 'More mistakes' };
+
 const P = (o) => Object.fromEntries(KEYS.map((k) => [k, o[k] ?? 50]));
 // nine original personalities (no real drivers); every one has a weakness
 export const PRESETS = [
   { id: 'balanced', name: 'Balanced', blurb: 'Even in everything. A good place to start.', params: P({}) },
   { id: 'attacker', name: 'Attacker', blurb: 'Late on the brakes and into every gap. Wins fights, wears tyres, finds walls.',
-    params: P({ late_braking: 78, entry_speed: 70, corner_commitment: 68, kerb_usage: 65, throttle_aggression: 70, pass_eagerness: 88, gap_acceptance: 80, slipstream_patience: 25, defending: 60, side_by_side_caution: 25, tyre_care: 30, energy_deployment: 72, consistency: 35, team_order_compliance: 35, teammate_cooperation: 30 }) },
+    params: P({ late_braking: 68, entry_speed: 62, corner_commitment: 64, kerb_usage: 60, throttle_aggression: 68, pass_eagerness: 88, gap_acceptance: 80, slipstream_patience: 25, defending: 60, side_by_side_caution: 25, tyre_care: 35, energy_deployment: 72, consistency: 45, team_order_compliance: 35, teammate_cooperation: 30 }) },
   { id: 'technician', name: 'Technician', blurb: 'Clean lines and smooth hands. Quick and tidy, but rarely makes a bold move.',
     params: P({ late_braking: 55, entry_speed: 35, corner_commitment: 66, kerb_usage: 40, throttle_aggression: 45, pass_eagerness: 35, gap_acceptance: 35, slipstream_patience: 75, defending: 45, side_by_side_caution: 70, tyre_care: 62, consistency: 82 }) },
   { id: 'strategist', name: 'Strategist', blurb: 'Thinks a stint ahead: saves tyres and charge, then strikes late.',
@@ -66,8 +81,8 @@ export const PRESETS = [
     params: P({ late_braking: 45, corner_commitment: 46, throttle_aggression: 35, wet_confidence: 88, grip_change_response: 82, consistency: 60, tyre_care: 55 }) },
   { id: 'whisperer', name: 'Tyre Whisperer', blurb: 'Makes a set last for ever, so stops less. Slower on fresh rubber.',
     params: P({ late_braking: 40, corner_commitment: 42, kerb_usage: 25, throttle_aggression: 35, tyre_care: 90, side_by_side_caution: 62, consistency: 68 }) },
-  { id: 'qualifier', name: 'Qualifying Specialist', blurb: 'One blistering lap after another while the tyres last. Fades in long stints.',
-    params: P({ late_braking: 72, entry_speed: 62, corner_commitment: 82, kerb_usage: 75, throttle_aggression: 68, tyre_care: 25, energy_deployment: 75, consistency: 45 }) },
+  { id: 'qualifier', name: 'Qualifying Specialist', blurb: 'Starts near the front with one blistering lap, then fights to keep it as the tyres fade.',
+    params: P({ late_braking: 70, entry_speed: 62, corner_commitment: 74, kerb_usage: 65, throttle_aggression: 66, tyre_care: 30, energy_deployment: 72, consistency: 50 }) },
   { id: 'anchor', name: 'Defensive Anchor', blurb: 'Almost impossible to pass, and loses time doing it. Rarely attacks.',
     params: P({ late_braking: 55, pass_eagerness: 30, gap_acceptance: 35, defending: 92, side_by_side_caution: 35, tyre_care: 55, energy_deployment: 40, consistency: 65, team_order_compliance: 70, teammate_cooperation: 70 }) },
 ];
@@ -127,9 +142,11 @@ export function validate(obj, slot) {
   if (!ps || typeof ps !== 'object') errors.push('no settings');
   else {
     for (const k of Object.keys(ps)) if (!KEYS.includes(k)) errors.push(`unknown setting ${k}`);
+    const missing = KEYS.filter((k) => ps[k] === undefined);
+    if (missing.length) errors.push(`${missing.length} of the ${KEYS.length} settings are missing`);
     for (const k of KEYS) {
       const v = ps[k];
-      if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 100 || Math.round(v) !== v) errors.push(`${k} must be a whole number from 0 to 100`);
+      if (v !== undefined && (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 100 || Math.round(v) !== v)) errors.push(`${k} must be a whole number from 0 to 100`);
     }
   }
   if (errors.length) return { ok: false, errors };
@@ -158,12 +175,14 @@ export function simInputs(profile) {
     lockup: Math.max(0, s.late_braking) * 1.6 + Math.max(0, s.entry_speed) * 0.6,
     wide: Math.max(0, s.corner_commitment) * 1.2 + Math.max(0, s.kerb_usage) * 0.8 + Math.max(0, s.entry_speed) * 0.5,
     wear: 1 + 0.12 * s.corner_commitment + 0.08 * s.kerb_usage + 0.08 * s.throttle_aggression - 0.22 * s.tyre_care,
-    pace: 1 - 0.006 * s.tyre_care,                     // tyre care costs a little pace
+    pace: 1 - 0.004 * s.tyre_care,                     // tyre care costs a little pace
     wetPace: 1 + 0.02 * s.wet_confidence - 0.02 * s.throttle_aggression,
     wetRisk: Math.max(0, s.wet_confidence) * 1.5 + Math.max(0, s.throttle_aggression) * 0.8,
     changeDelay: 1 - 0.5 * s.grip_change_response,    // how long a wrong tyre is tolerated
     mistakes: 1 - 0.45 * s.consistency,
     variance: 1 - 0.5 * s.consistency,
+    // one qualifying lap: how hard the driver leans on brakes, entry and grip (-1 .. 1)
+    qx: (s.late_braking + s.entry_speed + s.corner_commitment + s.kerb_usage) / 4,
     // racecraft
     passP: 1 + 0.6 * s.pass_eagerness,
     passGap: 13 + 3 * s.gap_acceptance,                 // metres behind from which a move starts

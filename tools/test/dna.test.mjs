@@ -25,7 +25,7 @@ t('nine presets with all 17 settings in range', () => {
 t('Balanced maps to the engine exactly as before', () => {
   const s = D.simInputs(D.defaultProfile('car1'));
   for (const k of ['brake', 'entry', 'exit', 'lateral', 'wear', 'pace', 'wetPace', 'changeDelay', 'mistakes', 'variance', 'passP', 'cornerPass', 'defendCost', 'contact', 'deploy', 'obey']) assert.equal(s[k], 1, k);
-  for (const k of ['lockup', 'wide', 'wetRisk', 'defend', 'yieldSide', 'coop']) assert.equal(s[k], 0, k);
+  for (const k of ['lockup', 'wide', 'wetRisk', 'defend', 'yieldSide', 'coop', 'qx']) assert.equal(s[k], 0, k);
   assert.equal(s.passGap, 13);
 });
 t('engine modifiers stay bounded at the extremes', () => {
@@ -39,7 +39,7 @@ t('blends: weights must total 100 and the result is deterministic', () => {
   const a = D.blend('car1', [{ id: 'attacker', w: 60 }, { id: 'technician', w: 40 }]);
   const b = D.blend('car1', [{ id: 'attacker', w: 60 }, { id: 'technician', w: 40 }]);
   assert.deepEqual(a, b);
-  assert.equal(a.params.late_braking, Math.round(78 * 0.6 + 55 * 0.4));
+  assert.equal(a.params.late_braking, Math.round(68 * 0.6 + 55 * 0.4));
   assert.throws(() => D.blend('car1', [{ id: 'attacker', w: 60 }, { id: 'technician', w: 30 }]));
 });
 t('Quick dials move their settings and keep custom offsets', () => {
@@ -69,7 +69,7 @@ t('two drivers are independent; history, restore and the log work', () => {
   const S = {};
   dnaState(S);
   setProfile(S, D.fromPreset('car1', 'attacker'), 'preset');
-  assert.equal(activeProfiles(S).car1.params.late_braking, 78);
+  assert.equal(activeProfiles(S).car1.params.late_braking, 68);
   assert.equal(activeProfiles(S).car2.params.late_braking, 50);
   const h = activeProfiles(S).car1.hash;
   setProfile(S, D.makeProfile('car1', D.setQuick(activeProfiles(S).car1.params, 'braking', 20)), 'you');

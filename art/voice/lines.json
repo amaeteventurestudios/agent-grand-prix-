@@ -83,5 +83,9 @@
  "o_hold": "Hold positions. No fighting each other.",
  "o_free": "You're free to race.",
  "k_swap": "Your teammate behind is on fresher tyres. Swap places.",
- "k_hold": "Our two cars are fighting each other. Hold positions?"
+ "k_hold": "Our two cars are fighting each other. Hold positions?",
+ "d_lockup": "Locked up there. A touch earlier on the brakes.",
+ "d_wide": "Ran wide. Easy on the entry.",
+ "d_spin": "Spun it! Careful, it's slippery out there.",
+ "d_notes": "Good work. The strategist has some notes for you."
 }

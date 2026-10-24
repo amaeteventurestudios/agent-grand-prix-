@@ -10,8 +10,12 @@ import { MODELS } from './cars.js';
 import { Cams } from './cams.js';
 import { Sound } from './audio.js';
 import { Voice, VOICES } from './voice.js';
-import { raceDNA } from './dnastore.js';
+import { raceDNA, activeProfiles, dnaState } from './dnastore.js';
+import { STRATEGISTS, decide } from './strategist.js';
+import './coach.js';
+import { carMetrics } from './proving.js';
 import { PARAMS } from './dna.js';
+import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import * as store from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -166,6 +170,7 @@ voice.duck = (on) => sound.duck(on);
 const voiceId = () => (S.settings.voice === undefined || (S.settings.voice && !VOICES.some((v) => v.id === S.settings.voice)) ? 'michael' : S.settings.voice);
 const carTag = (id) => (id === 'you-1' ? 'car2' : 'car1');
 let lastPassSay = -1e9;
+let lastDnaSay = -1e9;
 function say(parts, prio) { if (S.settings.sound !== false && voiceId()) voice.say(parts, prio); }
 const WHY_CLIPS = [['soaked', 'w_soaked'], ['wet out here', 'w_wet'], ['standing water', 'w_water'], ['overheating', 'w_wetshot'], ['dry line', 'w_dryline'],
   ['Safety car! Cheap', 'w_sc'], ['Virtual safety car. Box', 'w_vsc'], ['finished', 'w_finished'], ['second compound. Box now', 'w_second'], ['Pit window', 'w_window']];
@@ -590,6 +595,8 @@ function drainEvents() {
       const why = (e.keys || []).slice(0, 2).map((k) => `${PARAMS.find((p) => p.key === k).label} ${prof ? prof.params[k] : ''}`.trim()).join(', ');
       addRadio({ from: 'engineer', text: e.text + (why ? ` (Driver DNA: ${why})` : '') });
       toast('⚠️ ' + e.text, true);
+      const now = performance.now();
+      if (e.kind === 'spin' || now - lastDnaSay > 25000) { lastDnaSay = now; say([carTag(e.car), 'd_' + e.kind], e.kind === 'spin'); }
     } else if (e.type === 'order' && (isMine || (e.other && my.includes(e.other)))) {
       addRadio({ from: 'engineer', text: e.text }); toast('📻 ' + e.text, true);
     } else if (e.type === 'battle') {
@@ -616,8 +623,9 @@ function drainEvents() {
 // ---------- screens ----------
 function show(html, cls = '') {
   const sc = $('#screen'); sc.className = 'screen ' + cls; sc.hidden = false;
-  $('#sheet').innerHTML = html; $('#sheet').scrollTop = 0;
-  return $('#sheet');
+  const sheet = $('#sheet'); sheet.onclick = sheet.oninput = sheet.onchange = null;   // screens that use handler properties start clean
+  sheet.innerHTML = html; sheet.scrollTop = 0;
+  return sheet;
 }
 function hide() { $('#screen').hidden = true; }
 
@@ -639,8 +647,8 @@ function home() {
         <div class="row"><button class="btn ghost" data-go="quick" type="button">Choose a circuit</button></div></div>
     </div>
     <div class="home-foot"><span>Team: <b>${esc(team().name)}</b> · ${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="team" type="button">${S.team ? 'Edit team' : 'Name your team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
-  sh.addEventListener('click', homeClick);
+      <span><button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${S.team ? 'Edit team' : 'Name your team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
+  sh.onclick = homeClick;
 }
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
@@ -654,10 +662,14 @@ function homeClick(e) {
   if (go === 'standings') standings();
   if (go === 'quick') quickPick();
   if (go === 'team') teamSheet(home);
+  if (go === 'dna') studio(home);
   if (go === 'help') helpSheet(home);
   if (go === 'win') winSheet(home);
   if (go === 'share') shareSheet(S.daily.days[n].share, home);
 }
+
+// Driver DNA Studio (js/studio.js); during a race the race keeps the DNA it started with
+function studio(back, locked = false, o = {}) { openStudio({ S, show, save: store.save, toast, team }, { back, locked, ...o }); }
 
 function needTeam(next) { if (S.team) next(); else teamSheet(next, true); }
 
@@ -805,7 +817,7 @@ function tyreGuide(v) {
 // pre-race: forecast, grid slots, starting tyres, mode
 function pre(o) {
   Object.assign(G, { kind: o.kind, venue: o.venue, seed: o.seed, round: o.round || null, day: o.day || null });
-  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team() });
+  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn) });
   const T = probe.track, W = probe.weather;
   const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
   const wetStart = W.wet0 > 0.17;
@@ -835,6 +847,9 @@ function pre(o) {
     <p class="note">You run a team of two cars, and you make the calls for both. Starting them on different tyres covers more bets.</p>
     <div class="pick">${team().drivers.map((d, i) => `<div><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + i)}</div>
       <div class="box-row" data-car="you-${i}">${Object.keys(COMPOUNDS).map((k) => `<button type="button" data-c="${k}" class="${picks['you-' + i] === k ? 'on' : ''}">${tyreHTML(k)}${COMPOUNDS[k].name}</button>`).join('')}</div></div>`).join('')}</div>
+    <div class="sub">Driver DNA</div>
+    <div class="dna-pre">${dnaLine(S, team())}<button class="btn ghost" id="preDna" type="button">Tune</button></div>
+    <p class="note">How each driver brakes, attacks, defends and treats the tyres. Every style has a price; Balanced is a safe start.</p>
     <div class="sub">Who makes the calls?</div>
     <div class="mode">
       <button type="button" data-m="0" class="${auto ? '' : 'on'}"><b>Team Principal</b><span>You call pit stops, tyres and tactics. Your engineer advises.</span></button>
@@ -864,6 +879,7 @@ function pre(o) {
   $('#coachOpt').addEventListener('change', (e) => { coachOn = e.target.checked; S.settings.coach = coachOn; store.save(); });
   $('#statsOpt').addEventListener('change', (e) => { S.settings.stats = e.target.checked; store.save(); statsEl.hidden = !e.target.checked; });
   $('#preBack').addEventListener('click', home);
+  $('#preDna').addEventListener('click', () => studio(() => pre(o)));
   $('#usePlan').addEventListener('click', () => {
     const p = planFor(o.venue, probe);
     $$('.box-row', sh).forEach((row, i) => { picks[row.dataset.car] = p.start[i]; $$('button', row).forEach((x) => x.classList.toggle('on', x.dataset.c === p.start[i])); });
@@ -929,11 +945,13 @@ function pauseMenu() {
   const sh = show(`<h2>Paused</h2><p class="lede">${G.venue.flag} ${esc(G.venue.city)} · lap ${G.race.leaderLap()} of ${G.race.laps}</p>
     <div class="actions" style="flex-direction:column">
       <button class="btn wide" id="pResume" type="button">Resume</button>
+      <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
       <button class="btn ghost wide" id="pRestart" type="button">Restart race</button>
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
   $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
+  $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
   $('#pRestart').addEventListener('click', () => pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }));
   $('#pQuit').addEventListener('click', () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); });
 }
@@ -948,6 +966,8 @@ const TROPHIES = {
 const TYRE_EMOJI = { S: '🔴', M: '🟡', H: '⚪', I: '🟢', W: '🔵' };
 
 function results() {
+  if (G.resFor === G.race) return resultsView();
+  G.resFor = G.race;
   const R = G.race, res = R.result, my = res.filter((x) => x.car.team.you);
   const best = Math.min(...my.map((x) => x.pos));
   const pts = my.reduce((s, x) => s + x.points, 0);
@@ -1009,10 +1029,13 @@ function results() {
       if (best < rec.best) { rec.best = best; rec.pts = pts; rec.share = share; dailyLine = `New best today: P${best}.`; }
     }
   }
+  G.props = strategistAfterRace(R);
+  if (G.props.length) say(['d_notes']);
   store.save();
   const top = res.slice(0, 3);
   const pod = (x, cls) => `<div class="${cls}" style="background:${x.car.team.c1};color:${readable(x.car.team.c1)}"><b>${x.pos}</b>${esc(x.car.code)}<br><small>${esc(x.car.team.short)}</small></div>`;
-  const sh = show(`
+  G.resShare = share;
+  G.resHTML = `
     <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : 'Quick race'}</div>
     <h2>${best === 1 ? 'You won!' : best <= 3 ? 'Podium!' : best <= 10 ? 'In the points' : 'Tough day'}</h2>
     <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? 'retired' : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>
@@ -1026,8 +1049,45 @@ function results() {
       <button class="btn ghost" data-r="again" type="button">Race again</button>
       ${G.kind === 'season' ? '<button class="btn ghost" data-r="standings" type="button">Standings</button>' : ''}
       <button class="btn ghost" data-r="home" type="button">Home</button>
-    </div>`);
-  sh.addEventListener('click', (e) => {
+    </div>`;
+  resultsView();
+  setCam('overview');
+}
+// ---------- the Team Strategist after a race (js/coach.js): suggestions you approve or not ----------
+function strategistAfterRace(R) {
+  if (!dnaOn) return [];
+  const d = dnaState(S), names = { car1: team().drivers[0].name, car2: team().drivers[1].name };
+  const cars = { car1: carMetrics(R, 'you-0'), car2: carMetrics(R, 'you-1') };
+  const props = STRATEGISTS.rules.propose({ cars, profiles: activeProfiles(S), names });
+  d.pending = [...props, ...(d.pending || []).filter((p) => p.status === 'proposed' && !props.some((q) => q.slot === p.slot))].slice(0, 4);
+  return props;
+}
+function strategistHTML() {
+  if (!dnaOn) return '';
+  const props = G.props || [];
+  return `<div class="strat"><div class="sub">Team Strategist</div>${props.length ? props.map(proposalHTML).join('')
+    : '<p class="note">No changes to suggest: neither driver had a pattern of lock-ups, collisions, worn tyres or missed chances this race. Tune them yourself in Driver DNA any time.</p>'}</div>`;
+}
+function stratClick(e) {
+  const b = e.target.closest('[data-sp]'); if (!b) return;
+  const p = (G.props || []).find((x) => x.id === b.closest('[data-prop]').dataset.prop); if (!p) return;
+  const d = dnaState(S);
+  if (b.dataset.sp === 'test') {
+    const cur = d.slots[p.slot].active, next = { ...cur.params };
+    for (const [k, [, to]] of Object.entries(p.diff)) next[k] = to;
+    return studio(resultsView, false, { slot: p.slot, view: 'test', venue: G.venue, draft: { params: next, name: cur.name, origin: 'strategist' } });
+  }
+  decide(S, p, b.dataset.sp === 'yes');
+  d.pending = (d.pending || []).filter((x) => x.id !== p.id);
+  store.save();
+  resultsView();
+}
+
+function resultsView() {
+  const share = G.resShare;
+  const sh = show(G.resHTML.replace('<div class="actions">', strategistHTML() + '<div class="actions">'));
+  sh.onclick = (e) => {
+    stratClick(e);
     const b = e.target.closest('[data-r]'); if (!b) return;
     const r = b.dataset.r;
     if (r === 'next') { const v = CALENDAR[S.season.round - 1]; pre({ kind: 'season', venue: v, seed: hashString(`season-${S.season.no}-${S.season.round}`), round: S.season.round }); }
@@ -1035,8 +1095,7 @@ function results() {
     if (r === 'again') pre({ kind: G.kind === 'season' ? 'quick' : G.kind, venue: G.venue, seed: G.kind === 'daily' ? G.seed : hashString('quick-' + Date.now()), day: G.day });
     if (r === 'standings') standings();
     if (r === 'home') attract();
-  });
-  setCam('overview');
+  };
 }
 
 function readable(hex) {
