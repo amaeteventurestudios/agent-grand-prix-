@@ -7,6 +7,7 @@ import { rng, clamp, hashString } from './rng.js';
 import { sampleTrack } from './track.js';
 import { COMPOUNDS } from './data.js';
 import { Paddock } from './paddock.js';
+import { Fleet, loadCar } from './cars.js';
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
@@ -160,7 +161,7 @@ function treeGeometry(type) {
 
 export class World {
   constructor(renderer, venue, track, opts = {}) {
-    this.renderer = renderer; this.venue = venue; this.T = track; this.lite = !!opts.lite;
+    this.renderer = renderer; this.venue = venue; this.T = track; this.lite = !!opts.lite; this.carModel = opts.car || null;
     const scene = this.scene = new THREE.Scene();
     const P = this.pal = PALETTES[venue.time] || PALETTES.day;
     const r = rng(hashString(venue.id + '-world'));
@@ -881,6 +882,23 @@ export class World {
       this.carObjs.set(c.id, { group: g, body, tag, rl, car: c });
     }
     this.setTeams([...new Map(cars.map((c) => [c.team.id, c.team])).values()]);
+    this.applyModel();
+  }
+
+  // the modelled cars replace the simple ones once their file has loaded (null keeps the simple cars)
+  setModel(id) { this.carModel = id || null; this.applyModel(); }
+  applyModel() {
+    const id = this.carModel, simple = (on) => {
+      for (const o of this.carObjs.values()) o.body.visible = on;
+      for (const s of this.paddock?.spares || []) s.mesh.visible = on;
+    };
+    if (!id) { this.fleet?.dispose(); this.fleet = null; simple(true); return; }
+    loadCar(id).then((m) => {
+      if (this.disposed || this.carModel !== id) return;
+      if (!this.fleet || this.fleet.model !== m) { this.fleet?.dispose(); this.fleet = new Fleet(this, m, CAR_SCALE); }
+      this.fleet.setGlow({ night: 2.2, dusk: 1.4 }[this.venue.time] || 0.6);
+      simple(false);
+    }).catch((e) => { console.warn('car model failed to load, keeping the simple cars', e); simple(true); });
   }
 
   makeTag(c) {
@@ -993,6 +1011,13 @@ export class World {
       this.scLamps[0].color.set(ph ? '#ffb020' : '#4a2a00'); this.scLamps[1].color.set(ph ? '#4a2a00' : '#ffb020');
     }
     if (this.paddock) this.paddock.update(race, dt, speed);
+    if (this.fleet) {
+      const list = this.fleetList ||= [];
+      list.length = 0;
+      for (const c of race.cars) { const o = this.carObjs.get(c.id); if (o) list.push({ id: c.id, group: o.group, c1: c.team.c1, c2: c.team.c2, selected: c.id === selectedId }); }
+      for (const s of this.paddock?.spares || []) list.push({ id: 'spare-' + s.team.id, group: s.mesh, c1: s.team.c1, c2: s.team.c2, static: true });
+      this.fleet.update(list, camera, dt * speed);
+    }
     // keep the sun's shadow box around what the camera looks at
     if (focus) {
       this.sun.target.position.copy(focus);
@@ -1052,6 +1077,7 @@ export class World {
   }
 
   dispose() {
+    this.disposed = true; this.fleet?.dispose();
     this.scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });

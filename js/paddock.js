@@ -92,7 +92,7 @@ export class Paddock {
       const nx = sd * tmp.tz, nz = -sd * tmp.tx; // towards the lane
       m.rotation.y = -Math.atan2(nz, nx);
       m.castShadow = true; m.userData.shared = true; // the race cars use this geometry too
-      this.group.add(m);
+      this.group.add(m); this.spares.push({ mesh: m, team: t });
     }
 
     // tyre stacks: black tyres, the band takes the compound colour

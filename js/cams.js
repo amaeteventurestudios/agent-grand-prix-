@@ -128,9 +128,10 @@ export class Cams {
       if (Math.abs(c.fov - fov) > 0.05) { c.fov += (fov - c.fov) * kk; c.updateProjectionMatrix(); }
       return;
     } else if (this.mode === 'chase') {
-      const back = c.aspect < 0.8 ? 17 : 13;
-      pos = v1.copy(p).addScaledVector(f, -back).addScaledVector(up, 5.2);
-      look = p.clone().addScaledVector(f, 9).addScaledVector(up, 1.4);
+      // modelled cars get a lower, closer broadcast chase, like an onboard from the car behind
+      const low = !!this.world.fleet, back = c.aspect < 0.8 ? (low ? 13 : 17) : low ? 10 : 13;
+      pos = v1.copy(p).addScaledVector(f, -back).addScaledVector(up, low ? 3.4 : 5.2);
+      look = p.clone().addScaledVector(f, low ? 12 : 9).addScaledVector(up, low ? 1.2 : 1.4);
     } else if (this.mode === 'fpv') {
       pos = v1.copy(p).addScaledVector(f, 0.98).addScaledVector(up, 1.02);
       look = p.clone().addScaledVector(f, 30).addScaledVector(up, 0.7);

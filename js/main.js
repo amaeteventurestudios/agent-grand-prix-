@@ -6,6 +6,7 @@ import { hashString, clamp } from './rng.js';
 import { DT, LIFE, fmtLap, fmtTime } from './sim.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, trackFor } from './game.js';
 import { World } from './world.js';
+import { MODELS } from './cars.js';
 import { Cams } from './cams.js';
 import { Sound } from './audio.js';
 import * as store from './store.js';
@@ -18,6 +19,8 @@ const touch = matchMedia('(pointer: coarse)').matches;
 const lite = params.has('lite') || touch;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const S = store.load();
+// which car everyone races: a modelled car, or null for the simple one (?car=falcon or ?car=classic)
+const carModel = () => { const q = params.get('car'); return q ? (q === 'classic' ? null : q) : S.settings.car === undefined ? 'falcon' : S.settings.car; };
 
 // ---------- renderer ----------
 const canvas = $('#gl'), stage = $('#stage'), app = $('#app');
@@ -49,7 +52,7 @@ const mine = () => (G.attract ? [] : ['you-0', 'you-1']);
 function loadVenue(venue) {
   if (world && world.venue.id === venue.id) return;
   if (world) world.dispose();
-  world = new World(renderer, venue, trackFor(venue), { lite });
+  world = new World(renderer, venue, trackFor(venue), { lite, car: carModel() });
   cams.setWorld(world);
   resize();
 }
@@ -106,10 +109,14 @@ function frame(now) {
   fpsT += dt; fpsN++;
   if (fpsT > 2.5) {
     const fps = fpsN / fpsT; fpsT = 0; fpsN = 0;
+    if (!statsEl.hidden) statsEl.textContent = `${fps.toFixed(0)} fps · ${renderer.info.render.calls} calls · ${(renderer.info.render.triangles / 1000).toFixed(0)}k tris · dpr ${dpr}`;
     if (fps < 38 && dpr > 1) { dpr = Math.max(1, dpr - 0.25); renderer.setPixelRatio(dpr); resize(); }
     else if (fps > 57 && dpr < Math.min(devicePixelRatio, lite ? 1.5 : 2)) { dpr = Math.min(dpr + 0.25, devicePixelRatio); renderer.setPixelRatio(dpr); resize(); }
   }
 }
+// ?stats: frame rate, draw calls and triangles in the corner, for checking real phones
+const statsEl = Object.assign(document.body.appendChild(document.createElement('div')), { className: 'stats-ovl' });
+statsEl.hidden = !(params.has('stats') || S.settings.stats);
 function attractRestart() { attractQueued || (attractQueued = setTimeout(() => { attractQueued = null; if (G.attract) attract(); }, 500)); }
 let attractQueued = null;
 
@@ -633,6 +640,9 @@ function pre(o) {
     <div class="sub">Starting tyres</div>
     <div class="pick">${team().drivers.map((d, i) => `<div><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + i)}</div>
       <div class="box-row" data-car="you-${i}">${Object.keys(COMPOUNDS).map((k) => `<button type="button" data-c="${k}" class="${picks['you-' + i] === k ? 'on' : ''}">${tyreHTML(k)}${COMPOUNDS[k].name}</button>`).join('')}</div></div>`).join('')}</div>
+    <div class="sub">Car</div>
+    <div class="mode cars">${[{ id: null, name: 'Classic' }, ...MODELS].map((m) => `<button type="button" data-car-model="${m.id || ''}" class="${(carModel() || '') === (m.id || '') ? 'on' : ''}"><b>${m.name}</b><span>${m.id ? 'New 3D model. Every car in the race uses it, in its own team colours.' : 'The original simple cars. Lightest on older phones.'}</span></button>`).join('')}</div>
+    <label class="statsopt"><input type="checkbox" id="statsOpt" ${statsEl.hidden ? '' : 'checked'}> Show frame rate (for testing on your phone)</label>
     <div class="sub">Who makes the calls?</div>
     <div class="mode">
       <button type="button" data-m="0" class="${auto ? '' : 'on'}"><b>Team Principal</b><span>You call pit stops, tyres and tactics. Your engineer advises.</span></button>
@@ -643,6 +653,12 @@ function pre(o) {
     picks[row.dataset.car] = b.dataset.c; $$('button', row).forEach((x) => x.classList.toggle('on', x === b));
   })));
   $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
+  $$('[data-car-model]', sh).forEach((b) => b.addEventListener('click', () => {
+    S.settings.car = b.dataset.carModel || null; store.save();
+    $$('[data-car-model]', sh).forEach((x) => x.classList.toggle('on', x === b));
+    if (world) world.setModel(carModel());
+  }));
+  $('#statsOpt').addEventListener('change', (e) => { S.settings.stats = e.target.checked; store.save(); statsEl.hidden = !e.target.checked; });
   $('#preBack').addEventListener('click', home);
   $('#usePlan').addEventListener('click', () => {
     const p = planFor(o.venue, probe);
@@ -864,7 +880,8 @@ window.__agp = {
     Object.assign(G, { kind, venue: v, seed: hashString((kind === 'daily' ? 'daily-' : 'quick-') + (kind === 'daily' ? n : v.id)), day: n, round: kind === 'season' ? S.season.round : null });
     startRace({}, false); lightsSequence(true);
   },
-  cam: setCam, tab: setTab, select, results,
+  cam: setCam, tab: setTab, select, results, pre,
+  car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
   info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr }),
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,
 };
