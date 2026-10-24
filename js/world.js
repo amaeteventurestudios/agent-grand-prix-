@@ -961,23 +961,36 @@ export class World {
       this.carObjs.set(c.id, { group: g, body, tag, rl, car: c });
     }
     this.setTeams([...new Map(cars.map((c) => [c.team.id, c.team])).values()]);
+    this.teamCar = new Map(cars.filter((c) => c.team.car).map((c) => [c.team.id, c.team.car]));
     this.applyModel();
   }
 
-  // the modelled cars replace the simple ones once their file has loaded (null keeps the simple cars)
+  // the modelled cars replace the simple ones once their files have loaded (null keeps the simple
+  // cars). Each team races its own car (team.car, js/carspec.js); a race without cars uses the
+  // picked one for everybody. On phones only a few different models load; the rest borrow yours.
   setModel(id) { this.carModel = id || null; this.applyModel(); }
+  modelFor(teamId) {
+    const want = this.teamCar?.get(teamId) || this.carModel;
+    return this.allowed && !this.allowed.has(want) ? this.carModel : want;
+  }
   applyModel() {
     const id = this.carModel, simple = (on) => {
       for (const o of this.carObjs.values()) o.body.visible = on;
       for (const s of this.paddock?.spares || []) s.mesh.visible = on;
     };
-    if (!id) { this.fleet?.dispose(); this.fleet = null; simple(true); return; }
-    loadCar(id).then((m) => {
+    const drop = () => { for (const f of this.fleets.values()) f.dispose(); this.fleets.clear(); };
+    this.fleets ||= new Map();
+    if (!id) { drop(); simple(true); return; }
+    const all = [id, ...new Set([...(this.teamCar?.values() || [])].filter((m) => m && m !== id))];
+    this.allowed = this.lite ? new Set(all.slice(0, 5)) : null;
+    const ids = this.allowed ? [...this.allowed] : all;
+    Promise.all(ids.map((m) => loadCar(m))).then((models) => {
       if (this.disposed || this.carModel !== id) return;
-      if (!this.fleet || this.fleet.model !== m) { this.fleet?.dispose(); this.fleet = new Fleet(this, m, CAR_SCALE); }
-      this.fleet.setGlow({ night: 2.2, dusk: 1.4 }[this.venue.time] || 0.6);
+      for (const [k, f] of this.fleets) if (!ids.includes(k)) { f.dispose(); this.fleets.delete(k); }
+      models.forEach((m) => { if (!this.fleets.has(m.id)) this.fleets.set(m.id, new Fleet(this, m, CAR_SCALE)); });
+      for (const f of this.fleets.values()) f.setGlow({ night: 2.2, dusk: 1.4 }[this.venue.time] || 0.6);
       simple(false);
-    }).catch((e) => { console.warn('car model failed to load, keeping the simple cars', e); simple(true); });
+    }).catch((e) => { console.warn('car model failed to load, keeping the simple cars', e); drop(); simple(true); });
   }
 
   makeTag(c) {
@@ -1095,12 +1108,13 @@ export class World {
     this.boats?.update(dt * speed); this.clouds?.update(dt * speed);
     if (this.landmarks) for (const l of this.landmarks) l.update(dt * speed);
     this.stands?.update(dt * speed, this.cheer || 0, this.crowdLight);
-    if (this.fleet) {
-      const list = this.fleetList ||= [];
-      list.length = 0;
-      for (const c of race.cars) { const o = this.carObjs.get(c.id); if (o) list.push({ id: c.id, group: o.group, c1: c.team.c1, c2: c.team.c2, selected: c.id === selectedId }); }
-      for (const s of this.paddock?.spares || []) list.push({ id: 'spare-' + s.team.id, group: s.mesh, c1: s.team.c1, c2: s.team.c2, static: true });
-      this.fleet.update(list, camera, dt * speed);
+    if (this.fleets?.size) {
+      const lists = this.fleetLists ||= new Map();
+      for (const k of this.fleets.keys()) { if (!lists.has(k)) lists.set(k, []); lists.get(k).length = 0; }
+      const add = (team, item) => (lists.get(this.modelFor(team.id)) || lists.get(this.carModel))?.push(item);
+      for (const c of race.cars) { const o = this.carObjs.get(c.id); if (o) add(c.team, { id: c.id, group: o.group, c1: c.team.c1, c2: c.team.c2, glow: c.team.glow, selected: c.id === selectedId }); }
+      for (const s of this.paddock?.spares || []) add(s.team, { id: 'spare-' + s.team.id, group: s.mesh, c1: s.team.c1, c2: s.team.c2, glow: s.team.glow, static: true });
+      for (const [k, f] of this.fleets) f.update(lists.get(k), camera, dt * speed);
     }
     // keep the sun's shadow box around what the camera looks at
     if (focus) {
@@ -1161,7 +1175,7 @@ export class World {
   }
 
   dispose() {
-    this.disposed = true; this.fleet?.dispose();
+    this.disposed = true; for (const f of this.fleets?.values() || []) f.dispose(); this.carShared?.dispose();
     this.scene.traverse((o) => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });

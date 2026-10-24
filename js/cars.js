@@ -6,7 +6,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
-export const MODELS = [{ id: 'falcon', name: 'Falcon' }];
+import { CARS } from './carspec.js';
+
+export const MODELS = CARS;
 
 // a compressed GLB from assets/ (path without the extension); some hosts won't serve .glb files,
 // so the same file can come as a base64 module beside it
@@ -57,28 +59,30 @@ function parse(root, id) {
 }
 
 const glow = { value: 0.8 };
-function liveryMaterial(env) {
+export function liveryMaterial(env) {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0, envMap: env, envMapIntensity: 1.0 });
   m.onBeforeCompile = (s) => {
     s.uniforms.uGlow = glow;
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec3 iC1;\nattribute vec3 iC2;\nvarying vec3 vC1;\nvarying vec3 vC2;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvC1 = iC1; vC2 = iC2;');
+      .replace('#include <common>', '#include <common>\nattribute vec3 iC1;\nattribute vec3 iC2;\nattribute vec3 iC3;\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvC1 = iC1; vC2 = iC2; vC3 = iC3;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vC1;\nvarying vec3 vC2;\nuniform float uGlow;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nuniform float uGlow;')
       .replace('#include <color_fragment>', `
         vec4 mk = vColor;
+        // the mask blends between vertices; a sharp step at 0.5, a pixel wide, gives crisp livery edges
+        mk.rgb = clamp((mk.rgb - 0.5) / max(fwidth(mk.rgb), vec3(1e-3)) + 0.5, 0.0, 1.0);
         float isMetal = step(0.7, mk.a) * step(mk.a, 0.9);
         vec3 base = mix(vec3(0.010, 0.011, 0.013), vec3(0.11, 0.115, 0.125), isMetal);
         base = mix(base, vC1, mk.r);
         base = mix(base, vC2, mk.g);
-        base = mix(base, vec3(1.0), mk.b);
+        base = mix(base, mix(vC3, vec3(1.0), 0.35), mk.b);
         diffuseColor.rgb = base;`)
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(clamp(0.86 - 0.66 * mk.a, 0.2, 0.9), 0.32, isMetal);')
       .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = isMetal * 0.85;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += mk.b * vec3(0.85, 0.95, 1.0) * uGlow;');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += mk.b * vC3 * uGlow;');
   };
-  m.customProgramCacheKey = () => 'agp-livery';
+  m.customProgramCacheKey = () => 'agp-livery-2';
   return m;
 }
 
@@ -100,15 +104,21 @@ const P = new THREE.Vector3(), Q = new THREE.Quaternion(), V = new THREE.Vector3
 export class Fleet {
   constructor(world, model, scale) {
     this.world = world; this.model = model; this.scale = scale;
-    this.env = skyEnv(world.renderer, world);
-    this.mat = liveryMaterial(this.env.texture);
-    this.glassMat = new THREE.MeshStandardMaterial({ color: '#0a0d12', roughness: 0.04, metalness: 0, envMap: this.env.texture, envMapIntensity: 1.4, transparent: true, opacity: 0.72 });
+    // every fleet in a world shares one environment map and one pair of materials
+    const sh = world.carShared ||= (() => {
+      const env = skyEnv(world.renderer, world);
+      const mat = liveryMaterial(env.texture);
+      const glassMat = new THREE.MeshStandardMaterial({ color: '#0a0d12', roughness: 0.04, metalness: 0, envMap: env.texture, envMapIntensity: 1.4, transparent: true, opacity: 0.72 });
+      return { env, mat, glassMat, dispose() { mat.dispose(); glassMat.dispose(); env.dispose(); } };
+    })();
+    this.env = sh.env; this.mat = sh.mat; this.glassMat = sh.glassMat;
     this.group = new THREE.Group(); world.scene.add(this.group);
     this.cap = 48;
     this.layers = model.lods.map((parts, lod) => parts.map((p) => {
       const geo = p.geo.clone();
       geo.setAttribute('iC1', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
       geo.setAttribute('iC2', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
+      geo.setAttribute('iC3', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
       const im = new THREE.InstancedMesh(geo, p.glass ? this.glassMat : this.mat, this.cap);
       im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       im.frustumCulled = false; im.count = 0;
@@ -121,13 +131,14 @@ export class Fleet {
     this.shadow.im.castShadow = true; this.shadow.im.frustumCulled = false; this.shadow.im.count = 0;
     this.group.add(this.shadow.im);
     this.state = new Map(); // per car: wheel spin, steer, last position
+    this.glowDefault = CARS.find((c) => c.id === model.id)?.glow || '#d8f0ff';
   }
 
   setGlow(k) { glow.value = k; }
 
   counts() { return this.layers.map((L) => L[0].im.count); }
 
-  // cars: [{ id, group, c1, c2, selected }]; the camera picks each car's level of detail
+  // cars: [{ id, group, c1, c2, glow, selected }]; the camera picks each car's level of detail
   update(cars, camera, dt) {
     for (const L of this.layers) for (const { im } of L) im.count = 0;
     const sh = this.shadow; sh.im.count = 0;
@@ -159,19 +170,20 @@ export class Fleet {
         } else im.setMatrixAt(i, M.copy(W).multiply(p.local));
         C.set(c.c1); im.geometry.attributes.iC1.setXYZ(i, C.r, C.g, C.b);
         C.set(c.c2); im.geometry.attributes.iC2.setXYZ(i, C.r, C.g, C.b);
+        C.set(c.glow || this.glowDefault); im.geometry.attributes.iC3.setXYZ(i, C.r, C.g, C.b);
       }
     }
     sh.im.instanceMatrix.needsUpdate = true;
     for (const L of this.layers) for (const { im } of L) {
       if (!im.count) continue;
       im.instanceMatrix.needsUpdate = true;
-      im.geometry.attributes.iC1.needsUpdate = im.geometry.attributes.iC2.needsUpdate = true;
+      im.geometry.attributes.iC1.needsUpdate = im.geometry.attributes.iC2.needsUpdate = im.geometry.attributes.iC3.needsUpdate = true;
     }
   }
 
   dispose() {
     this.world.scene.remove(this.group);
     for (const L of this.layers) for (const { im } of L) im.geometry.dispose();
-    this.mat.dispose(); this.glassMat.dispose(); this.env.dispose();
+    this.shadow.im.dispose();
   }
 }

@@ -1,5 +1,5 @@
 # Renders a four-view check sheet of a built car (LOD0, or the LOD given) with a team livery.
-# blender -b art/cars/<name>.blend -P art/cars/render.py -- out_prefix [lod] [c1] [c2]
+# blender -b art/cars/<name>.blend -P art/cars/render.py -- out_prefix [lod] [c1] [c2] [glow] [views]
 import sys, bpy, math
 from mathutils import Vector
 args = sys.argv[sys.argv.index('--') + 1:]
@@ -14,7 +14,12 @@ for o in bpy.data.objects:
 m = bpy.data.materials['livery']; nt = m.node_tree; N = nt.nodes; L = nt.links
 b = N['Principled BSDF']
 a = N.new('ShaderNodeVertexColor'); a.layer_name = 'Col'
-sep = N.new('ShaderNodeSeparateColor'); L.new(a.outputs['Color'], sep.inputs[0])
+sep0 = N.new('ShaderNodeSeparateColor'); L.new(a.outputs['Color'], sep0.inputs[0])
+class _Sep: outputs = []
+sep = _Sep()
+for i in range(3):   # threshold each mask channel at 0.5, as the game does, for crisp livery edges
+    mr = N.new('ShaderNodeMapRange'); mr.interpolation_type = 'SMOOTHSTEP'; mr.inputs[1].default_value = 0.47; mr.inputs[2].default_value = 0.53
+    L.new(sep0.outputs[i], mr.inputs[0]); sep.outputs.append(mr.outputs[0])
 def mix(c_a, c_b, fac):
     n = N.new('ShaderNodeMix'); n.data_type = 'RGBA'
     if isinstance(c_a, tuple): n.inputs[6].default_value = c_a
@@ -29,7 +34,7 @@ L.new(a.outputs['Alpha'], r.inputs[0]); L.new(r.outputs[0], b.inputs['Roughness'
 b.inputs['Coat Weight'].default_value = 0.6
 em = N.new('ShaderNodeMath'); em.operation = 'MULTIPLY'; em.inputs[1].default_value = 6
 L.new(sep.outputs[2], em.inputs[0]); L.new(em.outputs[0], b.inputs['Emission Strength'])
-b.inputs['Emission Color'].default_value = (0.85, 0.95, 1, 1)
+b.inputs['Emission Color'].default_value = lin(hexc(args[4])) if len(args) > 4 else (0.85, 0.95, 1, 1)
 sc = bpy.context.scene
 sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 48; sc.cycles.use_denoising = True
 sc.render.resolution_x, sc.render.resolution_y = 960, 540
@@ -45,7 +50,8 @@ sun.data.energy = 3.5; sun.rotation_euler = (math.radians(40), math.radians(15),
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
 cam.data.lens = 50
 views = {'34': (6.5, 4.8, 3.0), 'side': (0.0, 9.0, 0.9), 'rear': (-6.5, -4.2, 2.4), 'top': (0.01, 0.0, 11)}
-for k, p in views.items():
+only = args[5].split(',') if len(args) > 5 else list(views)
+for k, p in [(k, views[k]) for k in only]:
     cam.location = p
     d = Vector((0, 0, 0.35)) - Vector(p); cam.rotation_euler = d.to_track_quat('-Z', 'Y').to_euler()
     sc.render.filepath = f'{out}_{k}.png'; bpy.ops.render.render(write_still=True)

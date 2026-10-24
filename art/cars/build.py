@@ -1,6 +1,6 @@
 # Builds one car in three levels of detail and exports assets/vehicles/<name>/<name>.glb.
 # blender -b --factory-startup -P art/cars/build.py -- falcon [--render out.png]
-import sys, os, importlib, json
+import sys, os, importlib, importlib.util, json
 sys.path.insert(0, os.path.dirname(__file__))
 import bpy
 from carkit import *
@@ -8,7 +8,9 @@ from carkit import *
 args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else ['falcon']
 name = args[0]
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-spec = importlib.import_module(name)
+# load the car's file by path: a bare import can pick up a Blender module of the same name (manta)
+_sp = importlib.util.spec_from_file_location('car_' + name, os.path.join(os.path.dirname(__file__), name + '.py'))
+spec = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(spec)
 reset()
 mats = {}
 def mat(key, rgba, rough, metal=0.0, alpha=1.0):

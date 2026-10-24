@@ -46,7 +46,12 @@ def loft(name, rings, closed_ring=True, cap=True):
         for i in range(m if closed_ring else m - 1):
             j = (i + 1) % m
             bm.faces.new((a[i], a[j], b[j], b[i]))
-    if cap and closed_ring:
+    if cap == 'ngon' and closed_ring:
+        # flat end faces that follow the ring's own outline (for non-convex sections such as arches)
+        for r, flip in ((vs[0], True), (vs[-1], False)):
+            f = bm.faces.new(r[::-1] if flip else r)
+            bmesh.ops.triangulate(bm, faces=[f], quad_method='BEAUTY', ngon_method='EAR_CLIP')
+    elif cap and closed_ring:
         for r, flip in ((vs[0], True), (vs[-1], False)):
             c = sum((v.co for v in r), Vector()) / len(r)
             cv = bm.verts.new(c)
@@ -138,11 +143,31 @@ def finish(ob, subdiv=0, smooth=True, bevel=0.0):
             bpy.ops.object.modifier_apply(modifier='wn')
     return ob
 
-def paint(ob, rule):
-    """Write the livery mask: rule(face_centre, face_normal) -> RGBA."""
+def paint(ob, rule, smooth=False):
+    """Write the livery mask: rule(point, normal) -> RGBA, per face (hard edges along the mesh), or
+    with smooth=True per vertex, so a boundary drawn by a smooth rule crosses faces diagonally. The
+    game and the renders threshold the mask at 0.5, which turns those blends into crisp curved edges."""
     me = ob.data
     attr = me.color_attributes.get('Col') or me.color_attributes.new('Col', 'FLOAT_COLOR', 'CORNER')
     me.color_attributes.active_color = attr
+    if smooth:
+        # each vertex stores the share of a small disc around it that the rule paints each way, so the
+        # 0.5 contour between vertices lands on the rule's real boundary (a straight, clean edge)
+        rad = smooth if isinstance(smooth, float) else 0.03
+        disc = [(0.0, 0.0)] + [(rad * f * math.cos(a), rad * f * math.sin(a)) for f in (0.5, 1.0) for a in [k * math.pi / 4 + f for k in range(8)]]
+        cache = {}
+        for p in me.polygons:
+            for li, vi in zip(p.loop_indices, p.vertices):
+                if vi not in cache:
+                    v = me.vertices[vi]; co = ob.matrix_world @ v.co; nrm = v.normal
+                    t1 = nrm.orthogonal().normalized(); t2 = nrm.cross(t1)
+                    acc = [0.0, 0.0, 0.0, 0.0]
+                    for (u, w) in disc:
+                        c = rule(co + t1 * u + t2 * w, nrm)
+                        for i in range(4): acc[i] += c[i]
+                    cache[vi] = tuple(a / len(disc) for a in acc)
+                attr.data[li].color = cache[vi]
+        return ob
     for p in me.polygons:
         c = rule(ob.matrix_world @ p.center, p.normal)
         for li in p.loop_indices: attr.data[li].color = c
@@ -163,14 +188,15 @@ def join(name, obs):
 def tris(ob):
     return sum(len(p.vertices) - 2 for p in ob.data.polygons)
 
-def wheel(name, key, segs, rim_detail=True, ring=P2):
+def wheel(name, key, segs, rim_detail=True, ring=P2, sidewall_ring=False):
     x, y, r, w = WHEELS[key]
     s = 1 if y > 0 else -1
     hw = w / 2
     rr = 0.225  # rim radius
-    tyre = [(rr, -hw + 0.01), (r - 0.04, -hw), (r - 0.008, -hw + 0.03), (r, -hw + 0.08), (r, hw - 0.08), (r - 0.008, hw - 0.03), (r - 0.04, hw), (rr, hw - 0.01)]
+    tyre = [(rr, -hw + 0.01), (rr + 0.012, -hw + 0.004), (rr + 0.034, -hw), (r - 0.04, -hw), (r - 0.008, -hw + 0.03), (r, -hw + 0.08), (r, hw - 0.08), (r - 0.008, hw - 0.03), (r - 0.04, hw), (rr + 0.034, hw), (rr + 0.012, hw - 0.004), (rr, hw - 0.01)]
     t = lathe(name + '_tyre', tyre, segs)
-    paint(t, solid(RB))
+    # a thin ring on the outer sidewall beside the rim: lit (GLOW) or painted, as the car asks
+    paint(t, lambda p, n: ring if sidewall_ring and abs(p.y) > hw - 0.02 and math.copysign(1, p.y) == s and rr + 0.012 < Vector((p.x, 0, p.z)).length < rr + 0.034 else RB)
     face = hw * s
     rim = [(0.0, face * 0.2), (0.06, face * 0.35), (0.16, face * 0.55), (rr - 0.02, face * 0.8), (rr, face * 0.97), (rr, -face * 0.9)] if rim_detail else [(0.0, face * 0.5), (rr, face * 0.95), (rr, -face * 0.9)]
     rm = lathe(name + '_rim', rim, segs)
@@ -196,3 +222,18 @@ def arch(x, yc, hw, zb, ztop, t, n=12):
         outer.append(Vector((x, yc + hw * math.copysign(abs(c) ** ex, c), zb + (ztop - zb) * abs(s) ** ex)))
         inner.append(Vector((x, yc + (hw - t) * math.copysign(abs(c) ** ex, c), zb + (ztop - t - zb) * abs(s) ** ex)))
     return outer + inner[::-1]
+
+def resample(table, step):
+    """Densify a shape table (rows starting with x, descending) with Catmull-Rom between rows, so a
+    loft has rings every `step` metres: smoother surfaces, and painted lines follow curves cleanly."""
+    out = []
+    T = [table[0]] + list(table) + [table[-1]]
+    for i in range(1, len(T) - 2):
+        p0, p1, p2, p3 = T[i - 1], T[i], T[i + 1], T[i + 2]
+        k = max(1, int(round(abs(p1[0] - p2[0]) / step)))
+        for j in range(k):
+            t = j / k
+            out.append(tuple(0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t ** 3)
+                             for a, b, c, d in zip(p0, p1, p2, p3)))
+    out.append(tuple(table[-1]))
+    return out

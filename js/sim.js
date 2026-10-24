@@ -9,6 +9,7 @@
 import { rng, clamp } from './rng.js';
 import { COMPOUNDS, POINTS } from './data.js';
 import { driverPlan } from './track.js';
+import { carMods } from './carspec.js';
 
 export const DT = 0.05;
 const LOOP = 25; // timing loop spacing, m
@@ -58,9 +59,9 @@ export function rainAt(W, t) {
   return v;
 }
 
-export function qualify(entries, venue, seed) {
+export function qualify(entries, venue, seed, track) {
   const r = rng(seed ^ 0x51ed);
-  return entries.map((e, i) => ({ e, q: e.traits.pace * (venue.grip ? 1 : 1) + r.range(-0.07, 0.07) + (e.dna ? oneLap(e.dna, seed, i) : 0) }))
+  return entries.map((e, i) => ({ e, q: e.traits.pace * (venue.grip ? 1 : 1) + r.range(-0.07, 0.07) + (e.dna ? oneLap(e.dna, seed, i) : 0) + carLap(e, track) }))
     .sort((a, b) => b.q - a.q).map((x) => x.e);
 }
 // Driver DNA over one qualifying lap: leaning harder on brakes, entry and grip finds time on fresh
@@ -73,6 +74,13 @@ function oneLap(d, seed, i) {
   if (x < 0) return 0.06 * x;
   const r = rng((seed ^ 0x0a1a9 ^ (i * 0x9e37)) >>> 0);
   return 0.12 * x - (r() < x * x ? 0.12 : 0);
+}
+
+// a car's strengths over one lap of this circuit, in the same units as driver pace (4.5% of speed
+// per point): a straights car gains at a fast circuit and gives it back at a twisty one
+function carLap(e, T) {
+  const m = e.car && T ? carMods(e.car) : null;
+  return m ? (1 - driverPlan(T, null, m).lapTime / T.lapTime) / 0.045 : 0;
 }
 
 const CAR_W = 2.9, CAR_L = 7.6;   // a car's footprint on screen, in metres
@@ -114,10 +122,10 @@ export class Race {
         mismatch: 0, plan: null, think: this.r.range(0, 1), advised: {},
         speedMul: 1 - 0.045 * (1 - traits.pace), wobble: 1, penalty: 0,
         failing: null, puncture: false, cleared: false, onTrackStop: false,
-        dna: e.dna || null, dnaHash: e.dna ? e.dna.hash : null, sv: null, lastTurn: -1, pressT: 0,
+        spec: e.car ? carMods(e.car) : null, dna: e.dna || null, dnaHash: e.dna ? e.dna.hash : null, sv: null, lastTurn: -1, pressT: 0,
         tele: { lockups: 0, wides: 0, spins: 0, att: 0, contacts: 0, mistakes: 0, wearSum: 0, dist: 0 },
       };
-      car.sv = driverPlan(T, car.dna).v;
+      car.sv = driverPlan(T, car.dna, car.spec).v;
       car.latT = car.lat; car.prevDist = car.dist; car.prevLat = car.lat;
       car.plan = this.planStops(car);
       return car;

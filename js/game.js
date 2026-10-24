@@ -5,6 +5,7 @@ import { generateTrack } from './track.js';
 import { Race, qualify, lapsFor } from './sim.js';
 import { simInputs, slotOf } from './dna.js';
 import { weatherFor } from './weather.js';
+import { teamCars } from './carspec.js';
 
 export const EPOCH = Date.UTC(2026, 9, 23); // Daily Grand Prix #1: 23 October 2026, Abuja
 
@@ -36,7 +37,7 @@ export function roster(team, withPlayer = true) {
   const traits = [{ pace: 0.88, tyre: 0.7, wet: 0.7, aggro: 0.55, brain: 0.75 }, { pace: 0.84, tyre: 0.75, wet: 0.75, aggro: 0.45, brain: 0.75 }];
   p.drivers.forEach((d, di) => entries.push({
     id: `you-${di}`, num: di ? 77 : 7, name: d.name, code: d.code, traits: traits[di], player: withPlayer,
-    team: { id: 'you', name: p.name, short: p.short, c1: p.c1, c2: p.c2, box: 9, you: true },
+    team: { id: 'you', name: p.name, short: p.short, c1: p.c1, c2: p.c2, glow: p.glow, box: 9, you: true },
   }));
   // nine AI teams use boxes 0..8, the player's team box 9
   return entries;
@@ -44,15 +45,19 @@ export function roster(team, withPlayer = true) {
 
 // dna: the locked Driver DNA profiles for your two cars ({ car1, car2 }, see js/dna.js), or none
 // for the engine's own behaviour. weather: a weather source id (js/weather.js).
-export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated' }) {
+// car: the model your team races (js/carspec.js); the other teams race the rest of the series. Left
+// out, every car is the neutral car of the first version.
+export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car }) {
   const track = trackFor(venue);
   const L = laps || lapsFor(track);
   const entries = roster(team, withPlayer);
+  const cars = car === undefined ? null : teamCars(TEAMS.map((t) => t.id), car || 'falcon');
   for (const e of entries) {
+    if (cars) e.team.car = e.car = cars[e.team.id];
     if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; }
     if (e.team.you && dna) { const p = dna[slotOf(e.id)]; e.dna = simInputs(p); e.dnaProfile = p; }
   }
-  const grid = qualify(entries, venue, seed);
+  const grid = qualify(entries, venue, seed, track);
   const weather = weatherFor(source, venue, seed, L * track.lapTime * 1.1);
   return { track, laps: L, grid, weather, make: () => new Race({ track, venue, seed, laps: L, grid, weather }) };
 }

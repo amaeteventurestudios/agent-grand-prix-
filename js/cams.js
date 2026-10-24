@@ -204,7 +204,7 @@ export class Cams {
       return;
     } else if (this.mode === 'chase') {
       // modelled cars get a lower, closer broadcast chase, like an onboard from the car behind
-      const low = !!this.world.fleet, back = c.aspect < 0.8 ? (low ? 13 : 17) : low ? 10 : 13;
+      const low = !!this.world.fleets?.size, back = c.aspect < 0.8 ? (low ? 13 : 17) : low ? 10 : 13;
       pos = v1.copy(p).addScaledVector(f, -back).addScaledVector(up, low ? 3.4 : 5.2);
       look = p.clone().addScaledVector(f, low ? 12 : 9).addScaledVector(up, low ? 1.2 : 1.4);
     } else if (this.mode === 'fpv') {

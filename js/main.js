@@ -16,6 +16,8 @@ import './coach.js';
 import { carMetrics } from './proving.js';
 import { PARAMS } from './dna.js';
 import { openStudio, dnaLine, proposalHTML } from './studio.js';
+import { openShowroom } from './showroom.js';
+import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -71,7 +73,7 @@ function attract() {
   G.attract = true; G.ended = false; sound.stop();
   const n = dayNumber(), venue = dailyVenue(n);
   loadVenue(venue);
-  const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30 });
+  const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30, car: carModel() || 'falcon' });
   G.race = setup.make(); G.setup = setup; G.venue = venue; G.evIdx = 0;
   world.setCars(G.race.cars);
   G.race.start();
@@ -647,7 +649,7 @@ function home() {
         <div class="row"><button class="btn ghost" data-go="quick" type="button">Choose a circuit</button></div></div>
     </div>
     <div class="home-foot"><span>Team: <b>${esc(team().name)}</b> · ${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${S.team ? 'Edit team' : 'Name your team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${S.team ? 'Edit team' : 'Name your team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
   sh.onclick = homeClick;
 }
 function homeClick(e) {
@@ -662,6 +664,7 @@ function homeClick(e) {
   if (go === 'standings') standings();
   if (go === 'quick') quickPick();
   if (go === 'team') teamSheet(home);
+  if (go === 'garage') showroom(home);
   if (go === 'dna') studio(home);
   if (go === 'help') helpSheet(home);
   if (go === 'win') winSheet(home);
@@ -693,7 +696,7 @@ function teamSheet(next, first) {
     const code = (s) => s.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase().padEnd(3, 'X');
     const d1 = $('#d1').value.trim() || 'Nova', d2 = $('#d2').value.trim() || 'Echo';
     let c1 = code(d1), c2 = code(d2); if (c1 === c2) c2 = c2.slice(0, 2) + '2';
-    S.team = { name: $('#tName').value.trim() || 'Your Team', short: code($('#tShort').value || $('#tName').value), c1: LIVERIES[liv].c1, c2: LIVERIES[liv].c2,
+    S.team = { name: $('#tName').value.trim() || 'Your Team', short: code($('#tShort').value || $('#tName').value), c1: LIVERIES[liv].c1, c2: LIVERIES[liv].c2, glow: t.glow,
       drivers: [{ name: d1, code: c1 }, { name: d2, code: c2 }] };
     store.save(); next();
   });
@@ -773,32 +776,20 @@ function quickPick() {
   $('#qBack').addEventListener('click', home);
 }
 
-// the garage: every car in the series. Only the modelled ones can race yet.
-const ROSTER = [
-  ['falcon', 'Falcon', 'Sharp nose, big side pods'], ['vortex', 'Vortex', '2040 racing vision'], ['spectre', 'Spectre', 'Graphite future racer'],
-  ['raptor', 'Raptor', 'Aerodynamic future racer'], ['arrowhead', 'Arrowhead', 'Fighter-jet inspired'], ['manta', 'Manta', 'Wide, low and flat'],
-  ['kestrel', 'Kestrel', 'Light and nimble'], ['stratos', 'Stratos', 'Tall fins, high wing'], ['peregrine', 'Peregrine', 'Built for top speed'],
-  ['tempest', 'Tempest', 'Storm-grey brawler'],
-];
-// a little top-down outline of each car, shaped by its name so every tile looks different
-function carSvg(id, col) {
-  const h = hashString(id || 'simple'), k = (n) => ((h >>> n) & 15) / 15;
-  if (!id) return `<svg viewBox="0 0 40 80" aria-hidden="true"><rect x="6" y="6" width="28" height="68" rx="4" fill="${col}"/><rect x="2" y="12" width="6" height="14" rx="2" fill="#222"/><rect x="32" y="12" width="6" height="14" rx="2" fill="#222"/><rect x="2" y="54" width="6" height="16" rx="2" fill="#222"/><rect x="32" y="54" width="6" height="16" rx="2" fill="#222"/></svg>`;
-  const nose = 3 + k(0) * 5, pod = 9 + k(4) * 5, fw = 15 + k(8) * 4, rw = 12 + k(12) * 4;
-  return `<svg viewBox="0 0 40 80" aria-hidden="true">
-    <rect x="${20 - fw}" y="${nose + 1}" width="${fw * 2}" height="4" rx="1" fill="#222"/>
-    <rect x="1" y="14" width="6" height="12" rx="2" fill="#222"/><rect x="33" y="14" width="6" height="12" rx="2" fill="#222"/>
-    <rect x="0" y="52" width="7" height="15" rx="2" fill="#222"/><rect x="33" y="52" width="7" height="15" rx="2" fill="#222"/>
-    <path d="M20 ${nose} L23 24 L${20 + pod} 36 L${20 + pod} 56 L24 70 L16 70 L${20 - pod} 56 L${20 - pod} 36 L17 24 Z" fill="${col}"/>
-    <ellipse cx="20" cy="40" rx="3" ry="5" fill="#111"/>
-    <rect x="${20 - rw}" y="70" width="${rw * 2}" height="5" rx="1" fill="#222"/></svg>`;
-}
+// the garage: every car in the series, as rendered pictures with their strengths. Tap a car to race
+// it; 3D opens it in the showroom.
 function carTiles() {
-  const cur = carModel() || '', ready = new Set(MODELS.map((m) => m.id)), col = team().c1;
-  const tile = (id, name, line, ok) => `<button type="button" data-car-model="${id}" class="car-tile ${cur === id ? 'on' : ''}" ${ok ? '' : 'disabled'}>
-    ${carSvg(id, ok ? col : '#9aa3ad')}<b>${name}</b><span>${line}</span>${ok ? '' : '<em>In the workshop</em>'}</button>`;
-  return `<div class="garage">${ROSTER.map(([id, name, line]) => tile(id, name, line, ready.has(id))).join('')}
-    ${tile('', 'Simple cars', 'Plain blocky cars from the first version. Pick these only if the race stutters on your phone.', true)}</div>`;
+  const cur = carModel() || '';
+  const tile = (c) => `<div class="car-tile ${cur === c.id ? 'on' : ''}">
+    <button type="button" class="ct-pick" data-car-model="${c.id}" aria-pressed="${cur === c.id}"><img src="assets/cars/${c.id}.webp" alt="" width="320" height="180" loading="lazy" decoding="async"><b>${c.name}</b><span>${esc(c.line)}</span>
+      <span class="ct-bars">${strengthBars(c.id).map(([k, v]) => `<i title="${k}"><u style="width:${v}%"></u><small>${k}</small></i>`).join('')}</span></button>
+    <button type="button" class="ct-3d" data-show="${c.id}" aria-label="See the ${c.name} in 3D">3D</button></div>`;
+  return `<div class="garage">${MODELS.map(tile).join('')}
+    <div class="car-tile simple ${cur === '' ? 'on' : ''}"><button type="button" class="ct-pick" data-car-model="" aria-pressed="${cur === ''}"><b>Simple cars</b><span>Plain blocky cars from the first version. Pick these only if the race stutters on your phone.</span></button></div></div>`;
+}
+function showroom(back, id) {
+  openShowroom({ S, show, save: store.save, team }, { id: id || carModel() || 'falcon', lite, back,
+    pick: (cid) => { S.settings.car = cid; store.save(); if (world) world.setModel(carModel()); } });
 }
 // what each tyre does at this track: speed, and roughly how many laps before it fades
 function tyreGuide(v) {
@@ -817,7 +808,7 @@ function tyreGuide(v) {
 // pre-race: forecast, grid slots, starting tyres, mode
 function pre(o) {
   Object.assign(G, { kind: o.kind, venue: o.venue, seed: o.seed, round: o.round || null, day: o.day || null });
-  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn) });
+  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon' });
   const T = probe.track, W = probe.weather;
   const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
   const wetStart = W.wet0 > 0.17;
@@ -837,7 +828,7 @@ function pre(o) {
       <div><small>Tyre wear</small><b>${o.venue.wear >= 1.15 ? 'High' : o.venue.wear <= 0.85 ? 'Low' : 'Medium'}</b></div>
     </div>
     <div class="sub">Your car</div>
-    <p class="note">Every car in the race uses the car you pick, each in its own team colours. All cars perform the same: your calls make the difference. More cars are on the way.</p>
+    <p class="note">Each team races its own car. Every car has the same overall pace, but some are quicker in the corners, some under braking, some on the straights. Tap 3D to look inside and pick your colours.</p>
     ${carTiles()}
     <div class="plan"><div class="sub">Your engineer's plan</div><ul>${planFor(o.venue, probe).lines.map((l) => `<li>${l}</li>`).join('')}</ul>
       <button class="btn ghost" id="usePlan" type="button">Use this plan</button> <button class="btn ghost" id="howWin" type="button">How to win</button></div>
@@ -867,9 +858,10 @@ function pre(o) {
   $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
   $$('[data-car-model]', sh).forEach((b) => b.addEventListener('click', () => {
     S.settings.car = b.dataset.carModel || null; store.save();
-    $$('[data-car-model]', sh).forEach((x) => x.classList.toggle('on', x === b));
+    $$('[data-car-model]', sh).forEach((x) => { x.closest('.car-tile').classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
     if (world) world.setModel(carModel());
   }));
+  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => showroom(() => pre(o), b.dataset.show)));
   $$('[data-voice]', sh).forEach((b) => b.addEventListener('click', () => {
     S.settings.voice = b.dataset.voice || null; store.save();
     $$('[data-voice]', sh).forEach((x) => x.classList.toggle('on', x === b));
@@ -894,7 +886,7 @@ function startRace(picks, auto) {
   G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set();
   app.classList.remove('attract');
   loadVenue(G.venue);
-  const setup = setupRace({ venue: G.venue, seed: G.seed, team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn) });
+  const setup = setupRace({ venue: G.venue, seed: G.seed, team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon' });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
   world.setCars(G.race.cars);
   G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; coachHide();
