@@ -17,7 +17,7 @@ const FRONT = 2.4;        // height of the front wall
 const AISLE = 18;         // metres between aisles
 
 // sweep a 2D profile [[lat, y], ...] along the track: one strip per profile segment, flat across it
-function sweep(T, ss, prof, colorFn) {
+export function sweep(T, ss, prof, colorFn) {
   const pos = [], cols = [], idx = [];
   let base = 0;
   for (let j = 0; j < prof.length - 1; j++) {

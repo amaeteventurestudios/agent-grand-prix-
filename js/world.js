@@ -8,7 +8,8 @@ import { sampleTrack } from './track.js';
 import { COMPOUNDS } from './data.js';
 import { Paddock } from './paddock.js';
 import { Fleet, loadCar } from './cars.js';
-import { Stands } from './env.js';
+import { Stands, sweep } from './env.js';
+import { towerShapes, facadeMaterial, streetLamps } from './kit.js';
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
@@ -80,6 +81,15 @@ export function carGeometry(c1, c2) {
   g.forEach((x) => x.dispose());
   m.scale(CAR_SCALE, CAR_SCALE, CAR_SCALE);
   return m;
+}
+
+// diamond wire mesh for the catch fences: white wires on a clear background
+function wireTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 32;
+  const x = c.getContext('2d'); x.strokeStyle = '#ffffff'; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(0, 0); x.lineTo(32, 32); x.moveTo(32, 0); x.lineTo(0, 32); x.stroke();
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4;
+  return t;
 }
 
 function blobTexture() {
@@ -389,24 +399,42 @@ export class World {
     const walls = [];
     // the pit side has its gap from pit entry to exit, where the pit wall takes over
     const pitA = ((P.inS - 30) + L) % L, pitB = P.outS + 30;
-    walls.push(wall(T, pitB, L + P.inS - 30, P.side * lat, wallH, wc));
-    walls.push(wall(T, 0, L, -P.side * lat, wallH, wc));
+    // concrete blocks with a chamfered top, 6 m long, in alternating colours; a steel rail on the fence
+    const block = (a, b, la) => {
+      const sg = Math.sign(la), ss = [];
+      for (let q = Math.ceil(a / 6) * 6; q < b; q += 6) this.lite ? ss.push(q, q + 5.97) : ss.push(q, q + 3, q + 5.97);
+      const prof = [[la - sg * 0.32, 0], [la - sg * 0.32, wallH * 0.72], [la - sg * 0.12, wallH], [la + sg * 0.12, wallH], [la + sg * 0.32, wallH * 0.72], [la + sg * 0.32, 0]];
+      const top = c2.clone().lerp(col('#ffffff'), 0.4);
+      walls.push(sweep(T, ss, prof, (j, q) => j === 2 ? top : wc(q + 0.01)));
+      const rail = [[la - 0.05, wallH + 3.15], [la - 0.05, wallH + 3.3], [la + 0.05, wallH + 3.3], [la + 0.05, wallH + 3.15]];
+      walls.push(sweep(T, ss, rail, () => col('#8d949e')));
+    };
+    block(pitB, L + P.inS - 30, P.side * lat);
+    block(0, L, -P.side * lat);
     const wallM = new THREE.Mesh(mergeGeometries(walls), new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
-    wallM.castShadow = wallM.receiveShadow = true;
+    wallM.castShadow = !this.lite; wallM.receiveShadow = true;
     this.scene.add(wallM);
     walls.forEach((g) => g.dispose());
-    // catch fences on top of the barriers, with posts
+    // catch fences on top of the barriers: wire mesh drawn on a small canvas, with posts
     const fence = [], posts = [];
     const fenceRun = (a, b, la) => {
-      const g = wall(T, a, b, la, 3.2, () => col('#c3c8cf'), 4);
-      g.translate(0, wallH, 0); fence.push(g);
+      const pos = [], uv = [], idx = []; let n = 0;
+      for (let q = a; q <= b + 1e-6; q += 4) {
+        sampleTrack(T, q, la, tmp);
+        pos.push(tmp.x, wallH, tmp.z, tmp.x, wallH + 3.2, tmp.z); uv.push(q / 1.6, 0, q / 1.6, 2);
+        if (n > 0) { const k = n * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+        n++;
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      g.setIndex(idx); g.computeVertexNormals(); fence.push(g);
       for (let q = a; q < b; q += 8) { sampleTrack(T, q, la, tmp); posts.push([tmp.x, tmp.z]); }
     };
     fenceRun(pitB, L + P.inS - 30, P.side * lat);
     fenceRun(0, L, -P.side * lat);
-    const fm = new THREE.Mesh(mergeGeometries(fence), new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.32, side: THREE.DoubleSide, depthWrite: false }));
+    const fm = new THREE.Mesh(mergeGeometries(fence), new THREE.MeshLambertMaterial({ color: '#b9c0c8', map: wireTexture(), alphaTest: 0.35, side: THREE.DoubleSide }));
     this.scene.add(fm);
-    if (!this.lite) {
+    {
       const pg = new THREE.CylinderGeometry(0.07, 0.07, 3.4, 4); pg.translate(0, wallH + 1.7, 0);
       const pm = new THREE.InstancedMesh(pg, new THREE.MeshLambertMaterial({ color: '#7d848f' }), posts.length);
       const m4 = new THREE.Matrix4();
@@ -544,6 +572,17 @@ export class World {
     const nr = g.attributes.normal.array; for (let i = 1; i < nr.length; i += 3) if (nr[i] < 0) { nr[i - 1] *= -1; nr[i] *= -1; nr[i + 1] *= -1; }
     const m = new THREE.Mesh(g, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
     m.receiveShadow = true; this.scene.add(m);
+    // street lamps along the road, every 42 m, alternating sides, the arm reaching over the road
+    const spots = [], ring = 2 * Math.PI * (R.reduce((a, b) => a + b, 0) / NB);
+    const nL = Math.floor(ring / 42 / (this.lite ? 1.6 : 1));
+    for (let i = 0; i < nL; i++) {
+      const a = -Math.PI + (i / nL) * Math.PI * 2, rr = this.roadR(a), o = i % 2 ? 6.2 : -6.2;
+      const x = cx + Math.cos(a) * (rr + o), z = cz + Math.sin(a) * (rr + o);
+      if (this.land(x, z) < 12 || this.dist(x, z) < T.half + 12) continue;
+      const h = o > 0 ? a + Math.PI : a;   // point the arm toward the road centre line
+      spots.push([x, this.height(x, z), z, h, false]);
+    }
+    this.scene.add(streetLamps(spots, this.pal.lamps));
   }
 
   buildScenery(r) {
@@ -574,29 +613,23 @@ export class World {
         this.scene.add(mesh);
       }
     }
-    // city blocks
+    // city blocks: a low town wrapped round the circuit, a skyline of towers beyond it. Six tower
+    // shapes from the buildings kit, one draw call each; windows, floors, reflections and night
+    // lights come from the facade shader, so every size keeps real-sized windows.
     const nB = Math.round((this.lite ? 220 : 520) * (V.city01 || 0));
     if (nB > 0) {
-      const box = new THREE.BoxGeometry(1, 1, 1); box.translate(0, 0.5, 0);
-      // facades: rows of glass, tinted per building
-      const cv = document.createElement('canvas'); cv.width = 64; cv.height = 128;
-      const fx = cv.getContext('2d');
-      fx.fillStyle = '#ffffff'; fx.fillRect(0, 0, 64, 128);
-      for (let row = 0; row < 16; row++) { fx.fillStyle = row % 4 === 3 ? '#e9edf2' : '#7f9bb8'; fx.fillRect(0, row * 8 + 2, 64, 5); }
-      for (let c2 = 0; c2 < 64; c2 += 8) { fx.fillStyle = 'rgba(255,255,255,0.55)'; fx.fillRect(c2, 0, 1, 128); }
-      const ft = new THREE.CanvasTexture(cv); ft.colorSpace = THREE.SRGBColorSpace; ft.wrapS = ft.wrapT = THREE.RepeatWrapping; ft.repeat.set(2, 3);
-      // roofs stay plain: blank the texture on top and bottom faces
-      const uv = box.attributes.uv; for (let i = 8; i < 16; i++) uv.setXY(i, 0.02, 0.02);
-      const mat = new THREE.MeshLambertMaterial({ color: '#ffffff', map: ft });
-      const bm = new THREE.InstancedMesh(box, mat, nB);
-      const win = [];
+      const shapes = towerShapes(this.lite), kinds = Object.keys(shapes);
+      const lists = Object.fromEntries(kinds.map((k) => [k, []]));
+      const neonCity = this.pal.lamps && ['lasvegas', 'singapore', 'shanghai', 'miami', 'suzuka', 'baku', 'jeddah', 'abudhabi', 'kualalumpur'].includes(V.id);
+      const desert = V.biome === 'desert' || V.biome === 'dunes';
       let k = 0, guard = 0;
       const a0 = this.waterDir ? Math.atan2(this.waterDir[1], this.waterDir[0]) : r() * Math.PI * 2;
       const across = this.farBank !== undefined;
       this.cityAngle = across ? a0 : (V.water !== 'none' ? a0 + Math.PI : a0);
-      const tones = ['#ffffff', '#e6f0fa', '#cfe3f0', '#f3ece0', '#e2ece6', '#d7e0ef', '#fff6e8', '#bfe0e6'];
+      const towerWalls = ['#f2f3f5', '#d9dde3', '#e8e2d6', '#c9ced6', '#eef0f2', '#bfc6cf'];
+      const townWalls = desert ? ['#e9dcc3', '#dccaa6', '#f1e7d4', '#cdb894', '#e3d2b5'] : ['#ffffff', '#f3ece0', '#f6e3b8', '#e9c9b4', '#cfe3e8', '#e6efd9', '#f4d6d0', '#fff6e8', '#d8e1ef'];
       let town = false;
-      const roofs = [], roofTones = ['#b4533a', '#c8693f', '#3f6fa6', '#2f8a58', '#8a3b34', '#d9d2c4'];
+      const roofs = [], roofTones = ['#b4533a', '#c8693f', '#3f6fa6', '#2f8a58', '#8a3b34', '#d9d2c4'], tops = [];
       while (k < nB && guard++ < nB * 40) {
         let x, z, dTrack;
         if (across) { // the skyline on the far bank
@@ -605,7 +638,7 @@ export class World {
           x = cx + Math.cos(a) * dd; z = cz + Math.sin(a) * dd;
           dTrack = 60;
         } else {
-          // the first third is a low town wrapped round the circuit, the rest a skyline beyond it
+          // the first half is a low town wrapped round the circuit, the rest a skyline beyond it
           town = k < nB * 0.5;
           const a = (V.water !== 'none' ? a0 + Math.PI : a0) + (town ? r.range(-2.4, 2.4) : r.range(-0.8, 0.8));
           const dd = town ? this.roadR(a) + (r() < 0.3 ? -1 : 1) * r.range(16, 30) + (r() < 0.4 ? r.range(0, 140) : 0) : this.radius + r.range(160, 640);
@@ -619,20 +652,43 @@ export class World {
         if (across) hgt *= 1.25;
         q.setFromAxisAngle(sv.set(0, 1, 0), town ? -Math.atan2(z - cz, x - cx) : r() < 0.5 ? 0 : r() * Math.PI);
         const y = this.height(x, z) - 1;
-        m4.compose(pv.set(x, y, z), q, sv.set(w, hgt, d));
-        bm.setMatrixAt(k, m4);
-        bm.setColorAt(k, cc.set(tones[Math.floor(r() * tones.length)]));
-        if (town) roofs.push([x, y + hgt, z, q.clone(), w + 1.2, d + 1.2, roofTones[Math.floor(r() * roofTones.length)]]);
-        if (this.pal.lamps) for (let j = 0; j < Math.min(30, hgt / 5); j++) {
-          const side = r() < 0.5 ? 1 : -1, fx = r() < 0.5;
-          const lx = fx ? side * w / 2 * 1.02 : r.range(-w / 2, w / 2), lz = fx ? r.range(-d / 2, d / 2) : side * d / 2 * 1.02;
-          const v = new THREE.Vector3(lx, 0, lz).applyQuaternion(q);
-          win.push(x + v.x, y + r.range(3, hgt - 2), z + v.z);
+        // pick a shape and a facade: towers are glass, mid-rises have balconies, the town has windows in painted walls
+        let kind, fac, wallC;
+        if (town) {
+          kind = 'slab'; fac = [r.range(2.8, 3.6), 3.2, 2, y]; wallC = townWalls[Math.floor(r() * townWalls.length)];
+          if (r() < 0.6) roofs.push([x, y + hgt, z, q.clone(), w + 1.2, d + 1.2, roofTones[Math.floor(r() * roofTones.length)]]);
+          else tops.push([x, y + hgt, z, q.clone(), w, d]);
+        } else if (hgt < 44 && r() < 0.45) {
+          kind = 'slab'; fac = [r.range(3.2, 4.2), 3.1, 3 + r() * 0.9, y]; wallC = townWalls[Math.floor(r() * townWalls.length)];
+          tops.push([x, y + hgt, z, q.clone(), w, d]);
+        } else {
+          const pick = hgt > 110 ? ['crown', 'setback', 'taper', 'round', 'slant'] : ['slab', 'slab', 'slant', 'round', 'setback', 'taper'];
+          kind = pick[Math.floor(r() * pick.length)];
+          const style = neonCity && r() < 0.35 ? 4 : 1;
+          fac = [(kind === 'round' || kind === 'taper' ? -1 : 1) * r.range(2.6, 3.6), r.range(3.4, 4.0), style + r() * 0.9, y];
+          wallC = towerWalls[Math.floor(r() * towerWalls.length)];
+          if (kind === 'slab' || kind === 'slant') tops.push([x, y + hgt * (kind === 'slant' ? 0.82 : 1), z, q.clone(), w, d]);
         }
+        lists[kind].push([x, y, z, q.clone(), w, hgt, d, wallC, fac]);
         k++;
       }
-      bm.count = k; bm.castShadow = bm.receiveShadow = true;
-      this.scene.add(bm);
+      const mat = facadeMaterial(this.pal, {
+        glass: desert ? '#7a6248' : '#2f6fa8', glass2: desert ? '#4f7b86' : '#3f8f8a',
+        lit: 0.5, key: 'city', instanced: true, neon: ['#ff3fa8', '#33e0ff'],
+      });
+      for (const kind of kinds) {
+        const L = lists[kind]; if (!L.length) continue;
+        const g = shapes[kind];
+        const ifac = new Float32Array(L.length * 4);
+        const bm = new THREE.InstancedMesh(g, mat, L.length);
+        L.forEach(([x, y, z, qq, w, hgt, d, c, fac], i) => {
+          m4.compose(pv.set(x, y, z), qq, sv.set(w, hgt, d)); bm.setMatrixAt(i, m4); bm.setColorAt(i, cc.set(c));
+          ifac.set(fac, i * 4);
+        });
+        g.setAttribute('ifac', new THREE.InstancedBufferAttribute(ifac, 4));
+        bm.castShadow = !this.lite;
+        this.scene.add(bm);
+      }
       // coloured roofs on the low town: tin, tile and painted
       if (roofs.length) {
         const rg = new THREE.CylinderGeometry(0.5 / Math.SQRT2 * 0.2, 0.5 * Math.SQRT2, 1, 4, 1); rg.rotateY(Math.PI / 4); rg.translate(0, 0.5, 0);
@@ -640,9 +696,27 @@ export class World {
         roofs.forEach(([x, y, z, qq, w, d, c], i) => { m4.compose(pv.set(x, y, z), qq, sv.set(w, Math.min(w, d) * 0.32, d)); rm.setMatrixAt(i, m4); rm.setColorAt(i, cc.set(c)); });
         rm.castShadow = true; this.scene.add(rm);
       }
-      if (win.length) {
-        const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(win, 3));
-        this.scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: '#ffd98a', size: 2.2, sizeAttenuation: true, fog: true })));
+      // flat roofs: a parapet and the plant on top (water tanks, air handlers, lift rooms)
+      if (tops.length) {
+        const parts = [];
+        const b = (w, h, d, x, y, z, c) => { const g = new THREE.BoxGeometry(w, h, d); g.translate(x, y + h / 2, z); parts.push(vcolor(g, col(c))); };
+        b(1, 0.9, 0.04, 0, 0, 0.48, '#d5d9de'); b(1, 0.9, 0.04, 0, 0, -0.48, '#d5d9de'); b(0.04, 0.9, 1, 0.48, 0, 0, '#d5d9de'); b(0.04, 0.9, 1, -0.48, 0, 0, '#d5d9de');
+        const unit = mergeGeometries(parts);
+        const um = new THREE.InstancedMesh(unit, new THREE.MeshLambertMaterial({ vertexColors: true }), tops.length);
+        const plant = new THREE.BoxGeometry(1, 1, 1); plant.translate(0, 0.5, 0);
+        const pm = new THREE.InstancedMesh(plant, new THREE.MeshLambertMaterial({ color: '#ffffff' }), tops.length * 2);
+        let n = 0;
+        tops.forEach(([x, y, z, qq, w, d], i) => {
+          // the parapet is drawn in unit space: stretch it to the roof, keeping it about 1 m tall
+          m4.compose(pv.set(x, y, z), qq, sv.set(w, 1, d)); um.setMatrixAt(i, m4);
+          for (let j = 0; j < 2; j++) {
+            const ox = r.range(-0.3, 0.3) * w, oz = r.range(-0.3, 0.3) * d, v = new THREE.Vector3(ox, 0, oz).applyQuaternion(qq);
+            m4.compose(pv.set(x + v.x, y, z + v.z), qq, sv.set(r.range(2.5, 6), r.range(1.4, 3.2), r.range(2.5, 5)));
+            pm.setMatrixAt(n, m4); pm.setColorAt(n++, cc.set(j ? '#9ba2ab' : '#c9ced4'));
+          }
+        });
+        pm.count = n; um.castShadow = pm.castShadow = !this.lite;
+        this.scene.add(um, pm);
       }
     }
     this.buildMountains(r);
