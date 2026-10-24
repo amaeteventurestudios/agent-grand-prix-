@@ -11,6 +11,7 @@ import { Fleet, loadCar } from './cars.js';
 import { Stands, sweep } from './env.js';
 import { towerShapes, facadeMaterial, streetLamps } from './kit.js';
 import { treeGeo, mountainGeo, Boats, Clouds, rocks } from './nature.js';
+import { lagos } from './landmarks.js';
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
@@ -297,6 +298,8 @@ export class World {
     water.rotation.x = -Math.PI / 2; water.position.y = -0.6;
     this.scene.add(water);
   }
+
+  sample(s, lat, out) { return sampleTrack(this.T, s, lat, out); }
 
   height(x, z) {
     const V = this.venue, d = this.dist(x, z);
@@ -809,6 +812,7 @@ export class World {
     const toward = this.waterDir ? Math.atan2(this.waterDir[1], this.waterDir[0]) : undefined;
     const vc = (g, f) => { const p = g.attributes.position, c = new Float32Array(p.count * 3), cc = new THREE.Color(); for (let i = 0; i < p.count; i++) { f(cc, p.getX(i), p.getY(i), p.getZ(i)); c[i * 3] = cc.r; c[i * 3 + 1] = cc.g; c[i * 3 + 2] = cc.b; } g.setAttribute('color', new THREE.BufferAttribute(c, 3)); if (g.attributes.uv) g.deleteAttribute('uv'); return g; };
     if (V.id === 'abuja') this.millennium(r);
+    if (lm === 'lagos') this.landmarks = lagos(this, r);
     if (V.id === 'kigali') this.dome(r);
     if (lm === 'asorock') {
       // a huge granite dome, streaked darker where rain runs down it
@@ -1083,6 +1087,7 @@ export class World {
     }
     if (this.paddock) this.paddock.update(race, dt, speed);
     this.boats?.update(dt * speed); this.clouds?.update(dt * speed);
+    if (this.landmarks) for (const l of this.landmarks) l.update(dt * speed);
     this.stands?.update(dt * speed, this.cheer || 0, this.crowdLight);
     if (this.fleet) {
       const list = this.fleetList ||= [];

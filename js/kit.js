@@ -21,7 +21,8 @@ export function facade(geo, ww, fh, style, y0 = 0) {
 
 // pal: the world palette (sky top and horizon for reflections, lamps for lit windows)
 export function facadeMaterial(pal, { glass = '#2c4a66', glass2 = glass, lit = 0.45, key = 'a', instanced = false, neon = ['#ff3fa8', '#33e0ff'] } = {}) {
-  const night = pal.lamps ? (pal.elev > 40 ? 1 : 0.65) : 0;
+  // dusk: the sky still lights the glass and only some windows are on
+  const night = pal.lamps ? (pal.elev > 40 ? 1 : 0.4) : 0;
   const m = new THREE.MeshLambertMaterial({ color: '#ffffff', vertexColors: false });
   const U = {
     uTop: { value: new THREE.Color(pal.top) }, uHor: { value: new THREE.Color(pal.hor) },
@@ -97,6 +98,7 @@ export function facadeMaterial(pal, { glass = '#2c4a66', glass2 = glass, lit = 0
             totalEmissiveRadiance += glass * (sky * fres * wob * (0.95 - 0.55 * uNight) + tint * 0.2);
             // lit windows at night, warm and cool, some floors brighter than others
             float on = step(1.0 - uLit, fHash(cell * vec2(1.0, 1.7) + face * 3.1 + 0.5));
+            on = mix(on, uLit * 0.8, aa);   // far away: an even glow instead of speckle
             vec3 warm = mix(vec3(1.0, 0.78, 0.45), vec3(0.75, 0.88, 1.0), step(0.7, jitter));
             totalEmissiveRadiance += glass * on * uNight * warm * (0.55 + 0.6 * fHash(cell.yy + face));
             if (style > 3.5) {

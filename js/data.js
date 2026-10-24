@@ -126,6 +126,10 @@ export const CALENDAR = [
 
 // More circuits outside the 25-round season: raced in the Daily Grand Prix rotation and Quick Race.
 const EXTRA = [
+  { id: 'lagos', city: 'Lagos', country: 'Nigeria', flag: '🇳🇬', region: 'West Africa',
+    circuit: 'Lagoon City Circuit', biome: 'tropic', time: 'dusk', water: 'lagoon', trees: 'tropical', treeDensity: .7,
+    city01: 1, hills: 'none', landmark: 'lagos', street: true, temp: 31, rain: .45, storm: .8, wear: 1.1,
+    note: 'Golden hour on the lagoon: a white cable-stayed bridge, the causeway traffic and the island towers across the water.' },
   { id: 'newdelhi', city: 'New Delhi', country: 'India', flag: '🇮🇳', region: 'South Asia',
     circuit: 'Yamuna Circuit', biome: 'park', time: 'day', water: 'river', trees: 'round', treeDensity: .75,
     city01: .9, hills: 'none', temp: 31, rain: .3, storm: .8, wear: 1.1,
