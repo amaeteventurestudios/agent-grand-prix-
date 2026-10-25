@@ -4,10 +4,20 @@ import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
 import { DT, LIFE, fmtLap, fmtTime } from './sim.js';
-import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, trackFor } from './game.js';
+import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
 import { World } from './world.js';
+import { MODELS } from './cars.js';
 import { Cams } from './cams.js';
 import { Sound } from './audio.js';
+import { Voice, VOICES } from './voice.js';
+import { raceDNA, activeProfiles, dnaState, setProfile } from './dnastore.js';
+import { STRATEGISTS, decide } from './strategist.js';
+import './coach.js';
+import { carMetrics } from './proving.js';
+import { PARAMS, PRESETS, SLOTS, fromPreset } from './dna.js';
+import { openStudio, dnaLine, proposalHTML } from './studio.js';
+import { openShowroom } from './showroom.js';
+import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -17,7 +27,11 @@ const params = new URLSearchParams(location.search);
 const touch = matchMedia('(pointer: coarse)').matches;
 const lite = params.has('lite') || touch;
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Driver DNA: ?dna=off races with the engine's own driving (the rollback switch)
+const dnaOn = params.get('dna') !== 'off';
 const S = store.load();
+// which car everyone races: a modelled car, or null for the simple one (?car=falcon or ?car=classic)
+const carModel = () => { const q = params.get('car'); return q ? (q === 'classic' ? null : q) : S.settings.car === undefined ? 'falcon' : S.settings.car; };
 
 // ---------- renderer ----------
 const canvas = $('#gl'), stage = $('#stage'), app = $('#app');
@@ -43,23 +57,23 @@ new ResizeObserver(resize).observe(stage);
 // ---------- game state ----------
 const G = { race: null, setup: null, kind: null, venue: null, seed: 0, speed: 1, paused: false, acc: 0, sel: null, evIdx: 0, gap: 'interval', attract: true, ended: false, radioN: 0, forecastSaid: new Set(), round: null, day: null };
 let world = null;
-const team = () => S.team || DEFAULT_TEAM;
+const team = () => (S.team && !S.team.draft ? S.team : DEFAULT_TEAM);   // a team still being built races as the default one
 const mine = () => (G.attract ? [] : ['you-0', 'you-1']);
 
 function loadVenue(venue) {
   if (world && world.venue.id === venue.id) return;
   if (world) world.dispose();
-  world = new World(renderer, venue, trackFor(venue), { lite });
+  world = new World(renderer, venue, trackFor(venue), { lite, car: carModel() });
   cams.setWorld(world);
   resize();
 }
 
 // ---------- the live race behind the home screen ----------
 function attract() {
-  G.attract = true; G.ended = false; sound.stop();
+  G.attract = true; G.ended = false; sound.stop(); live.clear();
   const n = dayNumber(), venue = dailyVenue(n);
   loadVenue(venue);
-  const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30 });
+  const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30, car: carModel() || 'falcon' });
   G.race = setup.make(); G.setup = setup; G.venue = venue; G.evIdx = 0;
   world.setCars(G.race.cars);
   G.race.start();
@@ -68,9 +82,56 @@ function attract() {
   G.attractT = 0;
   cams.setMode('live');
   $('#hud').hidden = true; $('#camPill').hidden = true; $('#follow').hidden = true;
+  $('#boost').hidden = true; $('#boxBtn').hidden = true; $('#stats').hidden = true; $('#pitline').hidden = true; $('#coach').hidden = true;
   app.classList.add('attract');
   buildTower();
   home();
+}
+
+// ---------- a race survives a refresh ----------
+// The race engine is deterministic: the same setup and the same calls at the same moments give the
+// same race. So the browser keeps the setup, every call you made (with the engine step it was made
+// on) and how far the race has run; after a refresh the race is rebuilt and run forward to that
+// point in a blink. Saved on this device only; across devices needs the game server.
+const LIVE_KEY = 'agp.live.v1';
+const live = {
+  rec: null,
+  track(R, args, saved) {
+    const rec = this.rec = { kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
+    const step = R.step.bind(R), command = R.command.bind(R);
+    R.step = () => { step(); rec.n++; };
+    R.command = (id, c) => { if (!this.replaying) rec.cmds.push([rec.n, id, c]); command(id, c); };
+  },
+  replay(R, saved) {
+    this.replaying = true;
+    if (!R.started) R.start();
+    const cmds = saved.cmds; let k = 0;
+    while (this.rec.n < saved.n && !R.done) {
+      while (k < cmds.length && cmds[k][0] <= this.rec.n) { R.command(cmds[k][1], cmds[k][2]); k++; }
+      R.step();
+    }
+    while (k < cmds.length) { R.command(cmds[k][1], cmds[k][2]); k++; }
+    this.replaying = false;
+    G.speed = saved.speed || 1; $$('[data-speed]').forEach((x) => x.classList.toggle('on', +x.dataset.speed === G.speed));
+  },
+  save(force) {
+    const R = G.race, rec = this.rec;
+    if (!rec || G.attract || !R || R.done || !R.started) return;
+    const now = performance.now(); if (!force && now - rec.at < 1000) return; rec.at = now;
+    try { localStorage.setItem(LIVE_KEY, JSON.stringify({ ...rec, at: undefined, speed: G.speed, savedAt: Date.now() })); } catch (e) { /* storage full or blocked: the race just won't survive a refresh */ }
+  },
+  load() {
+    try { const x = JSON.parse(localStorage.getItem(LIVE_KEY) || 'null'); return x && Date.now() - x.savedAt < 6 * 3600e3 ? x : null; } catch (e) { return null; }
+  },
+  clear() { this.rec = null; try { localStorage.removeItem(LIVE_KEY); } catch (e) { /* ignore */ } },
+};
+addEventListener('pagehide', () => live.save(true));
+document.addEventListener('visibilitychange', () => { if (document.hidden) live.save(true); });
+function resumeRace(saved) {
+  const v = VENUES.find((x) => x.id === saved.venue); if (!v) return false;
+  Object.assign(G, { kind: saved.kind, venue: v, seed: saved.seed, round: saved.round, day: saved.day, laps: saved.laps });
+  startRace(saved.args.startCompounds, saved.args.auto, saved);
+  return true;
 }
 
 // ---------- loop ----------
@@ -78,6 +139,7 @@ let last = performance.now(), fpsT = 0, fpsN = 0, uiT = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  cheerBurst *= Math.exp(-dt * 0.5);
   const R = G.race;
   if (R && R.started && !G.paused && !R.done) {
     G.acc += dt * (G.attract ? 1 : G.speed);
@@ -91,13 +153,14 @@ function frame(now) {
     if (G.attractT > 9) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(cams.mode === 'live' ? 'tv' : 'live'); }
   }
   if (R && world) {
-    const showTags = cams.mode !== 'fpv' && cams.mode !== 'pit';
+    const showTags = cams.mode !== 'fpv' && cams.mode !== 'pit' && cams.mode !== 'crew';
     const focus = cams.mode === 'overview' ? cams.controls.target : cams.look;
     world.update(R, R.started && !G.paused ? clamp(G.acc / DT, 0, 1) : 1, dt, camera, G.attract && cams.mode === 'tv' ? null : G.sel, mine(), showTags,
       { speed: G.paused ? 0 : G.attract ? 1 : G.speed, focus, showRing: cams.mode !== 'fpv' });
     cams.update(dt, cams.mode === 'overview' ? null : G.sel);
     if (!G.attract) sound.update(R, world, camera, G.sel, cams.mode, G.paused || R.done || !$('#screen').hidden ? 0 : G.speed);
   }
+  if (world && R && !G.attract) garageFeed(R);
   renderer.render(world ? world.scene : new THREE.Scene(), camera);
   uiT += dt;
   if (uiT > 0.2 && R && !G.attract) { uiT = 0; tick(); }
@@ -106,10 +169,14 @@ function frame(now) {
   fpsT += dt; fpsN++;
   if (fpsT > 2.5) {
     const fps = fpsN / fpsT; fpsT = 0; fpsN = 0;
+    if (!statsEl.hidden) statsEl.textContent = `${fps.toFixed(0)} fps · ${renderer.info.render.calls} calls · ${(renderer.info.render.triangles / 1000).toFixed(0)}k tris · dpr ${dpr}`;
     if (fps < 38 && dpr > 1) { dpr = Math.max(1, dpr - 0.25); renderer.setPixelRatio(dpr); resize(); }
     else if (fps > 57 && dpr < Math.min(devicePixelRatio, lite ? 1.5 : 2)) { dpr = Math.min(dpr + 0.25, devicePixelRatio); renderer.setPixelRatio(dpr); resize(); }
   }
 }
+// ?stats: frame rate, draw calls and triangles in the corner, for checking real phones
+const statsEl = Object.assign(document.body.appendChild(document.createElement('div')), { className: 'stats-ovl' });
+statsEl.hidden = !(params.has('stats') || S.settings.stats);
 function attractRestart() { attractQueued || (attractQueued = setTimeout(() => { attractQueued = null; if (G.attract) attract(); }, 500)); }
 let attractQueued = null;
 
@@ -147,6 +214,24 @@ $('#menuBtn').addEventListener('click', pauseMenu);
 
 // engine sound: on by default, remembered on this device; it starts with the first tap of a race
 const sound = new Sound();
+// the engineer on the radio: speaks the calls so you don't have to read them
+const voice = new Voice();
+voice.duck = (on) => sound.duck(on);
+const voiceId = () => (S.settings.voice === undefined || (S.settings.voice && !VOICES.some((v) => v.id === S.settings.voice)) ? 'michael' : S.settings.voice);
+const carTag = (id) => (id === 'you-1' ? 'car2' : 'car1');
+let lastPassSay = -1e9;
+let lastDnaSay = -1e9;
+function say(parts, prio) { if (S.settings.sound !== false && voiceId()) voice.say(parts, prio); }
+// your drivers answer on the radio in their own voices ("Copy. Boxing."), never the engineer's
+const DRIVER_VOICES = ['george', 'lewis', 'daniel', 'fable', 'michael', 'alex'];
+const driverVoice = (id) => DRIVER_VOICES.filter((v) => v !== voiceId())[id === 'you-1' ? 1 : 0];
+function reply(id, clip) { if (S.settings.replies !== false) say(['@' + driverVoice(id) + '/' + clip]); }
+const WHY_CLIPS = [['soaked', 'w_soaked'], ['wet out here', 'w_wet'], ['standing water', 'w_water'], ['overheating', 'w_wetshot'], ['dry line', 'w_dryline'],
+  ['Safety car! Cheap', 'w_sc'], ['Virtual safety car. Box', 'w_vsc'], ['finished', 'w_finished'], ['second compound. Box now', 'w_second'], ['Pit window', 'w_window']];
+const whyClip = (t) => (WHY_CLIPS.find(([k]) => t.includes(k)) || [])[1];
+// the crowd in the stands reacts to the same moments the crowd sound does
+let cheerBurst = 0;
+{ const roar = sound.roar.bind(sound); sound.roar = (k = 0.6) => { roar(k); cheerBurst = Math.max(cheerBurst, k); }; }
 function soundIcon() { const b = $('#soundBtn'), on = S.settings.sound !== false; b.textContent = on ? '🔊' : '🔇'; b.setAttribute('aria-label', on ? 'Sound on. Turn sound off' : 'Sound off. Turn sound on'); b.classList.toggle('off', !on); }
 function setSound(on) {
   S.settings.sound = on; store.save(); soundIcon();
@@ -161,7 +246,7 @@ document.addEventListener('keydown', (e) => {
   if (k === ' ' || k === 'escape') { e.preventDefault(); $('#screen').hidden ? pauseMenu() : resume(); }
   const cm = { '1': 'live', '2': 'overview', '3': 'chase', '4': 'fpv', '5': 'tv', '6': 'pit' }[k]; if (cm) setCam(cm);
   if (k === 'm') setSound(S.settings.sound === false);
-  if (k === 'b' && G.mineSel) cmd({ box: G.race.byId.get(G.mineSel).pitReq ? null : nextDry(G.race.byId.get(G.mineSel)) });
+  if (k === 'b' && G.mineSel) cmd({ box: G.race.byId.get(G.mineSel).pitReq ? null : boxPick(G.race.byId.get(G.mineSel)) });
 });
 
 function buildTower() {
@@ -189,6 +274,7 @@ function tick() {
   if (R.sc) sc.textContent = R.sc.kind === 'VSC' ? 'VIRTUAL SAFETY CAR' : R.sc.phase === 'in' ? 'SC IN THIS LAP' : 'SAFETY CAR';
   // the crowd gets louder over the last laps
   sound.excite = clamp((R.leaderLap() - (R.laps - 3)) / 3, 0, 1);
+  if (world) world.cheer = Math.min(1, Math.max(sound.excite, cheerBurst * 1.4));
   // tower
   const ol = $('#towerList'), my = mine();
   for (const c of R.order) {
@@ -221,9 +307,143 @@ function tick() {
   stageCards(R, f);
   pitLine(R, f);
   boostBtn(R);
+  boxBtn(R);
+  coach(R);
+  engineer(R);
+  live.save();
+}
+
+// the race screen in your garage: the TV view of the car you're following, redrawn every few frames
+// and only when the camera is close enough to see it
+let feedN = 0;
+const feedV = new THREE.Vector3();
+function garageFeed(R) {
+  const f = world.paddock?.feed, o = f && world.carObjs.get(G.sel);
+  if (!o || ++feedN % (lite ? 4 : 3) || camera.position.distanceTo(f.pos) > 90) return;
+  const g = o.group, ry = g.rotation.y, fx = Math.cos(-ry), fz = Math.sin(-ry);
+  f.cam.position.set(g.position.x - fx * 30 + fz * 14, 20, g.position.z - fz * 30 - fx * 14);
+  f.cam.lookAt(feedV.set(g.position.x + fx * 8, 1, g.position.z + fz * 8));
+  const sh = renderer.shadowMap.autoUpdate; renderer.shadowMap.autoUpdate = false;   // reuse this frame's shadows
+  renderer.setRenderTarget(f.rt); renderer.render(world.scene, f.cam); renderer.setRenderTarget(null);
+  renderer.shadowMap.autoUpdate = sh;
+}
+
+// ---------- the engineer in your ear ----------
+// Between the calls, the engineer keeps both drivers posted: every lap each car hears its position,
+// the gap ahead (or to a teammate), how the gap is moving, the car behind when it's close, and one of
+// tyres, battery, pace or laps to go. Mid-lap, a car in a fight hears the gap again. Rivals boxing
+// right ahead or behind get a call. These only play when the radio is quiet, so they never push out
+// a real call, and each car keeps only its newest update.
+const gapClip = (g) => (g < 3.05 ? 'n' + String(clamp(Math.round(g * 10), 1, 30)).padStart(2, '0') : g < 15.5 ? 's' + Math.round(g) : 's_big');
+const engState = () => (G.eng ||= { lap: new Map(), mid: new Map(), pend: new Map(), ia: new Map(), ib: new Map(), topic: 0, pits: new WeakSet(), inPit: new Set() });
+function engineer(R) {
+  if (G.attract || G.ended || !R || !R.started || R.done || G.paused) return;
+  const E = engState();
+  const L = R.track.L;
+  for (const id of mine()) {
+    const c = R.byId.get(id); if (!c || c.dnf || c.finished) continue;
+    if (!E.lap.has(id)) E.lap.set(id, c.lapsDone);
+    if (c.lapsDone > E.lap.get(id)) { E.lap.set(id, c.lapsDone); E.pend.set(id, { kind: 'lap', at: performance.now() }); }
+    const frac = (((c.dist % L) + L) % L) / L;
+    if (frac > 0.5 && E.mid.get(id) !== c.lapsDone && c.lapsDone > 0) { E.mid.set(id, c.lapsDone); if (!E.pend.has(id)) E.pend.set(id, { kind: 'mid', at: performance.now() }); }
+    // the last call before the pit entry, and push on the out lap
+    const P = R.track.pit;
+    if (c.pitReq && !c.pit) {
+      let toEntry = (((P.inS % L) + L) % L) - (((c.dist % L) + L) % L); if (toEntry < 0) toEntry += L;
+      if (toEntry < 700 && toEntry > 60 && E.bbb !== c.lapsDone + ':' + id) { E.bbb = c.lapsDone + ':' + id; say([carTag(id), 'bbb'], true); }
+    }
+    if (c.pit) E.inPit.add(id);
+    else if (E.inPit.has(id)) { E.inPit.delete(id); say([carTag(id), 'u_outlap']); }
+    // a rival boxing right ahead or right behind
+    const ahead = R.order[c.pos - 2], behind = R.order[c.pos];
+    for (const [o, clip] of [[ahead, 'u_rival_pit'], [behind, 'u_rival_pit_b']]) {
+      if (o && !o.team.you && o.pit && o.pit.phase === 'in' && !E.pits.has(o.pit)) {
+        E.pits.add(o.pit);
+        if (Math.abs(o.gap - c.gap) < 6) say([carTag(id), clip]);
+      }
+    }
+  }
+  if (!voice.idle() || S.settings.sound === false || !voiceId()) return;
+  // the oldest waiting update, if it's still fresh
+  let best = null;
+  for (const [id, p] of E.pend) if (!best || p.at < best[1].at) best = [id, p];
+  if (!best) return;
+  const [id, p] = best; E.pend.delete(id);
+  if (performance.now() - p.at > 15000) return;
+  const parts = engUpdate(R, R.byId.get(id), p.kind, E);
+  if (parts) voice.say(parts);
+}
+function engUpdate(R, c, kind, E) {
+  if (!c || c.dnf || c.finished || c.pit) return null;
+  const ahead = R.order[c.pos - 2], behind = R.order[c.pos];
+  const ga = ahead && !ahead.dnf && !ahead.pit ? Math.max(0, c.interval) : null;
+  const gb = behind && !behind.dnf && !behind.pit && !behind.lapsDown ? Math.max(0, behind.interval) : null;
+  const pa = E.ia.get(c.id), pb = E.ib.get(c.id);
+  const parts = [carTag(c.id)];
+  const mateAhead = ahead && ahead.team.you, mateBehind = behind && behind.team.you;
+  if (kind === 'mid') {
+    // only worth a word when there's a fight on
+    if (ga !== null && ga < 1.3) {
+      parts.push(mateAhead ? 'u_mate_ahead' : 'u_ahead', gapClip(ga));
+      if (pa !== undefined && !mateAhead) parts.push(ga < pa - 0.15 ? (ga < 1.0 ? 'u_pushpush' : 'u_catching') : ga > pa + 0.15 ? 'u_pulling' : null);
+    } else if (gb !== null && gb < 1.0) {
+      parts.push(mateBehind ? 'u_mate_behind' : 'u_behind', gapClip(gb));
+      if (pb !== undefined && !mateBehind && gb < pb - 0.15) parts.push('u_closing');
+    } else return null;
+    return parts.filter(Boolean);
+  }
+  // once a lap: position, the gap ahead and its trend, a close car behind, then one more thing
+  if (c.pos === 1) parts.push('u_leading'); else parts.push('p' + c.pos);
+  if (ga !== null && c.pos > 1) {
+    if (mateAhead && ga < 2.5) parts.push('u_mate_ahead');
+    else {
+      parts.push('u_ahead', gapClip(ga));
+      if (pa !== undefined) parts.push(ga < pa - 0.25 ? 'u_catching' : ga > pa + 0.25 && ga < 6 ? 'u_pulling' : null);
+    }
+  }
+  if (gb !== null && gb < 2.2) {
+    if (mateBehind) parts.push('u_mate_behind');
+    else { parts.push('u_behind', gapClip(gb)); if (pb !== undefined) parts.push(gb < pb - 0.25 ? 'u_closing' : gb > pb + 0.25 ? 'u_clearing' : null); }
+  } else if (c.pos === 1 && gb !== null) parts.push('u_behind', gapClip(gb));
+  if (ga !== null) E.ia.set(c.id, ga); if (gb !== null) E.ib.set(c.id, gb);
+  const togo = R.laps - c.lapsDone;
+  if (togo >= 2 && togo <= 10 && (togo <= 3 || c.lapsDone === Math.floor(R.laps / 2))) parts.push(togo <= 3 ? 'u_laps' + togo : 'u_half');
+  else {
+    const extras = [
+      () => (c.tyre.wear < 0.35 ? 'u_tyre_good' : c.tyre.wear < 0.62 ? 'u_tyre_ok' : 'u_tyre_worn'),
+      () => (c.ers > 0.95 ? 'u_bat_full' : c.ers < 0.15 ? 'u_bat_low' : null),
+      () => (c.lastLap && c.best < Infinity ? (c.lastLap < c.best * 1.004 ? 'u_pace' : c.lastLap > c.best * 1.02 && !R.sc && R.rain < 0.1 ? 'u_pace_slow' : null) : null),
+      () => (togo >= 4 && togo <= 10 ? 'u_laps' + togo : null),
+      () => (ga === null && gb === null ? 'u_clear' : null),
+    ];
+    for (let k = 0; k < extras.length; k++) { const x = extras[(E.topic + k) % extras.length](); if (x) { parts.push(x); E.topic = (E.topic + k + 1) % extras.length; break; } }
+  }
+  return parts.filter(Boolean);
 }
 
 // ERS boost: one tap deploys the battery for about 12 seconds, then back to what it was
+// the tyres a BOX call fits: your pick for that car, or what suits the track right now
+function boxPick(c) {
+  const p = G.boxPicks?.[c.id]; if (p) return p;
+  const R = G.race;
+  return R.wet > 0.6 ? 'W' : R.wet > 0.17 ? 'I' : nextDry(c);
+}
+// BOX on the race view: one tap boxes the car you're running this lap; tap again to cancel
+function boxBtn(R) {
+  const b = $('#boxBtn'), c = R.byId.get(G.mineSel);
+  b.hidden = !c || G.attract;
+  if (b.hidden) return;
+  const req = !!c.pitReq && !c.pit;
+  b.classList.toggle('on', req || !!c.pit);
+  b.disabled = c.dnf || c.finished || !!c.pit || c.auto;
+  b.querySelector('b').textContent = c.pit ? 'PIT' : req ? 'BOXING' : 'BOX';
+  b.querySelector('small').textContent = `${c.code} · ${req ? 'tap to cancel' : COMPOUNDS[c.pit ? c.pit.box || c.tyre.c : boxPick(c)].name}`;
+}
+$('#boxBtn').addEventListener('click', () => {
+  const R = G.race, c = R && R.byId.get(G.mineSel); if (!c || c.pit) return;
+  cmd({ box: c.pitReq ? null : boxPick(c) });
+  tick();
+});
 function boostBtn(R) {
   const b = $('#boost'), c = R.byId.get(G.mineSel);
   b.hidden = !c || G.attract;
@@ -235,12 +455,72 @@ function boostBtn(R) {
   b.querySelector('i').style.width = e + '%';
   b.querySelector('small').textContent = on ? `${Math.ceil(G.boost.until - R.t)} s · ${e}%` : `${c.code} · ${e}%`;
 }
+function boostCar(c) {
+  const R = G.race;
+  if (G.boost && G.boost.id === c.id) { cmd({ ers: G.boost.prev }, c.id); G.boost = null; return; }
+  if (G.boost) { const p = R.byId.get(G.boost.id); if (p.ersMode === 'deploy') R.command(p.id, { ers: G.boost.prev }); }
+  const prev = c.ersMode === 'deploy' ? 'balanced' : c.ersMode; cmd({ ers: 'deploy' }, c.id); G.boost = { id: c.id, until: R.t + 12, prev }; toast(`⚡ ${c.code}: boost!`);
+}
 $('#boost').addEventListener('click', () => {
   const R = G.race, c = R && R.byId.get(G.mineSel); if (!c) return;
-  if (G.boost && G.boost.id === c.id) { cmd({ ers: G.boost.prev }, c.id); G.boost = null; }
-  else { const prev = c.ersMode === 'deploy' ? 'balanced' : c.ersMode; cmd({ ers: 'deploy' }, c.id); G.boost = { id: c.id, until: R.t + 12, prev }; toast(`⚡ ${c.code}: boost!`); }
+  boostCar(c);
   tick();
 });
+
+// ---------- race coach ----------
+// On for quick races and a player's first races: watches your two cars and suggests the call that
+// fits the moment, in plain words, with a button that makes it. Each tip has a cooldown and a cap.
+function coachDefault(kind) { return S.settings.coach ?? (kind === 'quick' || S.stats.starts < 3); }
+function coachShow(tip) {
+  const el = $('#coach');
+  G.coachTip = { ...tip, at: performance.now() };
+  if (tip.say) say(tip.say);
+  el.innerHTML = `<div class="ch"><span>🎧 Coach</span><button type="button" class="x" aria-label="Close">×</button></div><p>${tip.text}</p>
+    <div class="acts">${tip.act ? `<button type="button" class="go">${tip.act}</button>` : ''}<button type="button" class="no">${tip.act ? 'Not now' : 'Got it'}</button></div>`;
+  el.hidden = false;
+  el.querySelector('.x').onclick = el.querySelector('.no').onclick = coachHide;
+  const go = el.querySelector('.go'); if (go) go.onclick = () => { tip.run(); coachHide(); renderControls(true); };
+}
+function coachHide() { $('#coach').hidden = true; G.coachTip = null; }
+function coach(R) {
+  if (!G.coach || G.attract || G.ended || !R || R.t < 3) { if (G.coachTip && !G.coach) coachHide(); return; }
+  const now = performance.now();
+  if (G.coachTip) { if (now - G.coachTip.at > 13000) coachHide(); else return; }
+  const C = (G.coachState ||= { last: -1e9, n: {} });
+  if (R.t - C.last < 18) return;
+  const ok = (k, max) => (C.n[k] || 0) < max;
+  const fire = (k, tip) => { C.n[k] = (C.n[k] || 0) + 1; C.last = R.t; coachShow(tip); };
+  const my = mine().map((id) => R.byId.get(id)).filter((c) => !c.dnf && !c.finished && !c.pit && !c.auto);
+  if (!my.length || R.sc) return;
+  const [a, b] = mine().map((id) => R.byId.get(id));
+  if (ok('team', 1)) return fire('team', { say: ['k_team'], text: `You run a team of <b>two cars</b>: ${esc(a.code)} (P${a.pos}) and ${esc(b.code)} (P${b.pos}). The tabs at the top of the pit wall switch between them, and each car has its own calls.`, act: `Show ${esc(b.code)}`, run: () => { G.mineSel = b.id; select(b.id); } });
+  const left = R.laps - R.leaderLap();
+  const [f, r2] = a.pos < b.pos ? [a, b] : [b, a];
+  if (!f.dnf && !r2.dnf && !f.pit && !r2.pit && r2.pos === f.pos + 1 && r2.interval < 1 && !f.auto && !r2.auto && !f.letBy) {
+    if (r2.tyre.wear + 0.25 < f.tyre.wear && ok('swap', 2))
+      return fire('swap', { say: ['k_swap'], text: `${esc(r2.code)} is right behind ${esc(f.code)} on much fresher tyres. <b>Swap places</b> so your faster car can chase the cars ahead.`, act: 'Swap places', run: () => teamOrder('swap') });
+    if (f.order !== 'hold' && ok('hold', 1))
+      return fire('hold', { say: ['k_hold'], text: `Your two cars are fighting each other, which costs them both time. <b>Hold positions</b> tells them not to attack each other.`, act: 'Hold positions', run: () => teamOrder('hold') });
+  }
+  for (const c of my) {
+    const ahead = R.order[c.pos - 2], behind = R.order[c.pos], gap = c.interval, back = behind && !behind.dnf && !behind.pit ? behind.interval : 99;
+    const theirs = (x) => x && !mine().includes(x.id) && !x.dnf && !x.pit;
+    if (left <= 1 && c.pace !== 'push' && ok('push', 1))
+      return fire('push', { say: ['k_push'], text: 'Last lap! Tyre wear doesn\'t matter any more, so <b>Push</b> with both cars.', act: 'Push both cars', run: () => mine().forEach((id) => cmd({ pace: 'push' }, id)) });
+    if (theirs(ahead) && gap > 0.25 && gap < 1.2 && c.ers > 0.3 && !(G.boost && G.boost.id === c.id) && ok('chase', 3))
+      return fire('chase', { say: [carTag(c.id), 'k_chase'], text: `${esc(c.code)} is ${gap.toFixed(1)} s behind ${esc(ahead.code)} for P${ahead.pos}. <b>Attack</b> makes the driver go for the gap, and <b>BOOST</b> fires the battery for 12 seconds of extra speed.`, act: 'Attack + BOOST', run: () => { G.mineSel = c.id; select(c.id); cmd({ battle: 'attack' }, c.id); boostCar(c); } });
+    if (theirs(behind) && back < 0.6 && c.battle !== 'defend' && ok('defend', 2))
+      return fire('defend', { say: [carTag(c.id), 'k_defend'], text: `${esc(behind.code)} is right behind ${esc(c.code)}. <b>Defend</b> covers the inside line and makes ${esc(c.code)} about half as easy to pass.`, act: `Defend with ${esc(c.code)}`, run: () => cmd({ battle: 'defend' }, c.id) });
+    if (c.tyre.wear > 0.66 && !c.pitReq && left > 1 && ok('tyre-' + c.id, 1)) {
+      const wm = G.venue.wear || 1, nx = !COMPOUNDS[c.tyre.c].dry ? c.tyre.c : !R.ruleMet(c) ? nextDry(c) : left <= LIFE.S / wm * 0.85 ? 'S' : left <= LIFE.M / wm * 0.85 ? 'M' : 'H';
+      return fire('tyre-' + c.id, { say: [carTag(c.id), 'k_tyre', 'q_' + nx], text: `${esc(c.code)}'s ${COMPOUNDS[c.tyre.c].name}s are down to ${Math.round((1 - c.tyre.wear) * 100)}%. Under 25% the grip falls away and a puncture gets likely. Box for ${COMPOUNDS[nx].name}s?`, act: `Box for ${COMPOUNDS[nx].name}s`, run: () => cmd({ box: nx }, c.id) });
+    }
+    if (gap > 2.5 && back > 2.5 && c.ers < 0.45 && c.ersMode !== 'harvest' && ok('harvest', 2))
+      return fire('harvest', { say: [carTag(c.id), 'k_harvest'], text: `${esc(c.code)} has clear air. <b>Harvest</b> recharges the battery as the car brakes, like regen in an electric car, so you have charge for the next fight.`, act: `Harvest with ${esc(c.code)}`, run: () => cmd({ ers: 'harvest' }, c.id) });
+    if (c.battle === 'attack' && !(theirs(ahead) && gap < 2) && ok('calm', 1))
+      return fire('calm', { say: [carTag(c.id), 'k_calm'], text: `${esc(c.code)} is on Attack with nobody close ahead. That wears the tyres for nothing. Back to <b>Neutral</b> until the next fight.`, act: 'Neutral', run: () => cmd({ battle: 'neutral' }, c.id) });
+  }
+}
 
 // floating cards on the race view: position, gap to the leader, average stop, tyre life
 function stageCards(R, f) {
@@ -302,6 +582,7 @@ function forecast() {
       G.forecastSaid.add(i);
       addRadio({ from: 'engineer', text: `Radar shows rain in about ${Math.max(1, Math.round(laps))} lap${laps > 1.5 ? 's' : ''}. ${s.peak > 0.6 ? 'It looks heavy.' : 'Could be light.'} Your call on tyres.` });
       toast('📡 Rain expected soon', true);
+      say([laps > 1.5 ? 'radar2' : 'radar1', s.peak > 0.6 ? 'looksheavy' : 'lookslight', 'yourcall'], true);
     }
   });
 }
@@ -343,51 +624,94 @@ function updateCard() {
   k('last').textContent = c.lastLap ? fmtLap(c.lastLap) : '–';
 }
 
-// pit wall controls for the player's cars
+// pit wall controls for the player's cars, each with a plain-words line for the current choice
+const PACE_WHY = {
+  save: '<b>Save tyres:</b> a little slower, but the tyres wear about a third less. Use it to make a set last longer.',
+  normal: '<b>Normal:</b> steady speed and normal tyre wear.',
+  push: '<b>Push:</b> faster, but tyres wear 50% quicker and mistakes are more likely. Best in the last laps.',
+};
+const ERS_WHY = {
+  harvest: '<b>Harvest:</b> recharges the battery when the car brakes and lifts off, like regen in an electric car. A bit slower on the straights.',
+  balanced: '<b>Balanced:</b> uses a little battery on each straight and tops it up in the corners.',
+  deploy: '<b>Deploy:</b> spends the battery for about 3% more speed on the straights and easier passes. A full battery lasts about half a minute of straights.',
+};
+const ORDER_WHY = {
+  free: '<b>Race freely:</b> your two drivers may fight each other for position.',
+  hold: '<b>Hold positions:</b> your drivers won\'t attack each other, so neither loses time in a team fight.',
+  swap: '<b>Swap places:</b> the car in front lets its teammate through, for when the one behind is faster or on fresher tyres.',
+};
+const BATTLE_WHY = {
+  defend: '<b>Defend:</b> your driver covers the inside line. About half as easy to pass, a touch slower.',
+  neutral: '<b>Neutral:</b> races normally and passes when there is a clear chance.',
+  attack: '<b>Attack:</b> goes for every gap. Many more passes, but more tyre wear and a higher risk of contact.',
+};
 let ctlSig = '';
 function renderControls(force) {
   const R = G.race, el = $('#controls');
   if (G.attract || !R) { el.innerHTML = ''; return; }
   const id = G.mineSel || 'you-0', c = R.byId.get(id);
-  const sig = [id, c.pace, c.ersMode, c.battle, c.pitReq, c.auto, !!c.pit, c.finished, c.dnf, c.tyre.c, R.byId.get('you-0').pos, R.byId.get('you-1').pos].join('|');
+  const sig = [id, boxPick(c), c.pace, c.ersMode, c.battle, c.pitReq, c.auto, !!c.pit, c.finished, c.dnf, c.tyre.c, R.byId.get('you-0').pos, R.byId.get('you-1').pos, c.order, !!(c.letBy || R.mate(c).letBy), Math.abs(R.byId.get('you-0').pos - R.byId.get('you-1').pos) === 1].join('|');
   if (sig === ctlSig && !force) return; ctlSig = sig;
   const a = R.byId.get('you-0'), b = R.byId.get('you-1');
   const opt = (key, val, label) => `<button type="button" data-set="${key}" data-val="${val}" class="${c[key] === val ? 'on' : ''}">${label}</button>`;
   const dis = c.auto || c.finished || c.dnf;
+  const why = (t) => `<p class="why">${t}</p>`;
   let box;
   if (c.finished) box = `<p class="ro">${c.pos <= 3 ? '🏆 ' : ''}Finished P${c.pos}.</p>`;
   else if (c.dnf) box = '<p class="ro">Out of the race.</p>';
   else if (c.pit) box = `<div class="boxing">In the pit lane…</div>`;
   else if (c.pitReq) box = `<div class="boxing"><span>Boxing this lap: ${COMPOUNDS[c.pitReq].name}s</span>${c.auto ? '' : '<button type="button" data-act="cancel">Cancel</button>'}</div>`;
-  else box = `<div class="box-row">${Object.keys(COMPOUNDS).map((k) => `<button type="button" data-box="${k}" ${dis ? 'disabled' : ''}>${tyreHTML(k)}${COMPOUNDS[k].name}</button>`).join('')}</div>`;
+  else {
+    const pk = boxPick(c);
+    box = `<div class="box-row">${Object.keys(COMPOUNDS).map((k) => `<button type="button" data-pick="${k}" class="${pk === k ? 'on' : ''}" ${dis ? 'disabled' : ''}>${tyreHTML(k)}${COMPOUNDS[k].name}</button>`).join('')}</div>
+      <button type="button" class="boxnow" data-act="boxnow" ${dis ? 'disabled' : ''}>BOX, BOX · ${COMPOUNDS[pk].name}s</button>`;
+  }
   el.innerHTML = `
     <div class="card">
       <div class="mine-tabs">${[a, b].map((x) => `<button type="button" data-mine="${x.id}" class="${x.id === id ? 'on' : ''}"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${x.team.c1}"></span>${esc(x.code)} · P${x.pos}</button>`).join('')}</div>
       <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'Your AI makes every call.' : 'You make the calls. Your engineer advises.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
     </div>
-    <div class="ctl"><label>Box this lap</label>${box}</div>
-    <div class="ctl"><label>Pace</label><div class="opts">${opt('pace', 'save', 'Save tyres')}${opt('pace', 'normal', 'Normal')}${opt('pace', 'push', 'Push')}</div></div>
-    <div class="ctl"><label>ERS (battery)</label><div class="opts">${opt('ersMode', 'harvest', 'Harvest')}${opt('ersMode', 'balanced', 'Balanced')}${opt('ersMode', 'deploy', 'Deploy')}</div></div>
-    <div class="ctl"><label>Battle</label><div class="opts">${opt('battle', 'defend', 'Defend')}${opt('battle', 'neutral', 'Neutral')}${opt('battle', 'attack', 'Attack')}</div></div>`;
+    <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 8 seconds.' : 'Pick the tyres, then BOX: your driver pits next time round, about 8 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
+    <div class="ctl"><label>Pace</label><div class="opts">${opt('pace', 'save', 'Save tyres')}${opt('pace', 'normal', 'Normal')}${opt('pace', 'push', 'Push')}</div>${why(PACE_WHY[c.pace])}</div>
+    <div class="ctl"><label>ERS (battery)</label><div class="opts">${opt('ersMode', 'harvest', 'Harvest')}${opt('ersMode', 'balanced', 'Balanced')}${opt('ersMode', 'deploy', 'Deploy')}</div>${why(ERS_WHY[c.ersMode])}</div>
+    <div class="ctl"><label>Battle</label><div class="opts">${opt('battle', 'defend', 'Defend')}${opt('battle', 'neutral', 'Neutral')}${opt('battle', 'attack', 'Attack')}</div>${why(BATTLE_WHY[c.battle])}</div>
+    <div class="ctl"><label>Team orders · both cars</label><div class="opts">
+      <button type="button" data-order="free" class="${c.order === 'free' ? 'on' : ''}">Race freely</button>
+      <button type="button" data-order="hold" class="${c.order === 'hold' ? 'on' : ''}">Hold positions</button>
+      <button type="button" data-order="swap" class="${c.letBy || R.mate(c).letBy ? 'on' : ''}" ${Math.abs(a.pos - b.pos) === 1 && !a.pit && !b.pit ? '' : 'disabled'}>Swap places</button></div>
+      ${why(c.letBy || R.mate(c).letBy ? ORDER_WHY.swap : Math.abs(a.pos - b.pos) === 1 ? ORDER_WHY[c.order] : ORDER_WHY[c.order] + ' Swap places works when your cars run nose to tail.')}</div>`;
   if (dis) $$('.opts button', el).forEach((x) => (x.disabled = true));
 }
 $('#controls').addEventListener('click', (e) => {
   const t = e.target.closest('button'); if (!t || t.disabled) return;
   const R = G.race, id = G.mineSel || 'you-0';
   if (t.dataset.mine) { G.mineSel = t.dataset.mine; select(t.dataset.mine); return; }
-  if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); toast(c.auto ? `${c.code}: Autonomous. Your AI is in charge.` : `${c.code}: Team Principal. You're in charge.`); }
+  if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); say([carTag(id), c.auto ? 'c_auto' : 'c_manual']); toast(c.auto ? `${c.code}: Autonomous. Your AI is in charge.` : `${c.code}: Team Principal. You're in charge.`); }
   if (t.dataset.act === 'cancel') cmd({ box: null });
-  if (t.dataset.box) cmd({ box: t.dataset.box });
+  if (t.dataset.pick) { (G.boxPicks ||= {})[id] = t.dataset.pick; }
+  if (t.dataset.act === 'boxnow') cmd({ box: boxPick(R.byId.get(id)) });
   if (t.dataset.set) { const m = { pace: 'pace', ersMode: 'ers', battle: 'battle' }[t.dataset.set]; cmd({ [m]: t.dataset.val }); }
+  if (t.dataset.order) teamOrder(t.dataset.order);
   renderControls(true);
 });
 function cmd(c, id = G.mineSel || 'you-0') {
   const car = G.race.byId.get(id);
   if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); toast(`${car.code}: you took over the calls.`); }
   G.race.command(id, c);
+  if (c.box) { say([carTag(id), 'bb_' + c.box]); reply(id, 'r_box'); }
+  else if ('box' in c) { say([carTag(id), 'c_cancel']); reply(id, 'r_stay'); }
+  const set = c.pace || c.ers || c.battle;
+  if (set) { say([carTag(id), 'c_' + set]); reply(id, { push: 'r_push', save: 'r_save', attack: 'r_attack', defend: 'r_defend' }[set] || 'r_copy'); }
   G.assisted = true;
   renderControls(true);
+}
+function teamOrder(o) {
+  const id = G.mineSel || 'you-0', c = G.race.byId.get(id);
+  if (c.auto) G.race.command(id, { auto: false });
+  G.race.command(id, { order: o });
+  say([o === 'swap' ? 'o_swap' : o === 'hold' ? 'o_hold' : 'o_free']);
+  G.assisted = true; renderControls(true);
 }
 function nextDry(c) { return c.tyre.c === 'S' ? 'M' : c.tyre.c === 'M' ? 'H' : 'M'; }
 
@@ -415,6 +739,16 @@ function toast(text, hot) {
   box.append(d); while (box.children.length > 2) box.firstChild.remove();
   setTimeout(() => d.remove(), 3800);
 }
+// your crew in the garage watches the race on its screen: a place gained gets cheers (and, in Live,
+// a quick cut to them), a place lost gets hands on helmets
+let crewCutAt = -1e9;
+function crewReact(c, up, big = false) {
+  const pd = world?.paddock; if (!pd || !c) return;
+  pd.celebrate(up ? 'cheer' : 'despair', { code: c.code, from: up ? c.pos + 1 : c.pos - 1, to: c.pos }, big ? 7 : 4.5);
+  if (up) sound.roar(0.4);
+  const now = performance.now();
+  if (up && (big || now - crewCutAt > 22000) && cams.crewShot(pd.shot(), big ? 4.5 : 3.4)) crewCutAt = now;
+}
 // the TV director: cut to an aerial shot for a pit-exit battle or an incident, if you're watching Live
 let droneAt = -1e9;
 function director(ids, dur, big) {
@@ -429,50 +763,86 @@ function drainEvents() {
     const e = R.events[G.evIdx++];
     const isMine = e.car && my.includes(e.car), car = e.car && R.byId.get(e.car);
     if (e.type === 'advice' && isMine) {
+      if (e.action?.box) say([carTag(e.car), whyClip(e.text), /Reminder/.test(e.text) ? 'reminder' : 'q_' + e.action.box].filter(Boolean), true);
+      else if (e.action?.ers) say([carTag(e.car), 'battery']);
       addRadio({ from: 'engineer', text: `${car.code}: ${e.text}`, action: e.action, car: e.car });
       toast(`📻 ${car.code}: ${e.text}`, true);
     } else if ((e.type === 'radio' || e.type === 'pit') && isMine) {
+      const bx = /Boxing this lap for (\w)/.exec(e.text);
+      if (bx) { say([carTag(e.car), whyClip(e.text), 'bb_' + bx[1]].filter(Boolean)); reply(e.car, 'r_box'); }
+      else if (/Slow stop/.test(e.text)) say([carTag(e.car), 'slowstop']);
+      else if (/ s stop/.test(e.text)) say([carTag(e.car), 'goodstop']);
       addRadio({ from: 'driver', code: car.code, text: e.text });
     } else if (e.type === 'weather' || e.type === 'flag' || e.type === 'lap' || e.type === 'dnf') {
       addRadio({ from: 'race', text: e.text }); toast(e.text, e.type === 'flag' || e.type === 'dnf');
+      if (/Lights out/.test(e.text)) say(['lights']);
+      else if (/Final lap/.test(e.text)) say(['final']);
+      else if (/Heavy rain/.test(e.text)) say(['heavy']);
+      else if (/Rain is starting/.test(e.text)) say(['rain']);
+      else if (/rain has stopped/.test(e.text)) say(['stopped']);
+      else if (e.type === 'dnf' && isMine) say([carTag(e.car), 'out'], true);
       if (e.type === 'dnf' && car) director([car.id], 7);
       if (e.type === 'flag' && /Chequered/.test(e.text)) sound.roar(1);
       if (e.type === 'lap') sound.roar(0.5);
     } else if (e.type === 'sc') {
       addRadio({ from: 'race', text: e.text }); toast((e.phase === 'green' ? '🟢 ' : '🟡 ') + e.text, true);
+      say([/GREEN|Green flag/.test(e.text) ? 'green' : /in this lap/.test(e.text) ? 'scin' : /VIRTUAL/.test(e.text) ? 'vsc' : 'sc'], true);
       if (e.phase === 'green') sound.roar(0.7);
     } else if (e.type === 'incident') {
       addRadio({ from: isMine ? 'engineer' : 'race', text: e.text }); toast('⚠️ ' + e.text, isMine);
+      const hit = isMine ? e.car : e.other && my.includes(e.other) ? e.other : null;
+      if (hit && /Puncture|puncture/.test(e.text)) say([carTag(hit), 'puncture'], true);
+      else if (hit && /Contact/.test(e.text)) say([carTag(hit), 'contact']);
       if (car && (car.pos <= 6 || isMine)) director([car.id], 7);
+    } else if (e.type === 'dna' && isMine) {
+      // a moment the driver's DNA caused, with the settings behind it
+      const prof = G.setup?.grid.find((g) => g.id === e.car)?.dnaProfile;
+      const why = (e.keys || []).slice(0, 2).map((k) => `${PARAMS.find((p) => p.key === k).label} ${prof ? prof.params[k] : ''}`.trim()).join(', ');
+      addRadio({ from: 'engineer', text: e.text + (why ? ` (Driver DNA: ${why})` : '') });
+      toast('⚠️ ' + e.text, true);
+      const now = performance.now();
+      if (e.kind === 'spin' || now - lastDnaSay > 25000) { lastDnaSay = now; say([carTag(e.car), 'd_' + e.kind], e.kind === 'spin'); }
+    } else if (e.type === 'order' && (isMine || (e.other && my.includes(e.other)))) {
+      addRadio({ from: 'engineer', text: e.text }); toast('📻 ' + e.text, true);
+      if (/lets .* through/.test(e.text)) say(['u_teamwork']);
     } else if (e.type === 'battle') {
       toast('🔥 ' + e.text, true); addRadio({ from: 'race', text: e.text });
       director([e.car, e.other], 12, true);
       sound.roar(0.5);
+      const hit = isMine ? e.car : e.other && my.includes(e.other) ? e.other : null;
+      if (hit) say([carTag(hit), 'u_fight']);
     } else if (e.type === 'pass' && (isMine || (e.other && my.includes(e.other)))) {
       toast(e.text, isMine); addRadio({ from: 'race', text: e.text });
+      const both = isMine && e.other && my.includes(e.other), now = performance.now();
+      if (!both && now - lastPassSay > 9000) {
+        lastPassSay = now;
+        const who = isMine ? car : R.byId.get(e.other);
+        say([carTag(who.id), isMine ? 'nice' : 'lost', 'p' + who.pos]);
+      }
+      if (!both) crewReact(isMine ? car : R.byId.get(e.other), isMine);
     } else if (e.type === 'pass') {
       if (!lite || Math.random() < 0.5) toast(e.text);
       if (/for P[123]\b/.test(e.text)) sound.roar(0.55);
     } else if (e.type === 'fastest') {
-      toast('⏱ ' + e.text); if (isMine) addRadio({ from: 'race', text: e.text });
-    } else if (e.type === 'mistake' && (isMine || car.pos <= 5)) toast(e.text);
+      toast('⏱ ' + e.text); if (isMine) { addRadio({ from: 'race', text: e.text }); say([carTag(e.car), 'fastest']); }
+    } else if (e.type === 'mistake' && (isMine || car.pos <= 5)) { toast(e.text); if (isMine) { addRadio({ from: 'engineer', text: e.text }); say([carTag(e.car), 'u_mistake']); } }
   }
 }
 
 // ---------- screens ----------
 function show(html, cls = '') {
   const sc = $('#screen'); sc.className = 'screen ' + cls; sc.hidden = false;
-  $('#sheet').innerHTML = html; $('#sheet').scrollTop = 0;
-  return $('#sheet');
+  const sheet = $('#sheet'); sheet.onclick = sheet.oninput = sheet.onchange = null;   // screens that use handler properties start clean
+  sheet.innerHTML = html; sheet.scrollTop = 0;
+  return sheet;
 }
 function hide() { $('#screen').hidden = true; }
 
 function home() {
   const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n];
   const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
-  const sh = show(`
-    <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
-    <p class="tag">Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.</p>
+  const lr = S.lastRace && venueById(S.lastRace.venue), first = firstVisit();
+  const cards = `
     <div class="cards">
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
         <p>${done ? `You finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
@@ -481,12 +851,20 @@ function home() {
         <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
         <div class="row"><button class="btn" data-go="season" type="button">${seasonOver ? 'Standings' : S.season.round > 1 ? 'Next round' : 'Start the season'}</button><button class="btn ghost" data-go="standings" type="button">Standings</button></div></div>
       <div class="hc"><span class="k">Quick race</span><h3>Pick any circuit</h3>
-        <p>Every venue on the calendar, any time. No points, just practice.</p>
-        <div class="row"><button class="btn ghost" data-go="quick" type="button">Choose a circuit</button></div></div>
-    </div>
-    <div class="home-foot"><span>Team: <b>${esc(team().name)}</b> · ${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="team" type="button">${S.team ? 'Edit team' : 'Name your team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
-  sh.addEventListener('click', homeClick);
+        <p>${lr ? `Last time: ${lr.flag} ${esc(lr.city)}. Race again with the same tyres and calls, or pick another.` : `All ${VENUES.length} circuits, any time. No points, just racing.`}</p>
+        <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button></div></div>
+    </div>`;
+  const welcome = `
+    <div class="cards one"><div class="hc welcome"><span class="k">Welcome to the paddock</span><h3>Run your own racing team</h3>
+      <p>Two AI drivers, ten cars, ${VENUES.length} circuits. They drive; you make the calls from the pit wall. Build your team in about a minute, then race under the lights at Sakhir, Bahrain.</p>
+      <div class="row"><button class="btn" data-go="build" type="button">Build my team</button><button class="btn ghost" data-go="just" type="button">Just race</button></div></div></div>`;
+  const sh = show(`
+    <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
+    <p class="tag">Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.</p>
+    ${first ? welcome + (S.stats.starts ? cards : '') : cards}
+    <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
+  sh.onclick = homeClick;
 }
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
@@ -499,39 +877,169 @@ function homeClick(e) {
   }
   if (go === 'standings') standings();
   if (go === 'quick') quickPick();
-  if (go === 'team') teamSheet(home);
+  if (go === 'team') { if (firstVisit()) onboard('team', null); else teamSheet(home); }
+  if (go === 'build') onboard('team', null);
+  if (go === 'just') justRace();
+  if (go === 'again') raceAgain();
+  if (go.startsWith('v:')) needTeam(() => pre(quickO(venueById(go.slice(2))), 'car'));
+  if (go === 'garage') showroom(home);
+  if (go === 'dna') studio(home);
   if (go === 'help') helpSheet(home);
   if (go === 'win') winSheet(home);
   if (go === 'share') shareSheet(S.daily.days[n].share, home);
 }
 
-function needTeam(next) { if (S.team) next(); else teamSheet(next, true); }
+// Driver DNA Studio (js/studio.js); during a race the race keeps the DNA it started with
+function studio(back, locked = false, o = {}) { openStudio({ S, show, save: store.save, toast, team }, { back, locked, ...o }); }
 
-function teamSheet(next, first) {
+// first visit: no team yet, or a team still being built in the onboarding
+const firstVisit = () => !S.team || !!S.team.draft;
+function needTeam(next) { if (firstVisit()) onboard('team', next); else next(); }
+
+// driver codes and numbers: three letters from the name; numbers 1-99 that no AI driver uses
+const codeOf = (s) => s.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase().padEnd(3, 'X');
+function driverCodes(a, b) { let c1 = codeOf(a), c2 = codeOf(b); if (c1 === c2) c2 = c2.slice(0, 2) + '2'; return [c1, c2]; }
+function numProblem(n, other) {
+  if (!Number.isInteger(n) || n < 1 || n > 99) return 'Pick a number from 1 to 99.';
+  if (TAKEN_NUMS.includes(n)) return `Number ${n} belongs to another team's driver.`;
+  if (n === other) return 'Your two drivers need different numbers.';
+  return '';
+}
+const TEAM_IDEAS = ['Savanna Racing', 'Kora Motorsport', 'Sahel Speed', 'Ember GP', 'Zenith Racing', 'Baobab Racing', 'Comet GP', 'Nomad Racing',
+  'Delta Works', 'Lumen Racing', 'Equator GP', 'Highveld Racing', 'Tidewater GP', 'Ironwood Racing', 'Blue Nile Motorsport', 'Dune Velocity'];
+const DRIVER_IDEAS = ['Kofi', 'Tunde', 'Kwame', 'Jabari', 'Femi', 'Malik', 'Ayo', 'Chidi', 'Emeka', 'Sipho', 'Tariq', 'Kai', 'Rio', 'Mateo', 'Idris',
+  'Bayo', 'Kalu', 'Obi', 'Thabo', 'Zane', 'Dayo', 'Nico', 'Omar', 'Jonah', 'Ezra', 'Ade', 'Leon', 'Musa'];
+const pickIdea = (list, not = []) => { const l = list.filter((x) => !not.includes(x)); return l[Math.floor(Math.random() * l.length)]; };
+
+// Edit team: names, numbers and colours, any time
+function teamSheet(next) {
   const t = structuredClone(team());
   let liv = Math.max(0, LIVERIES.findIndex((l) => l.c1 === t.c1));
+  const nums = t.drivers.map((d, i) => d.num || (i ? 77 : 7));
   const sh = show(`
-    <h2>${first ? 'Your team' : 'Edit team'}</h2>
-    <p class="lede">${first ? 'You are the team principal. Name your team and your two AI drivers.' : 'Change names and colours any time.'}</p>
+    <h2>Edit team</h2>
+    <p class="lede">Change names, numbers and colours any time.</p>
     <div class="grid2">
       <label class="field"><span>Team name</span><input id="tName" maxlength="22" value="${esc(t.name)}"></label>
       <label class="field"><span>Short code</span><input id="tShort" maxlength="3" value="${esc(t.short)}"></label>
-      <label class="field"><span>Driver 1</span><input id="d1" maxlength="14" value="${esc(t.drivers[0].name)}"></label>
-      <label class="field"><span>Driver 2</span><input id="d2" maxlength="14" value="${esc(t.drivers[1].name)}"></label>
+      ${t.drivers.map((d, i) => `<label class="field"><span>Driver ${i + 1}</span><input id="d${i + 1}" maxlength="14" value="${esc(d.name)}"></label>
+      <label class="field"><span>Number</span><input id="n${i + 1}" type="number" inputmode="numeric" min="1" max="99" value="${nums[i]}"></label>`).join('')}
     </div>
+    <p class="err" id="tErr" hidden></p>
     <div class="sub" style="margin-top:14px">Colours</div>
     <div class="swatches">${LIVERIES.map((l, i) => `<button type="button" data-l="${i}" class="${i === liv ? 'on' : ''}" aria-label="${l.name}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
-    <div class="actions"><button class="btn" id="tSave" type="button">${first ? 'Save and race' : 'Save'}</button><button class="btn ghost" id="tSkip" type="button">${first ? 'Skip' : 'Cancel'}</button></div>`);
+    <div class="actions"><button class="btn" id="tSave" type="button">Save</button><button class="btn ghost" id="tSkip" type="button">Cancel</button></div>`);
   $$('[data-l]', sh).forEach((b) => b.addEventListener('click', () => { liv = +b.dataset.l; $$('[data-l]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
   $('#tSave').addEventListener('click', () => {
-    const code = (s) => s.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase().padEnd(3, 'X');
-    const d1 = $('#d1').value.trim() || 'Nova', d2 = $('#d2').value.trim() || 'Echo';
-    let c1 = code(d1), c2 = code(d2); if (c1 === c2) c2 = c2.slice(0, 2) + '2';
-    S.team = { name: $('#tName').value.trim() || 'Your Team', short: code($('#tShort').value || $('#tName').value), c1: LIVERIES[liv].c1, c2: LIVERIES[liv].c2,
-      drivers: [{ name: d1, code: c1 }, { name: d2, code: c2 }] };
+    const d1 = $('#d1').value.trim() || t.drivers[0].name, d2 = $('#d2').value.trim() || t.drivers[1].name;
+    const n1 = +$('#n1').value, n2 = +$('#n2').value, bad = numProblem(n1, n2) || numProblem(n2, n1);
+    if (bad) { $('#tErr').textContent = bad; $('#tErr').hidden = false; return; }
+    const [c1, c2] = driverCodes(d1, d2);
+    S.team = { name: $('#tName').value.trim() || t.name, short: codeOf($('#tShort').value || $('#tName').value), c1: LIVERIES[liv].c1, c2: LIVERIES[liv].c2, glow: t.glow,
+      drivers: [{ name: d1, code: c1, num: n1 }, { name: d2, code: c2, num: n2 }] };
     store.save(); next();
   });
-  $('#tSkip').addEventListener('click', () => { if (first) { S.team = DEFAULT_TEAM; store.save(); } next(); });
+  $('#tSkip').addEventListener('click', next);
+}
+
+// ---------- onboarding: build your team, one decision per screen ----------
+const OB_STEPS = ['team', 'car', 'colours', 'drivers', 'engineer', 'mode'];
+const OB_STYLES = ['balanced', 'attacker', 'technician'];
+let obThen = null;
+function dots(i, n) { return `<div class="wiz-dots" aria-label="Step ${i + 1} of ${n}">${Array.from({ length: n }, (_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"></i>`).join('')}<span>${i + 1} of ${n}</span></div>`; }
+const wizFoot = (next, back = 'Back') => `<div class="actions wiz-foot"><button class="btn" data-wiz="next" type="button">${next}</button>${back ? `<button class="btn ghost" data-wiz="back" type="button">${back}</button>` : ''}</div>`;
+function wizWire(sh, next, back) {
+  $('[data-wiz="next"]', sh).addEventListener('click', next);
+  const b = $('[data-wiz="back"]', sh); if (b) b.addEventListener('click', back);
+}
+function onboard(step = 'team', then) {
+  if (then !== undefined) obThen = then;
+  if (!S.team || S.team.fresh) { S.team = { ...structuredClone(DEFAULT_TEAM), ...(S.team ? { c1: S.team.c1, c2: S.team.c2, glow: S.team.glow } : {}), name: '', short: '', draft: true, drivers: [{ name: '', code: '', num: 7 }, { name: '', code: '', num: 77 }] }; store.save(); }
+  const t = S.team, i = OB_STEPS.indexOf(step), go = (k) => onboard(OB_STEPS[i + k]);
+  const back = () => (i ? go(-1) : home());
+  const head = (title, lede) => `${dots(i, OB_STEPS.length)}<h2>${title}</h2><p class="lede">${lede}</p>`;
+  if (step === 'team') {
+    let codeSet = !!t.short;
+    const sh = show(`${head('Name your team', 'You are the team principal. What is your team called?')}
+      <div class="grid2 ob-team">
+        <label class="field"><span>Team name</span><input id="obName" maxlength="22" value="${esc(t.name)}" placeholder="Savanna Racing" autocomplete="off"></label>
+        <label class="field"><span>Short code</span><input id="obShort" maxlength="3" value="${esc(t.short)}" placeholder="SAV" autocomplete="off"></label>
+      </div>
+      <button class="btn ghost dice" id="obDice" type="button">🎲 Suggest a name</button>
+      <p class="note">The code shows on the timing tower next to your drivers.</p>
+      <p class="err" id="obErr" hidden></p>
+      ${wizFoot('Next')}`, 'wiz');
+    const nm = $('#obName'), sc = $('#obShort');
+    nm.addEventListener('input', () => { if (!codeSet) sc.value = nm.value.trim() ? codeOf(nm.value) : ''; });
+    sc.addEventListener('input', () => { codeSet = !!sc.value; });
+    $('#obDice').addEventListener('click', () => { $('#obErr').hidden = true; nm.value = pickIdea(TEAM_IDEAS, [nm.value]); codeSet = false; sc.value = codeOf(nm.value); });
+    wizWire(sh, () => {
+      if (!nm.value.trim()) { $('#obErr').textContent = 'Give your team a name, or tap the dice for one.'; $('#obErr').hidden = false; nm.focus(); return; }
+      t.name = nm.value.trim(); t.short = codeOf(sc.value || t.name); store.save(); go(1);
+    }, back);
+  }
+  if (step === 'car') {
+    const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.')}
+      ${carTiles()}${wizFoot('Choose this car')}`, 'wiz');
+    wireCarTiles(sh, () => onboard('car'));
+    wizWire(sh, () => go(1), back);
+  }
+  if (step === 'colours') {
+    // the showroom, with your car turning while you paint it: main, accent and the colour of the lights
+    openShowroom({ S, show, save: store.save, team }, { id: carModel() || 'falcon', lite, back,
+      wizard: { head: head('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), next: () => go(1) } });
+  }
+  if (step === 'drivers') {
+    const prof = activeProfiles(S), style = SLOTS.map((sl) => { const o = (prof[sl] && prof[sl].origin || '').replace('preset:', ''); return OB_STYLES.includes(o) ? o : 'balanced'; });
+    const sh = show(`${head('Your drivers', 'Name your two AI drivers, give them race numbers and pick how they drive.')}
+      ${t.drivers.map((d, k) => `<div class="ob-driver" data-d="${k}">
+        <div class="ob-drow"><label class="field"><span>Driver ${k + 1}</span><input class="obN" maxlength="14" value="${esc(d.name)}" placeholder="${k ? 'Echo' : 'Nova'}" autocomplete="off"></label>
+          <button class="btn ghost dice" data-dice="${k}" type="button" aria-label="Suggest a name">🎲</button>
+          <label class="field num"><span>Number</span><input class="obNum" type="number" inputmode="numeric" min="1" max="99" value="${d.num || (k ? 77 : 7)}"></label></div>
+        <div class="ob-style">${OB_STYLES.map((s) => { const p = PRESETS.find((x) => x.id === s); return `<button type="button" data-style="${s}" class="${style[k] === s ? 'on' : ''}"><b>${s === 'technician' ? 'Smooth' : p.name}</b><span>${esc(p.blurb)}</span></button>`; }).join('')}</div></div>`).join('')}
+      <p class="note">More styles and every setting are in Driver DNA, any time.</p>
+      <p class="err" id="obErr" hidden></p>
+      ${wizFoot('Next')}`, 'wiz');
+    $$('.ob-driver', sh).forEach((row) => {
+      const k = +row.dataset.d;
+      $$('[data-style]', row).forEach((b) => b.addEventListener('click', () => { style[k] = b.dataset.style; $$('[data-style]', row).forEach((x) => x.classList.toggle('on', x === b)); }));
+      $('[data-dice]', row).addEventListener('click', () => { $('.obN', row).value = pickIdea(DRIVER_IDEAS, $$('.obN', sh).map((x) => x.value)); });
+    });
+    wizWire(sh, () => {
+      const names = $$('.obN', sh).map((x) => x.value.trim()), nums = $$('.obNum', sh).map((x) => +x.value);
+      const err = (m) => { $('#obErr').textContent = m; $('#obErr').hidden = false; };
+      if (!names[0] || !names[1]) return err('Give both drivers a name, or tap the dice.');
+      const bad = numProblem(nums[0], nums[1]) || numProblem(nums[1], nums[0]); if (bad) return err(bad);
+      const codes = driverCodes(names[0], names[1]);
+      t.drivers = names.map((n, k) => ({ name: n, code: codes[k], num: nums[k] }));
+      SLOTS.forEach((sl, k) => { if (style[k] !== (prof[sl] && prof[sl].origin || '').replace('preset:', '')) setProfile(S, fromPreset(sl, style[k]), 'you', 'picked when building the team'); });
+      store.save(); go(1);
+    }, back);
+  }
+  if (step === 'engineer') {
+    const sh = show(`${head('Your race engineer', 'Your engineer talks to your drivers on the team radio, so you can watch the race instead of reading. Tap a voice to hear a call.')}
+      ${vpickHTML()}
+      <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your drivers reply in their own voices: "Copy. Boxing."</span></label>
+      ${wizFoot('Next')}`, 'wiz');
+    vpickWire(sh);
+    $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
+    wizWire(sh, () => go(1), back);
+  }
+  if (step === 'mode') {
+    let auto = !!S.settings.auto;
+    const sh = show(`${head("How you'll run it", 'Who makes the calls in the race? You can change this before every race, and take over at any time.')}
+      ${modeHTML(auto)}
+      <label class="coachopt"><input type="checkbox" id="coachOpt" ${S.settings.coach !== false ? 'checked' : ''}><span><b>Race coach</b> Tips at the right moment, with a button to act on them in one tap: your first box call, your first Push, your first BOOST.</span></label>
+      ${wizFoot(obThen ? 'Done' : 'Start my first race')}`, 'wiz');
+    $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
+    wizWire(sh, () => {
+      S.settings.auto = auto; S.settings.coach = $('#coachOpt').checked;
+      delete t.draft; store.save(); toast(`Welcome to the paddock, ${t.name}.`);
+      const then = obThen; obThen = null;
+      if (then) then();
+      else pre({ kind: 'quick', venue: VENUES.find((v) => v.id === 'sakhir'), seed: hashString('first-' + Date.now()), first: true, length: 'short' }, 'tyres');
+    }, back);
+  }
 }
 
 function helpSheet(back) {
@@ -596,84 +1104,208 @@ function winSheet(back) {
 }
 
 
-function quickPick() {
-  const sh = show(`<h2>Quick race</h2><p class="lede">Pick a circuit. No points; good for practice.</p>
-    <div class="venues">${VENUES.map((v) => `<button type="button" data-v="${v.id}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span></button>`).join('')}</div>
-    <div class="actions"><button class="btn ghost" id="qBack" type="button">Back</button></div>`);
-  $$('[data-v]', sh).forEach((b) => b.addEventListener('click', () => {
-    const v = VENUES.find((x) => x.id === b.dataset.v);
-    needTeam(() => pre({ kind: 'quick', venue: v, seed: hashString('quick-' + v.id + '-' + Date.now()) }));
-  }));
-  $('#qBack').addEventListener('click', home);
+const FEATURED = ['sakhir', 'singapore'];
+const venueById = (id) => VENUES.find((v) => v.id === id);
+const quickO = (v) => ({ kind: 'quick', venue: v, seed: hashString('quick-' + v.id + '-' + Date.now()) });
+function quickPick() { pre({ kind: 'quick' }, 'circuit'); }
+// Race again: last quick race's circuit, tyres and calls, straight to the grid
+function raceAgain() {
+  const L = S.lastRace, v = L && venueById(L.venue); if (!v) return quickPick();
+  needTeam(() => {
+    live.clear();
+    Object.assign(G, { ...quickO(v), round: null, day: null });
+    G.laps = raceLaps(trackFor(v), S.settings.length || 'short');
+    G.coach = !!L.coach && !L.auto;
+    startRace({ ...L.picks }, !!L.auto);
+  });
 }
 
-// pre-race: forecast, grid slots, starting tyres, mode
-function pre(o) {
-  Object.assign(G, { kind: o.kind, venue: o.venue, seed: o.seed, round: o.round || null, day: o.day || null });
-  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team() });
-  const T = probe.track, W = probe.weather;
-  const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
-  const wetStart = W.wet0 > 0.17;
-  const rainTxt = W.wet0 > 0.17 ? 'Wet track at the start' : W.showers.length ? `${Math.round(clamp(o.venue.rain + 0.25, 0.3, 0.9) * 100)}% chance of rain` : o.venue.rain > 0.2 ? `${Math.round(o.venue.rain * 60)}% chance of rain` : 'Dry';
-  const picks = { 'you-0': wetStart ? (W.wet0 > 0.7 ? 'W' : 'I') : 'M', 'you-1': wetStart ? (W.wet0 > 0.7 ? 'W' : 'I') : 'M' };
-  let auto = !!S.settings.auto;
-  const label = o.kind === 'daily' ? `Daily Grand Prix #${o.day}` : o.kind === 'season' ? `Season ${S.season.no} · Round ${o.round}` : 'Quick race';
-  const sh = show(`
-    <div class="sub">${label}</div>
-    <h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>
-    <p class="lede">${esc(o.venue.circuit)}, ${esc(o.venue.country)}. ${esc(o.venue.note)}</p>
-    <div class="facts">
-      <div><small>Laps</small><b>${probe.laps}</b></div>
-      <div><small>Lap length</small><b>${(T.L / 1000).toFixed(2)} km</b></div>
-      <div><small>Weather</small><b>${tempTxt(o.venue.temp)} · ${rainTxt}</b></div>
-      <div><small>Tyre wear</small><b>${o.venue.wear >= 1.15 ? 'High' : o.venue.wear <= 0.85 ? 'Low' : 'Medium'}</b></div>
-    </div>
-    <div class="plan"><div class="sub">Your engineer's plan</div><ul>${planFor(o.venue, probe).lines.map((l) => `<li>${l}</li>`).join('')}</ul>
-      <button class="btn ghost" id="usePlan" type="button">Use this plan</button> <button class="btn ghost" id="howWin" type="button">How to win</button></div>
-    <div class="sub">Starting tyres</div>
-    <div class="pick">${team().drivers.map((d, i) => `<div><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + i)}</div>
-      <div class="box-row" data-car="you-${i}">${Object.keys(COMPOUNDS).map((k) => `<button type="button" data-c="${k}" class="${picks['you-' + i] === k ? 'on' : ''}">${tyreHTML(k)}${COMPOUNDS[k].name}</button>`).join('')}</div></div>`).join('')}</div>
-    <div class="sub">Who makes the calls?</div>
-    <div class="mode">
+// Just race: a short race at Sakhir with a ready-made team, the coach on and the engineer's plan
+function justRace() {
+  const v = venueById('sakhir');
+  live.clear();
+  Object.assign(G, { ...quickO(v), round: null, day: null });
+  G.laps = raceLaps(trackFor(v), 'short');
+  const probe = setupRace({ venue: v, seed: G.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps });
+  const st = planFor(v, probe).start;
+  G.coach = true;
+  startRace({ 'you-0': st[0], 'you-1': st[1] }, false);
+}
+
+// the garage tiles: tap a name to race that car, the picture for the 3D showroom
+function wireCarTiles(sh, back) {
+  $$('[data-car-model]', sh).forEach((b) => b.addEventListener('click', () => {
+    S.settings.car = b.dataset.carModel || null; store.save();
+    $$('[data-car-model]', sh).forEach((x) => { x.closest('.car-tile').classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
+    if (world) world.setModel(carModel());
+  }));
+  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => showroom(back, b.dataset.show)));
+}
+const modeHTML = (auto) => `<div class="mode">
       <button type="button" data-m="0" class="${auto ? '' : 'on'}"><b>Team Principal</b><span>You call pit stops, tyres and tactics. Your engineer advises.</span></button>
       <button type="button" data-m="1" class="${auto ? 'on' : ''}"><b>Autonomous</b><span>Your AI makes every call. Sit back and watch. You can take over any time.</span></button>
-    </div>
-    <div class="actions"><button class="btn" id="goGrid" type="button">Go to the grid</button><button class="btn ghost" id="preBack" type="button">Back</button></div>`);
-  $$('.box-row', sh).forEach((row) => $$('button', row).forEach((b) => b.addEventListener('click', () => {
-    picks[row.dataset.car] = b.dataset.c; $$('button', row).forEach((x) => x.classList.toggle('on', x === b));
-  })));
-  $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
-  $('#preBack').addEventListener('click', home);
-  $('#usePlan').addEventListener('click', () => {
-    const p = planFor(o.venue, probe);
-    $$('.box-row', sh).forEach((row, i) => { picks[row.dataset.car] = p.start[i]; $$('button', row).forEach((x) => x.classList.toggle('on', x.dataset.c === p.start[i])); });
-    toast('Plan set: ' + p.start.map((c) => COMPOUNDS[c].name).join(' and ') + ' to start.');
-  });
-  $('#howWin').addEventListener('click', () => winSheet(() => pre(o)));
-  $('#goGrid').addEventListener('click', () => { S.settings.auto = auto; store.save(); startRace(picks, auto); });
+    </div>`;
+
+// the garage: every car in the series, as rendered pictures with their strengths. Tap a car to race
+// it; 3D opens it in the showroom.
+function carTiles() {
+  const cur = carModel() || '';
+  // tap the picture to spin the car round in 3D; tap its name to race it
+  const tile = (c) => `<div class="car-tile ${cur === c.id ? 'on' : ''}">
+    <button type="button" class="ct-img" data-show="${c.id}" aria-label="See the ${c.name} in 3D, all the way round"><img src="assets/cars/${c.id}.webp" alt="" width="320" height="180" loading="lazy" decoding="async"><span class="ct-3d">360°</span></button>
+    <button type="button" class="ct-pick" data-car-model="${c.id}" aria-pressed="${cur === c.id}"><b>${c.name}</b><span>${esc(c.line)}</span>
+      <span class="ct-bars">${strengthBars(c.id).map(([k, v]) => `<i title="${k}"><u style="width:${v}%"></u><small>${k}</small></i>`).join('')}</span></button></div>`;
+  return `<div class="garage">${MODELS.map(tile).join('')}
+    <div class="car-tile simple ${cur === '' ? 'on' : ''}"><button type="button" class="ct-pick" data-car-model="" aria-pressed="${cur === ''}"><b>Simple cars</b><span>Plain blocky cars from the first version. Pick these only if the race stutters on your phone.</span></button></div></div>`;
+}
+function showroom(back, id) {
+  openShowroom({ S, show, save: store.save, team }, { id: id || carModel() || 'falcon', lite, back,
+    pick: (cid) => { S.settings.car = cid; store.save(); if (world) world.setModel(carModel()); } });
+}
+// what each tyre does at this track: speed, and roughly how many laps before it fades
+function tyreGuide(v) {
+  const wm = v.wear || 1, laps = (c) => Math.max(1, Math.round(LIFE[c] / wm * 0.8));
+  const rows = [
+    ['S', 100, `Fastest. Lasts about ${laps('S')} laps here. Use it to gain places at the start or for a short last stint.`],
+    ['M', 82, `A little slower. Lasts about ${laps('M')} laps. The safe all-rounder.`],
+    ['H', 64, `Slowest dry tyre, but lasts about ${laps('H')} laps. For a long stint so you only stop once.`],
+    ['I', 40, 'Intermediate. For a damp track or light rain. Too slow once it dries.'],
+    ['W', 26, 'Full wet. For heavy rain and standing water.'],
+  ];
+  return `<div class="tguide">${rows.map(([c, sp, t]) => `<div>${tyreHTML(c)}<b>${COMPOUNDS[c].name}</b><i title="Speed on a dry track"><u style="width:${sp}%;background:${COMPOUNDS[c].color}"></u></i><span>${t}</span></div>`).join('')}
+    <p>In a dry race each car must use two different dry tyres (Soft, Medium or Hard), so every car stops at least once.</p></div>`;
 }
 
-function startRace(picks, auto) {
+// race setup, one screen at a time: circuit (Quick race only), car, tyres, then race settings
+let P = null;
+function pre(o, step = o.venue ? 'car' : 'circuit') {
+  if (!P || P.o !== o) { P = { o, picks: null, auto: !!S.settings.auto, coachOn: coachDefault(o.kind) }; live.clear(); }
+  const steps = o.kind === 'quick' ? ['circuit', 'car', 'tyres', 'settings'] : ['car', 'tyres', 'settings'];
+  const i = steps.indexOf(step), go = (k) => pre(o, steps[i + k]);
+  const back = () => (i ? go(-1) : home());
+  const label = o.first ? 'Your first race' : o.kind === 'daily' ? `Daily Grand Prix #${o.day}` : o.kind === 'season' ? `Season ${S.season.no} · Round ${o.round}` : 'Quick race';
+  const head = (title) => `${dots(i, steps.length)}<div class="sub">${label}</div>${o.venue && step !== 'circuit' ? `<h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>` : ''}${title}`;
+
+  if (step === 'circuit') {
+    const vb = (v) => `<button type="button" data-v="${v.id}" class="${v.id === (o.venue && o.venue.id) ? 'next' : ''}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span><span>${tempTxt(v.temp).split(' /')[0]} · ${v.rain > 0.35 ? 'Rain likely' : v.rain > 0.15 ? 'Rain possible' : 'Usually dry'}${v.time === 'night' ? ' · Night' : ''}</span></button>`;
+    const sh = show(`${head('<h2>Pick a circuit</h2><p class="lede">No points, just racing. Good for practice.</p>')}
+      <div class="sub">Featured</div>
+      <div class="venues feat">${FEATURED.map((id) => vb(venueById(id))).join('')}</div>
+      <input class="vsearch" id="vSearch" type="search" placeholder="Search a city or country" aria-label="Search circuits" autocomplete="off">
+      <div class="venues" id="vAll">${VENUES.filter((v) => !FEATURED.includes(v.id)).map(vb).join('')}</div>
+      <p class="note" id="vNone" hidden>No circuit matches that.</p>
+      <div class="actions wiz-foot"><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`);
+    $$('[data-v]', sh).forEach((b) => b.addEventListener('click', () => {
+      o.venue = venueById(b.dataset.v); o.seed = hashString('quick-' + o.venue.id + '-' + Date.now()); P.picks = null;
+      needTeam(() => pre(o, 'car'));
+    }));
+    $('#vSearch').addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase(); let n = 0;
+      $$('#vAll [data-v]', sh).forEach((b) => { const hit = !q || b.textContent.toLowerCase().includes(q); b.hidden = !hit; n += hit; });
+      $('#vNone').hidden = n > 0;
+    });
+    $('[data-wiz="back"]', sh).addEventListener('click', home);
+    return;
+  }
+  Object.assign(G, { kind: o.kind, venue: o.venue, seed: o.seed, round: o.round || null, day: o.day || null });
+  const length = o.kind === 'daily' ? 'short' : o.length || S.settings.length || 'short';
+  G.laps = raceLaps(trackFor(o.venue), length);
+
+  if (step === 'car') {
+    const sh = show(`${head('<p class="lede">Your car is ready. Change it here, or tap a picture to spin it round in 3D.</p>')}
+      ${carTiles()}${wizFoot('Next')}`);
+    wireCarTiles(sh, () => pre(o, 'car'));
+    wizWire(sh, () => go(1), back);
+    return;
+  }
+  if (step === 'tyres') {
+    const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps });
+    const T = probe.track, W = probe.weather, wetStart = W.wet0 > 0.17, plan = planFor(o.venue, probe);
+    const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
+    const rainTxt = wetStart ? 'Wet track at the start' : W.showers.length ? `${Math.round(clamp(o.venue.rain + 0.25, 0.3, 0.9) * 100)}% chance of rain` : o.venue.rain > 0.2 ? `${Math.round(o.venue.rain * 60)}% chance of rain` : 'Dry';
+    const picks = P.picks ||= o.first ? { 'you-0': plan.start[0], 'you-1': plan.start[1] } : { 'you-0': wetStart ? (W.wet0 > 0.7 ? 'W' : 'I') : 'M', 'you-1': wetStart ? (W.wet0 > 0.7 ? 'W' : 'I') : 'M' };
+    const sh = show(`${head(`<p class="lede">${esc(o.venue.circuit)}, ${esc(o.venue.country)}. ${esc(o.venue.note)}</p>`)}
+      <div class="facts">
+        <div><small>Laps</small><b>${probe.laps}</b></div>
+        <div><small>Lap length</small><b>${(T.L / 1000).toFixed(2)} km</b></div>
+        <div><small>Weather</small><b>${tempTxt(o.venue.temp)} · ${rainTxt}</b></div>
+        <div><small>Tyre wear</small><b>${o.venue.wear >= 1.15 ? 'High' : o.venue.wear <= 0.85 ? 'Low' : 'Medium'}</b></div>
+      </div>
+      ${o.kind === 'daily' || o.first ? '' : `<div class="sub">Race length</div>
+      <div class="vpick lengths">${LENGTHS.map((l) => `<button type="button" data-len="${l.id}" class="${length === l.id ? 'on' : ''}"><b>${l.name}</b><span>${raceLaps(T, l.id)} laps · ${l.note}</span></button>`).join('')}</div>`}
+      <div class="sub">Starting tyres</div>
+      <p class="note">You run two cars and make the calls for both. Starting them on different tyres covers more bets.</p>
+      <div class="pick">${team().drivers.map((d, k) => `<div><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + k)}</div>
+        <div class="box-row" data-car="you-${k}">${Object.keys(COMPOUNDS).map((c) => `<button type="button" data-c="${c}" class="${picks['you-' + k] === c ? 'on' : ''}">${tyreHTML(c)}${COMPOUNDS[c].name}</button>`).join('')}</div></div>`).join('')}</div>
+      <div class="plan"><div class="sub">Your engineer's plan</div><ul>${plan.lines.map((l) => `<li>${l}</li>`).join('')}</ul>
+        <button class="btn ghost" id="usePlan" type="button">Use this plan</button> <button class="btn ghost" id="howWin" type="button">How to win</button></div>
+      <details class="tg"${o.first ? ' open' : ''}><summary class="sub">What each tyre does here</summary>${tyreGuide(o.venue)}</details>
+      ${wizFoot('Next')}`);
+    $$('.box-row', sh).forEach((row) => $$('button', row).forEach((b) => b.addEventListener('click', () => {
+      picks[row.dataset.car] = b.dataset.c; $$('button', row).forEach((x) => x.classList.toggle('on', x === b));
+    })));
+    $$('[data-len]', sh).forEach((b) => b.addEventListener('click', () => { S.settings.length = b.dataset.len; store.save(); const y = $('#sheet').scrollTop; pre(o, 'tyres'); $('#sheet').scrollTop = y; }));
+    $('#usePlan').addEventListener('click', () => {
+      $$('.box-row', sh).forEach((row, k) => { picks[row.dataset.car] = plan.start[k]; $$('button', row).forEach((x) => x.classList.toggle('on', x.dataset.c === plan.start[k])); });
+      toast('Plan set: ' + plan.start.map((c) => COMPOUNDS[c].name).join(' and ') + ' to start.');
+    });
+    $('#howWin').addEventListener('click', () => winSheet(() => pre(o, 'tyres')));
+    wizWire(sh, () => go(1), back);
+    return;
+  }
+  // race settings
+  const sh = show(`${head('<p class="lede">Last checks before the grid.</p>')}
+    <div class="sub">Who makes the calls?</div>
+    ${modeHTML(P.auto)}
+    <label class="coachopt"><input type="checkbox" id="coachOpt" ${P.coachOn ? 'checked' : ''}><span><b>Race coach</b> Tips at the right moment during the race, with a button to act on them in one tap. Good for your first races.</span></label>
+    <div class="sub">Radio voice</div>
+    ${vpickHTML()}
+    <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your drivers reply on the radio in their own voices.</span></label>
+    <div class="sub">Driver DNA</div>
+    <div class="dna-pre">${dnaLine(S, team())}<button class="btn ghost" id="preDna" type="button">Tune</button></div>
+    <label class="statsopt"><input type="checkbox" id="statsOpt" ${statsEl.hidden ? '' : 'checked'}> Show frame rate (for testing on your phone)</label>
+    <div class="actions wiz-foot"><button class="btn go" id="goGrid" type="button">Go to the grid</button><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`);
+  $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { P.auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
+  vpickWire(sh);
+  $('#coachOpt').addEventListener('change', (e) => { P.coachOn = e.target.checked; S.settings.coach = P.coachOn; store.save(); });
+  $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
+  $('#statsOpt').addEventListener('change', (e) => { S.settings.stats = e.target.checked; store.save(); statsEl.hidden = !e.target.checked; });
+  $('#preDna').addEventListener('click', () => studio(() => pre(o, 'settings')));
+  $('[data-wiz="back"]', sh).addEventListener('click', back);
+  $('#goGrid').addEventListener('click', () => {
+    const picks = P.picks || { 'you-0': 'M', 'you-1': 'M' };
+    S.settings.auto = P.auto;
+    if (o.kind === 'quick') S.lastRace = { venue: o.venue.id, picks: { ...picks }, auto: P.auto, coach: P.coachOn };
+    store.save(); G.coach = P.coachOn && !P.auto; startRace(picks, P.auto);
+  });
+}
+
+function startRace(picks, auto, saved = null) {
   hide();
   G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set();
   app.classList.remove('attract');
   loadVenue(G.venue);
-  const setup = setupRace({ venue: G.venue, seed: G.seed, team: team(), startCompounds: picks, auto });
+  // everything the race is built from is kept, so a refresh can build the same race again
+  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined };
+  const setup = setupRace({ venue: G.venue, seed: G.seed, ...args });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
+  live.track(G.race, args, saved);
   world.setCars(G.race.cars);
-  G.sel = 'you-0'; G.mineSel = 'you-0';
+  G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; G.boxPicks = {}; coachHide();
   $('#radio').innerHTML = '';
   buildTower(); buildCard(); renderControls(true);
   $('#hud').hidden = false; $('#camPill').hidden = false;
   setCam('live');
   if (S.settings.sound !== false) sound.start(lite);
+  voice.use(voiceId(), sound.ctx);
   addRadio({ from: 'engineer', text: auto ? 'Autonomous mode. I\'ll make the calls; take over whenever you like.' : `Radio check. You have the calls. ${G.setup.weather.showers.length || G.setup.weather.wet0 ? 'Keep an eye on the sky today.' : 'It looks dry: we need one stop for a second compound.'}` });
   if (!auto) for (const id of ['you-0', 'you-1']) {
     const c = G.race.byId.get(id);
     if (c.plan.lap) addRadio({ from: 'engineer', text: `${c.code} plan: one stop around lap ${c.plan.lap + 1}, then ${COMPOUNDS[c.plan.next].name}s. I'll call it when the window opens.` });
   }
+  if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
   tick();
-  lightsSequence();
+  if (!saved) lightsSequence();
 }
 
 let lightsTimers = [];
@@ -702,18 +1334,49 @@ function beep(f, d) {
   } catch { /* no sound */ }
 }
 
+// the radio voice: picked before the race, and changeable during it (Team radio panel, pause menu)
+function vpickHTML() {
+  return `<div class="vpick">${[...VOICES, { id: '', name: 'Off', note: 'Text only' }].map((v) => `<button type="button" data-voice="${v.id}" class="${(voiceId() || '') === v.id ? 'on' : ''}"><b>${v.name}</b><span>${v.note}</span></button>`).join('')}</div>`;
+}
+function vpickWire(sh) {
+  $$('[data-voice]', sh).forEach((b) => b.addEventListener('click', () => {
+    S.settings.voice = b.dataset.voice || null; store.save();
+    $$('[data-voice]', sh).forEach((x) => x.classList.toggle('on', x === b));
+    voice.use(voiceId(), sound.ctx);
+    voiceName();
+    if (voiceId()) { voice.say(['car1', 'bb_M'], true); if (S.settings.replies !== false) voice.say(['@' + driverVoice('you-0') + '/r_box']); }
+  }));
+}
+function voiceName() { const v = VOICES.find((x) => x.id === voiceId()); $('#voiceName').textContent = v ? `${v.name} · ${v.note}` : 'Off'; }
+voiceName();
+$('#voiceBtn').addEventListener('click', () => voiceSheet(G.paused ? pauseMenu : resume));
+function voiceSheet(back) {
+  if (!G.attract) G.paused = true;
+  const sh = show(`<h2>Radio voices</h2>
+    <p class="lede">Pick your race engineer's voice. Tap one to hear a call.</p>
+    ${vpickHTML()}
+    <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your two drivers reply on the radio in their own voices: "Copy. Boxing."</span></label>
+    <div class="actions"><button class="btn" id="vDone" type="button">Done</button></div>`);
+  vpickWire(sh);
+  $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
+  $('#vDone').addEventListener('click', back);
+}
 function pauseMenu() {
   if (G.attract) return;
   G.paused = true;
   const sh = show(`<h2>Paused</h2><p class="lede">${G.venue.flag} ${esc(G.venue.city)} · lap ${G.race.leaderLap()} of ${G.race.laps}</p>
     <div class="actions" style="flex-direction:column">
       <button class="btn wide" id="pResume" type="button">Resume</button>
+      <button class="btn ghost wide" id="pVoice" type="button">Radio voices</button>
+      <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
       <button class="btn ghost wide" id="pRestart" type="button">Restart race</button>
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
   $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
-  $('#pRestart').addEventListener('click', () => pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }));
+  $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
+  $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
+  $('#pRestart').addEventListener('click', () => pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }, 'tyres'));
   $('#pQuit').addEventListener('click', () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); });
 }
 function resume() { hide(); G.paused = false; }
@@ -727,9 +1390,13 @@ const TROPHIES = {
 const TYRE_EMOJI = { S: '🔴', M: '🟡', H: '⚪', I: '🟢', W: '🔵' };
 
 function results() {
+  live.clear();
+  if (G.resFor === G.race) return resultsView();
+  G.resFor = G.race;
   const R = G.race, res = R.result, my = res.filter((x) => x.car.team.you);
   const best = Math.min(...my.map((x) => x.pos));
   const pts = my.reduce((s, x) => s + x.points, 0);
+  say(['flag', 'p' + best, best === 1 ? 'won' : best <= 3 ? 'podium' : pts > 0 ? 'points' : 'nopoints'], true);
   const wet = R.weather.showers.length > 0 || R.weather.wet0 > 0;
   const assisted = G.assisted || !G.auto0;
   const earned = [];
@@ -787,10 +1454,13 @@ function results() {
       if (best < rec.best) { rec.best = best; rec.pts = pts; rec.share = share; dailyLine = `New best today: P${best}.`; }
     }
   }
+  G.props = strategistAfterRace(R);
+  if (G.props.length) say(['d_notes']);
   store.save();
   const top = res.slice(0, 3);
   const pod = (x, cls) => `<div class="${cls}" style="background:${x.car.team.c1};color:${readable(x.car.team.c1)}"><b>${x.pos}</b>${esc(x.car.code)}<br><small>${esc(x.car.team.short)}</small></div>`;
-  const sh = show(`
+  G.resShare = share;
+  G.resHTML = `
     <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : 'Quick race'}</div>
     <h2>${best === 1 ? 'You won!' : best <= 3 ? 'Podium!' : best <= 10 ? 'In the points' : 'Tough day'}</h2>
     <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? 'retired' : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>
@@ -804,17 +1474,53 @@ function results() {
       <button class="btn ghost" data-r="again" type="button">Race again</button>
       ${G.kind === 'season' ? '<button class="btn ghost" data-r="standings" type="button">Standings</button>' : ''}
       <button class="btn ghost" data-r="home" type="button">Home</button>
-    </div>`);
-  sh.addEventListener('click', (e) => {
+    </div>`;
+  resultsView();
+  setCam('overview');
+}
+// ---------- the Team Strategist after a race (js/coach.js): suggestions you approve or not ----------
+function strategistAfterRace(R) {
+  if (!dnaOn) return [];
+  const d = dnaState(S), names = { car1: team().drivers[0].name, car2: team().drivers[1].name };
+  const cars = { car1: carMetrics(R, 'you-0'), car2: carMetrics(R, 'you-1') };
+  const props = STRATEGISTS.rules.propose({ cars, profiles: activeProfiles(S), names });
+  d.pending = [...props, ...(d.pending || []).filter((p) => p.status === 'proposed' && !props.some((q) => q.slot === p.slot))].slice(0, 4);
+  return props;
+}
+function strategistHTML() {
+  if (!dnaOn) return '';
+  const props = G.props || [];
+  return `<div class="strat"><div class="sub">Team Strategist</div>${props.length ? props.map(proposalHTML).join('')
+    : '<p class="note">No changes to suggest: neither driver had a pattern of lock-ups, collisions, worn tyres or missed chances this race. Tune them yourself in Driver DNA any time.</p>'}</div>`;
+}
+function stratClick(e) {
+  const b = e.target.closest('[data-sp]'); if (!b) return;
+  const p = (G.props || []).find((x) => x.id === b.closest('[data-prop]').dataset.prop); if (!p) return;
+  const d = dnaState(S);
+  if (b.dataset.sp === 'test') {
+    const cur = d.slots[p.slot].active, next = { ...cur.params };
+    for (const [k, [, to]] of Object.entries(p.diff)) next[k] = to;
+    return studio(resultsView, false, { slot: p.slot, view: 'test', venue: G.venue, draft: { params: next, name: cur.name, origin: 'strategist' } });
+  }
+  decide(S, p, b.dataset.sp === 'yes');
+  d.pending = (d.pending || []).filter((x) => x.id !== p.id);
+  store.save();
+  resultsView();
+}
+
+function resultsView() {
+  const share = G.resShare;
+  const sh = show(G.resHTML.replace('<div class="actions">', strategistHTML() + '<div class="actions">'));
+  sh.onclick = (e) => {
+    stratClick(e);
     const b = e.target.closest('[data-r]'); if (!b) return;
     const r = b.dataset.r;
     if (r === 'next') { const v = CALENDAR[S.season.round - 1]; pre({ kind: 'season', venue: v, seed: hashString(`season-${S.season.no}-${S.season.round}`), round: S.season.round }); }
     if (r === 'share') shareSheet(share, results);
-    if (r === 'again') pre({ kind: G.kind === 'season' ? 'quick' : G.kind, venue: G.venue, seed: G.kind === 'daily' ? G.seed : hashString('quick-' + Date.now()), day: G.day });
+    if (r === 'again') pre({ kind: G.kind === 'season' ? 'quick' : G.kind, venue: G.venue, seed: G.kind === 'daily' ? G.seed : hashString('quick-' + Date.now()), day: G.day }, 'tyres');
     if (r === 'standings') standings();
     if (r === 'home') attract();
-  });
-  setCam('overview');
+  };
 }
 
 function readable(hex) {
@@ -862,12 +1568,14 @@ window.__agp = {
     S.team ||= DEFAULT_TEAM;
     const n = dayNumber(), v = id ? VENUES.find((x) => x.id === id) : dailyVenue(n);
     Object.assign(G, { kind, venue: v, seed: hashString((kind === 'daily' ? 'daily-' : 'quick-') + (kind === 'daily' ? n : v.id)), day: n, round: kind === 'season' ? S.season.round : null });
-    startRace({}, false); lightsSequence(true);
+    G.laps = null; startRace({}, false); lightsSequence(true);
   },
-  cam: setCam, tab: setTab, select, results,
+  cam: setCam, tab: setTab, select, results, pre, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
+  voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
+  car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
   info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr }),
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,
 };
 
-attract();
+{ const saved = live.load(); if (!(saved && resumeRace(saved))) attract(); }
 requestAnimationFrame(frame);
