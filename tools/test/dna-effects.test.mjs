@@ -6,7 +6,7 @@ import { makeProfile, KEYS } from '../../js/dna.js';
 import { runRace, trial, summarize, balancedPair } from '../../js/proving.js';
 
 const venues = ['abuja', 'spielberg'].map((id) => VENUES.find((v) => v.id === id));
-const seeds = [201, 202, 203, 204, 205, 206];
+const seeds = [201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212];
 const prof = (o) => makeProfile('car1', Object.fromEntries(KEYS.map((k) => [k, o[k] ?? 50])));
 const pair = (p) => ({ car1: p, car2: makeProfile('car2', p.params) });
 function run(o) {
