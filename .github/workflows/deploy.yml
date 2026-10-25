@@ -1,0 +1,54 @@
+# Puts the game website and the WhatsApp agent on your server whenever main changes.
+# One-time setup, in the repo's Settings > Secrets and variables > Actions:
+#   Secrets:
+#     SERVER_HOST           the server's public IP address
+#     SERVER_USER           the login name (ubuntu or opc on Oracle Cloud)
+#     SERVER_SSH_KEY        the whole private key file Oracle gave you (BEGIN ... END lines included)
+#     WHATSAPP_AGENT_TOKEN  the agent's API key from WhatsApp (Chat info > API key); optional:
+#                           without it only the website goes up
+#   Variables (optional):
+#     SITE_DOMAIN           a domain pointed at the server (for example play.example.com). Set it and the
+#                           site gets HTTPS by itself; leave it out and the site answers on http://<IP>
+name: Deploy to server
+on:
+  push:
+    branches: [main]
+    paths: ['agent/**', 'js/**', 'css/**', 'assets/**', 'vendor/**', 'index.html', 'server/**', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+concurrency: deploy
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the race engine still runs
+        run: node agent/selftest.mjs
+      - name: Copy to the server and (re)start the services
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          KEY: ${{ secrets.SERVER_SSH_KEY }}
+          TOKEN: ${{ secrets.WHATSAPP_AGENT_TOKEN }}
+          DOMAIN: ${{ vars.SITE_DOMAIN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$HOST" ] || [ -z "$KEY" ]; then echo '::error::Add the SERVER_HOST, SERVER_USER and SERVER_SSH_KEY secrets first.'; exit 1; fi
+          install -m 600 /dev/null key && printf '%s\n' "$KEY" > key
+          OPTS="-i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          tar czf app.tgz agent js package.json
+          tar czf site.tgz index.html css js assets vendor
+          scp $OPTS app.tgz site.tgz "$USER@$HOST:/tmp/"
+          SITE_URL="${DOMAIN:+https://$DOMAIN}"; SITE_URL="${SITE_URL:-http://$HOST}"
+          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
+          ssh $OPTS "$USER@$HOST" "SITE_DOMAIN='$DOMAIN' bash -s" < server/install.sh
+          rm -f key
+          echo "::notice::Live at $SITE_URL"
+      - name: Check the site answers
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          DOMAIN: ${{ vars.SITE_DOMAIN }}
+        run: |
+          URL="${DOMAIN:+https://$DOMAIN}"; URL="${URL:-http://$HOST}"
+          for i in 1 2 3 4 5 6; do curl -fsS -o /dev/null "$URL/" && { echo "OK: $URL"; exit 0; }; sleep 5; done
+          echo "::warning::The server is running but $URL can't be reached from outside. Open ports 80 and 443 in the Oracle Cloud console (Networking > Virtual cloud networks > your VCN > Security Lists > Default > Add Ingress Rules: source 0.0.0.0/0, TCP, destination ports 80,443)."

@@ -54,3 +54,12 @@ race `box softs` (mediums, hards, inters, wets), `stay out`, `boost`, `harvest`,
 
 Limits from the platform: 12 outbound messages a minute (the agent keeps to 10 and merges lines),
 15 polls a minute, text up to 4096 characters. Only the agent's creator can chat with it.
+
+## Server
+
+`.github/workflows/deploy.yml` puts the website and the WhatsApp agent on one server (Oracle Cloud,
+Ubuntu) on every push to main, or by hand from the Actions tab (Deploy to server > Run workflow).
+`server/install.sh` runs there: Caddy serves the site from `/var/www/agent-grand-prix` (with HTTPS by
+itself once the `SITE_DOMAIN` variable names a domain pointed at the server, otherwise plain
+`http://<IP>`), and the agent runs as the `agent-grand-prix` service once its key is set. The secrets
+and the one Oracle console step (open ports 80 and 443) are listed at the top of the workflow.
