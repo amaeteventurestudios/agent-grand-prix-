@@ -642,3 +642,6 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
   .chip.venue span:last-child, .chip.wx .state { display: none; }
   .seg button { padding: 5px 8px; font-size: 13px; }
 }
+/* Heading and summary for crawlers and screen readers; the game draws its own visible title */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.noscript { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; background: var(--bg); color: var(--ink); z-index: 100; }

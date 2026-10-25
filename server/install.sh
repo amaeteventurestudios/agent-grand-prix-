@@ -21,18 +21,23 @@ import /etc/caddy/sites/*.caddy
 CADDY
 # SITE_DOMAIN lists the game's names, main one first (agentgrandprix.com www.agentgrandprix.com):
 # the first serves the game with HTTPS, the others send visitors to it. The bare IP address
-# (http://<IP>) keeps serving the game too.
+# (http://<IP>) redirects to the main domain; with no domain set it serves the game itself.
 read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
 GAME='root * '"$WEB"'
 	encode zstd gzip
 	file_server
 	header /assets/* Cache-Control "public, max-age=604800"
-	header /vendor/* Cache-Control "public, max-age=604800"'
+	header /vendor/* Cache-Control "public, max-age=604800"
+	header /llms.txt Content-Type "text/plain; charset=utf-8"
+	header /site.webmanifest Content-Type "application/manifest+json"'
 {
-  printf ':80 {\n\t%s\n}\n' "$GAME"
   if [ ${#NAMES[@]} -gt 0 ]; then
+    # one canonical address: the bare IP sends visitors (and crawlers) to the main domain
+    printf ':80 {\n\tredir https://%s{uri} permanent\n}\n' "${NAMES[0]}"
     printf '%s {\n\t%s\n}\n' "${NAMES[0]}" "$GAME"
     for N in "${NAMES[@]:1}"; do printf '%s {\n\tredir https://%s{uri} permanent\n}\n' "$N" "${NAMES[0]}"; done
+  else
+    printf ':80 {\n\t%s\n}\n' "$GAME"
   fi
 } | sudo tee /etc/caddy/sites/agent-grand-prix.caddy >/dev/null
 # The shared web server (replaces the first agp-web unit)

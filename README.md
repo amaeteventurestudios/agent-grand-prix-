@@ -55,6 +55,8 @@ race `box softs` (mediums, hards, inters, wets), `stay out`, `boost`, `harvest`,
 Limits from the platform: 12 outbound messages a minute (the agent keeps to 10 and merges lines),
 15 polls a minute, text up to 4096 characters. Only the agent's creator can chat with it.
 
+**SEO and sharing**: `index.html` carries the title, description, canonical URL, Open Graph and X card tags and JSON-LD (`WebSite`, `VideoGame`) in the static HTML. Images in `assets/brand/`: `og-image.jpg` (1200×630 share preview), `agent-grand-prix-thumbnail.jpg` (full 16:9 promo image), icons. `robots.txt`, `sitemap.xml` (update `lastmod` when the page really changes), `llms.txt` (keep it to features that exist) and `site.webmanifest` sit at the root and are copied by `tools/build-site.sh`.
+
 ## Server
 
 The deploy builds the site with `tools/build-site.sh`, which minifies the game's own code into `dist/` (three.js and assets are copied as they are). Players get the squashed code; this repo keeps the readable one.
