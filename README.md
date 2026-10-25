@@ -34,7 +34,22 @@ recorded for all 13 voices by `art/voice/gen.py`. Your crew watches a live timin
 of your garage (`js/paddock.js`) and celebrates places gained (with a quick cut to them in Live and TV
 view) or holds their helmets when one is lost; poses come from `art/people/people.py`.
 
-Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (baseline, cars, coach, dna, dna-effects, resume).
+**Voice team radio** (`js/teamradio.js`, the radio block in `js/main.js`): hold the mic button (or T) and talk. `parseCall()` matches
+what the browser's speech recognition heard to the same calls the buttons make, in JavaScript, with no server or AI call (well under
+a millisecond). It handles names ("Nova, push", "both cars harvest"), team orders ("let Echo through"), questions ("Echo, why are you
+losing time?", "Strategist, what's our best option?" then "do it"), timed calls ("save the tyres for two laps, then push"), conditional
+ones ("charge the battery until we're closer"), and asks back on calls that fight ("push and save"), never guessing. Drivers answer in
+their own voices from the car's real state and push back once on a call that looks wrong (boxing on fresh tyres, pushing on worn ones,
+boost on an empty battery); say it again and they do it. The same call for the same car inside 2 s is dropped. A call can land while you
+are still talking: a partial transcript that holds still for 350 ms is acted on. `?radiostats` shows each step's time (mic open, first
+words, call understood, done). Test hook: `__agp.radio(text)`. Firefox has no speech recognition, so the button is hidden there.
+
+Phrases the matcher can't place go to the optional interpreter, `server/radio.mjs` (127.0.0.1:8140 behind Caddy at `/api/radio/*`). It
+asks Jev (TypeSafe's classifier) three typed questions (call, car, tyre) and returns calls only when it is at least 70% sure, otherwise a
+question back. It stays off until the `TYPESAFE_API_KEY` secret is set (key from console.typesafe.ai/keys); the key never reaches the
+browser. `tools/jev-bench.mjs` (Actions: *Jev benchmark*) compares Jev with the matcher on the same phrases.
+
+Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (baseline, cars, coach, dna, dna-effects, resume, radio, interp).
 
 ## WhatsApp agent
 
