@@ -15,7 +15,8 @@ const CREW = 16;
 const POSES = ['stand', 'kneel', 'cheer', 'pump', 'watch', 'despair'];
 const LF = 11;   // garage front, metres from the lane centre towards the garages
 const LB = 28;   // garage back wall
-const SCR = [0, 10.4];   // your garage's race screen (along, across)
+const SCR = [0, 10.4];   // your garage's screens (along, across): live timing on one side, the race on the other
+const SCRW = 1.75;       // how far each screen sits from the middle
 const CAM = [6.2, 4.4, 2.7];   // where the director's camera stands for a shot of your crew
 
 export class Paddock {
@@ -144,16 +145,24 @@ export class Paddock {
       const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
       this.scr = { cv, g: cv.getContext('2d'), tex: new THREE.CanvasTexture(cv), at: -1, flash: null };
       this.scr.tex.colorSpace = THREE.SRGBColorSpace;
-      const a = sampleTrack(T, sB + SCR[0], P.lat + sd * SCR[1], {}), b = sampleTrack(T, sB + SCR[0], P.lat + sd * (SCR[1] - 1), {});
-      const ny = Math.atan2(b.x - a.x, b.z - a.z);
-      const face = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.8), new THREE.MeshBasicMaterial({ map: this.scr.tex, toneMapped: false }));
-      face.position.set(a.x + (b.x - a.x) * 0.07, 2.55, a.z + (b.z - a.z) * 0.07); face.rotation.y = ny;
-      const frame = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.0, 0.12), new THREE.MeshLambertMaterial({ color: '#15181e' }));
-      frame.position.set(a.x, 2.55, a.z); frame.rotation.y = ny;
-      const pole = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.6, 0.14), frame.material);
-      pole.position.set(a.x, 0.8, a.z);
-      frame.castShadow = pole.castShadow = true;
-      this.group.add(face, frame, pole);
+      // the race itself, as the TV shows it (main.js renders into it every few frames when you're near)
+      const rt = new THREE.WebGLRenderTarget(world.lite ? 256 : 384, world.lite ? 144 : 216, { depthBuffer: true });
+      this.feed = { rt, cam: new THREE.PerspectiveCamera(42, 16 / 9, 1, 2500), pos: new THREE.Vector3() };
+      const fmat = new THREE.MeshBasicMaterial({ map: rt.texture });
+      const frameMat = new THREE.MeshLambertMaterial({ color: '#15181e' });
+      [[SCR[0] + SCRW, new THREE.MeshBasicMaterial({ map: this.scr.tex, toneMapped: false })], [SCR[0] - SCRW, fmat]].forEach(([al, m]) => {
+        const a = sampleTrack(T, sB + al, P.lat + sd * SCR[1], {}), b = sampleTrack(T, sB + al, P.lat + sd * (SCR[1] - 1), {});
+        const ny = Math.atan2(b.x - a.x, b.z - a.z);
+        const face = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.8), m);
+        face.position.set(a.x + (b.x - a.x) * 0.07, 2.55, a.z + (b.z - a.z) * 0.07); face.rotation.y = ny;
+        const frame = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.0, 0.12), frameMat);
+        frame.position.set(a.x, 2.55, a.z); frame.rotation.y = ny;
+        const pole = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.6, 0.14), frameMat);
+        pole.position.set(a.x, 0.8, a.z);
+        frame.castShadow = pole.castShadow = true;
+        this.group.add(face, frame, pole);
+        if (m === fmat) this.feed.pos.set(a.x, 2.5, a.z);
+      });
       this.drawScreen(null);
     }
 
@@ -226,6 +235,7 @@ export class Paddock {
     this.group.add(this.bodies, this.helmets);
     this.m4 = new THREE.Matrix4(); this.q = new THREE.Quaternion(); this.v = new THREE.Vector3(); this.sc = new THREE.Vector3(1, 1, 1);
     this.t = 0;
+    this.buildKit(teams.length);
     this.update(null, 0, 1);
     this.loadCrew();
   }
@@ -333,6 +343,7 @@ export class Paddock {
       const bob = phase === 'work' && !moving ? Math.abs(Math.sin(this.t * 14 + m.j)) * 0.08 : moving ? Math.abs(Math.sin(this.t * 10 + m.j)) * 0.06 : jump;
       const crouch = phase === 'work' && m.j < 12 && !moving ? 0.78 : 1;
       this.q.setFromAxisAngle(this.v.set(0, 1, 0), -(hd + m.face * 1));
+      m.wx = tmp.x; m.wz = tmp.z; m.yaw = -(hd + m.face); m.kneel = crouch < 1; m.ph = phase; m.mv = moving;
       this.sc.set(1, crouch, 1);
       this.m4.compose(this.v.set(tmp.x, bob, tmp.z), this.q, this.sc);
       this.bodies.setMatrixAt(i, this.m4);
@@ -352,6 +363,91 @@ export class Paddock {
     this.bodies.instanceMatrix.needsUpdate = true;
     this.helmets.instanceMatrix.needsUpdate = true;
     if (F) for (const im of Object.values(F)) { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; }
+    this.kit(state);
+  }
+
+  // pit stop equipment, shown only for crews getting ready or working: front and rear jacks, a wheel
+  // gun on each corner with its air hose up to the gantry, new tyres carried in and old ones carried
+  // away, and the lollipop over the nose
+  buildKit(nTeams) {
+    const dark = '#22252b', steel = '#9aa0aa';
+    const part = (g, c) => { g = g.index ? g.toNonIndexed() : g; return vcolor(g, col(c)); };
+    // jack: a long handle along +x from the hands, a cross-head at the far end and two small wheels
+    const jack = mergeGeometries([
+      part(new THREE.BoxGeometry(1.5, 0.06, 0.06).translate(0.75, 0, 0), steel),
+      part(new THREE.BoxGeometry(0.22, 0.14, 0.62).translate(1.55, 0, 0), '#e8b100'),
+      part(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 10).rotateX(Math.PI / 2).translate(1.35, -0.08, 0.2), dark),
+      part(new THREE.CylinderGeometry(0.08, 0.08, 0.05, 10).rotateX(Math.PI / 2).translate(1.35, -0.08, -0.2), dark),
+    ]);
+    // wheel gun: body, handle and socket, held out in front
+    const gun = mergeGeometries([
+      part(new THREE.BoxGeometry(0.3, 0.12, 0.12), '#c8ccd2'),
+      part(new THREE.BoxGeometry(0.06, 0.16, 0.06).translate(-0.06, -0.12, 0), dark),
+      part(new THREE.CylinderGeometry(0.035, 0.035, 0.1, 8).rotateZ(Math.PI / 2).translate(0.2, 0, 0), dark),
+    ]);
+    // lollipop: a pole with a round red sign
+    const lolly = mergeGeometries([
+      part(new THREE.BoxGeometry(1.3, 0.04, 0.04).translate(0.65, 0, 0), steel),
+      part(new THREE.CylinderGeometry(0.24, 0.24, 0.03, 18).rotateZ(Math.PI / 2).translate(1.3, 0.2, 0), '#e10600'),
+    ]);
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
+    const mk = (g, n, m = mat) => { const im = new THREE.InstancedMesh(g, m, n); im.count = 0; im.frustumCulled = false; im.castShadow = !this.w.lite; this.group.add(im); return im; };
+    this.kitM = { jack: mk(jack, nTeams * 2), gun: mk(gun, nTeams * 4), lolly: mk(lolly, nTeams), tyre: mk(this.tyres.geometry, nTeams * 4, this.tyres.material) };
+    // hoses: thin dark lines from each gun up to the gantry beam, sagging a little
+    this.hoseSeg = 8;
+    const hp = new Float32Array(nTeams * 4 * this.hoseSeg * 2 * 3);
+    const hg = new THREE.BufferGeometry(); hg.setAttribute('position', new THREE.BufferAttribute(hp, 3));
+    this.hoses = new THREE.LineSegments(hg, new THREE.LineBasicMaterial({ color: '#15171b' }));
+    this.hoses.frustumCulled = false; this.group.add(this.hoses);
+    this.kq = new THREE.Quaternion(); this.ke = new THREE.Euler(0, 0, 0, 'YXZ'); this.kv = new THREE.Vector3(); this.km = new THREE.Matrix4(); this.ks = new THREE.Vector3(1, 1, 1);
+  }
+  kit(state) {
+    const K = this.kitM; if (!K) return;
+    for (const im of Object.values(K)) im.count = 0;
+    let h = 0;
+    const T = this.w.T, P = T.pit, sd = P.side, hp = this.hoses.geometry.attributes.position.array, cam = this.w.camera;
+    const place = (im, x, y, z, yaw, pitch = 0, roll = 0) => {
+      this.ke.set(roll, yaw, pitch, 'YXZ');
+      this.km.compose(this.kv.set(x, y, z), this.kq.setFromEuler(this.ke), this.ks);
+      im.setMatrixAt(im.count++, this.km);
+    };
+    for (const m of this.crew) {
+      if (m.ph !== 'work' && m.ph !== 'ready') continue;
+      if (cam && (cam.position.x - m.wx) ** 2 + (cam.position.z - m.wz) ** 2 > 220 ** 2) continue;
+      const fx = Math.cos(m.yaw), fz = -Math.sin(m.yaw), work = m.ph === 'work' && !m.mv;
+      const at = (d, y) => [m.wx + fx * d, y, m.wz + fz * d];
+      if (m.j === 12 || m.j === 13) {
+        // jacks: held level while waiting, angled down under the nose or the tail during the stop
+        const [x, y, z] = at(0.3, work ? 0.62 : 0.85);
+        place(K.jack, x, y, z, m.yaw, work ? -0.38 : -0.08);
+      } else if (m.j === 15) {
+        const [x, y, z] = at(0.25, 1.35);
+        place(K.lolly, x, y, z, m.yaw, work ? 0.22 : 0.5);
+      } else if (m.j < 12) {
+        const role = m.j % 3;   // 0 takes the old tyre off, 1 runs the gun, 2 brings the new tyre
+        if (role === 1) {
+          const [x, y, z] = at(work ? 0.55 : 0.4, work ? 0.5 : 0.95);
+          place(K.gun, x, y, z, m.yaw);
+          // the hose up to the gantry over the front of the box, above this corner
+          const a0 = P.box[m.team.box];
+          sampleTrack(T, a0 + 4.8, P.lat + sd * Math.max(-3, Math.min(3, m.l)), tmp);
+          const gx = tmp.x, gz = tmp.z, gy = 4.0;
+          const S = this.hoseSeg;
+          for (let k = 0; k < S && h < hp.length / 6; k++) {
+            const p0 = k / S, p1 = (k + 1) / S;
+            const pt = (u, o) => { hp[o] = x + (gx - x) * u; hp[o + 2] = z + (gz - z) * u; hp[o + 1] = y + (gy - y) * u - Math.sin(u * Math.PI) * 0.9 * (1 - u * 0.4); };
+            pt(p0, h * 6); pt(p1, h * 6 + 3); h++;
+          }
+        } else if ((role === 2 && !work) || (role === 0 && work)) {
+          // a new tyre carried in, or the old one held once it's off
+          const [x, y, z] = at(0.42, 0.78);
+          place(K.tyre, x, y, z, m.yaw, Math.PI / 2);
+        }
+      }
+    }
+    this.hoses.geometry.setDrawRange(0, h * 2);
+    this.hoses.geometry.attributes.position.needsUpdate = true;
+    for (const im of Object.values(K)) im.instanceMatrix.needsUpdate = true;
   }
 
   // your crew reacts to a place gained ('cheer') or lost ('despair') for a few seconds
@@ -397,5 +493,5 @@ export class Paddock {
     tex.needsUpdate = true;
   }
 
-  dispose() { this.disposed = true; this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
+  dispose() { this.disposed = true; this.feed?.rt.dispose(); this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
 }

@@ -89,8 +89,12 @@ export function openShowroom(ctx, opts = {}) {
   const team = () => S.team || ctx.team();
   // your colours: the team's, or the car's own until you change them
   const cols = () => ({ c1: team().c1, c2: team().c2, glow: team().glow || carById(id).glow });
-  const setCols = (c) => { S.team = { ...structuredClone(team()), ...c }; save(); };
+  // before a team is built, colours picked here wait in a draft for the onboarding
+  const setCols = (c) => { S.team = { ...structuredClone(team()), ...c, ...(S.team ? {} : { draft: true, fresh: true }) }; save(); };
 
+  // opts.wizard: the onboarding's colour step, the car turning while you paint it (no car switching or Cutaway)
+  const W = opts.wizard;
+  let after = opts.back;
   const sh = show(`
     <div class="sr-stage"><canvas class="sr-gl" aria-label="The car in 3D. Drag to spin it, pinch or scroll to zoom."></canvas>
       <div class="sr-tags" aria-hidden="true"></div>
@@ -98,6 +102,7 @@ export function openShowroom(ctx, opts = {}) {
       <button type="button" class="sr-x" data-sr="back" aria-label="Close the showroom">✕</button>
     </div>
     <div class="sr-panel">
+      ${W ? W.head : ''}
       <div class="sr-nav"><button type="button" class="chip" data-sr="prev" aria-label="Previous car">‹</button><div><div class="sub" id="srNo"></div><h2 id="srName"></h2></div><button type="button" class="chip" data-sr="next" aria-label="Next car">›</button></div>
       <p class="lede" id="srLine"></p>
       <div class="sr-bars" id="srBars"></div>
@@ -109,8 +114,9 @@ export function openShowroom(ctx, opts = {}) {
         <label><input type="color" id="srG"><span>Lights</span></label>
       </div>
       <div class="swatches sr-sw"><button type="button" data-sr="own" class="own" aria-label="This car's own colours"><i id="srOwn1"></i><i id="srOwn2"></i></button>${LIVERIES.map((l, i) => `<button type="button" data-liv="${i}" aria-label="${esc(l.name)}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
-      <div class="actions"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">Back</button></div>
-    </div>`, 'showroom');
+      ${W ? `<div class="actions"><button class="btn" data-sr="wnext" type="button">${W.nextLabel || 'Next'}</button><button class="btn ghost" data-sr="back" type="button">Back</button></div>`
+    : '<div class="actions"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">Back</button></div>'}
+    </div>`, W ? 'showroom wizcol' : 'showroom');
 
   const canvas = sh.querySelector('.sr-gl'), stage = sh.querySelector('.sr-stage'), tags = sh.querySelector('.sr-tags');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !lite, alpha: true });
@@ -234,7 +240,7 @@ export function openShowroom(ctx, opts = {}) {
     sh.querySelector('#srBars').innerHTML = strengthBars(id).map(([k, v]) => `<div><span>${k}</span><i><u style="width:${v}%"></u></i></div>`).join('');
     sh.querySelector('#srOwn1').style.background = c.c1; sh.querySelector('#srOwn2').style.background = c.c2;
     const mine = (S.settings.car || 'falcon') === id;
-    const pick = sh.querySelector('#srPick'); pick.textContent = mine ? 'Racing this car' : `Race the ${c.name}`; pick.disabled = mine;
+    const pick = sh.querySelector('#srPick'); if (pick) { pick.textContent = mine ? 'Racing this car' : `Race the ${c.name}`; pick.disabled = mine; }
     syncCols();
   }
   function syncCols() {
@@ -250,6 +256,7 @@ export function openShowroom(ctx, opts = {}) {
     if (k === 'prev' || k === 'next') { const i = CARS.findIndex((c) => c.id === id); id = CARS[(i + (k === 'next' ? 1 : CARS.length - 1)) % CARS.length].id; info(); load(); }
     if (k === 'pick') { opts.pick?.(id); info(); }
     if (k === 'back') close();
+    if (k === 'wnext') { after = W.next; close(); }
   };
   sh.oninput = (e) => {
     if (e.target.id === 'srCut') { cut = +e.target.value; applyCut(); toSide(); if (!cut) glide = null; }
@@ -295,7 +302,7 @@ export function openShowroom(ctx, opts = {}) {
     scene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); } });
     mat.dispose(); glass.dispose(); inner.dispose(); env.dispose(); renderer.dispose();
     renderer.forceContextLoss?.();
-    (opts.back || (() => {}))();
+    (after || (() => {}))();
   }
   info(); load(); raf = requestAnimationFrame(frame);
   return { close };

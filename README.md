@@ -5,7 +5,22 @@ tyres, pit stops, battery, attack or defend, and the rain call. Static site, Thr
 
 - **Daily Grand Prix**: one race a day, same circuit, grid and weather for everyone (seeded by date; #1 = 23 Oct 2026, Abuja). Share card.
 - **Season**: 25 rounds, Abuja to Abu Dhabi, saved in the browser.
-- **Quick race**: any venue.
+- **Quick race**: any venue, Short, Medium or Long (`LENGTHS` in `js/game.js`); Sakhir and Singapore are the featured picks, and Race again repeats the last one.
+
+**First visit** (`onboard()` in `js/main.js`): a welcome card offers *Build my team* or *Just race* (a short guided race at Sakhir with the
+default team). Building a team is six screens, one decision each: team name and code, car, colours (the showroom in its `wizard` mode),
+driver names, numbers (not those of AI drivers, `TAKEN_NUMS`) and driving style, engineer voice, and who makes the calls. It ends in a
+short first race at Sakhir with the coach on. A half-built team is kept as `S.team.draft` and races as the default team until finished.
+**Race setup** (`pre(o, step)`) is four screens: circuit (Quick race only), car, tyres (length, starting tyres, engineer's plan, tyre
+guide) and race settings (calls, coach, radio voice, Driver DNA, Go to the grid).
+
+**Race calls**: the floating BOX button (and *BOX, BOX* in the pit-wall panel) boxes the car you're running this lap; the engineer says
+"Box, box" and the driver answers in his own voice (switch replies off in Radio voices). The radio voice can be changed mid-race from
+the Team radio tab or the pause menu. Pit stops show jacks, wheel guns with hoses to the gantry, tyres and the lollipop, and the garage
+has two screens: live timing and the race as the TV shows it.
+
+**Refresh**: the engine is deterministic, so the page keeps the race setup and every call you made (`agp.live.v1` in localStorage) and a
+refresh rebuilds the race to the same moment. This works on one device; carrying a race across devices needs the game server.
 
 Files: `js/data.js` (calendar, teams), `js/track.js` (original circuit generator), `js/sim.js` (deterministic 20 Hz race engine, Node-testable),
 `js/game.js` (race setup), `js/world.js` (3D world), `js/cams.js` (cameras), `js/main.js` (UI). `artifact.html` is `index.html` without the document wrapper, for the hosted preview.
@@ -19,7 +34,7 @@ recorded for all 13 voices by `art/voice/gen.py`. Your crew watches a live timin
 of your garage (`js/paddock.js`) and celebrates places gained (with a quick cut to them in Live and TV
 view) or holds their helmets when one is lost; poses come from `art/people/people.py`.
 
-Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`.
+Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (baseline, cars, coach, dna, dna-effects, resume).
 
 ## WhatsApp agent
 

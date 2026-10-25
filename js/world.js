@@ -1082,7 +1082,7 @@ export class World {
       sampleTrack(T, d, lat, tmp);
       const g = o.group;
       g.visible = !(c.dnf && c.cleared); // marshals have taken it away
-      g.position.set(tmp.x, 0.02, tmp.z);
+      g.position.set(tmp.x, c.stopT > 0 ? 0.11 : 0.02, tmp.z);   // up on the jacks during a stop
       const dl = (c.lat - c.prevLat) / 0.05, yaw = Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
       g.rotation.y = -Math.atan2(tmp.tz, tmp.tx) - yaw;
       o.tag.visible = showTags && !c.dnf;
@@ -1187,6 +1187,24 @@ export class World {
   boxPoint(teamBox, lat = 0) {
     const s = this.T.pit.box[teamBox];
     return sampleTrack(this.T, s, this.T.pit.lat + lat, {});
+  }
+
+  // what can stand between the Live camera and the cars: buildings, the paddock, stands, trees,
+  // landmarks. Rebuilt when the paddock is (each race). Flat things (ground, track, water) are left out.
+  occluders() {
+    if (this.occ && this.occFor === this.paddock) return this.occ;
+    const out = [], bb = new THREE.Box3(), skip = new Set([this.carGroup, this.ring, this.halo, this.rainLines, this.sprayPts, this.sky, this.clouds?.group, this.scCar]);
+    const crew = new Set(this.paddock ? [this.paddock.bodies, this.paddock.helmets, ...Object.values(this.paddock.figs || {}), ...Object.values(this.paddock.kitM || {}), this.paddock.hoses] : []);
+    this.scene.traverse((o) => {
+      if (skip.has(o) || crew.has(o) || !(o.isMesh) || o.isSprite) return;
+      for (let p = o.parent; p; p = p.parent) if (skip.has(p)) return;
+      const g = o.geometry; if (!g) return;
+      if (!g.boundingBox) g.computeBoundingBox();
+      if (g.boundingBox.max.y - g.boundingBox.min.y < (o.isInstancedMesh ? 1.5 : 3)) return;
+      out.push(o);
+    });
+    this.occ = out; this.occFor = this.paddock;
+    return out;
   }
 
   dispose() {

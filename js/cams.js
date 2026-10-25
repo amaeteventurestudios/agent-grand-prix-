@@ -128,6 +128,40 @@ export class Cams {
     return true;
   }
 
+  // Live view: every quarter second, check that nothing solid stands between the camera and the car
+  // on the current side; if it does, try the other side, then a higher shot. Each choice holds for a
+  // second at least, so the camera doesn't flick back and forth.
+  livePos(p, sideK, lift, portrait) {
+    const W = this.world, P = W.T.pit;
+    const hd = this.liveHd ?? 0, back = (portrait ? 46 : 36) * (1 - 0.45 * lift), height = (portrait ? 34 : 24) * (1 + 1.1 * lift);
+    const a = hd + Math.PI + 0.62 * P.side * sideK;
+    return v2.set(p.x + Math.cos(a) * back, height, p.z + Math.sin(a) * back);
+  }
+  blocked(p, cam) {
+    const occ = this.world.occluders?.(); if (!occ?.length) return false;
+    const from = this.rayFrom.set(p.x, p.y + 1.2, p.z), dir = this.rayDir.copy(cam).sub(from), len = dir.length();
+    this.ray.set(from, dir.divideScalar(len)); this.ray.far = len - 1;
+    return this.ray.intersectObjects(occ, false).length > 0;
+  }
+  clearShot(dt, p, portrait) {
+    this.ray ||= new THREE.Raycaster(); this.rayFrom ||= new THREE.Vector3(); this.rayDir ||= new THREE.Vector3();
+    this.shotT = (this.shotT || 0) - dt; this.shotHold = (this.shotHold || 0) - dt;
+    if (this.snap) { this.liveSide = 1; this.liveLift = 0; this.swingK = 1; this.liftK = 0; this.shotHold = 0; }
+    if (this.shotT > 0) return;
+    this.shotT = 0.25;
+    const side = this.liveSide ?? 1, lift = this.liveLift || 0;
+    if (!this.blocked(p, this.livePos(p, side, lift, portrait))) {
+      // clear: drift back towards the usual shot when that one is clear too
+      if (this.shotHold <= 0 && (side !== 1 || lift) && !this.blocked(p, this.livePos(p, 1, 0, portrait))) { this.liveSide = 1; this.liveLift = 0; this.shotHold = 1.5; }
+      return;
+    }
+    if (this.shotHold > 0) return;
+    for (const [s, l] of [[-side, 0], [side, 1], [-side, 1]]) {
+      if (!this.blocked(p, this.livePos(p, s, l, portrait))) { this.liveSide = s; this.liveLift = l; this.shotHold = 1.2; return; }
+    }
+    this.liveSide = side; this.liveLift = 1; this.shotHold = 1.2;
+  }
+
   // the director's cut to your garage: a quick pan from the race screen to your crew celebrating,
   // then back to the shot you were watching
   crewShot(shot, dur = 3.4) {
@@ -209,8 +243,15 @@ export class Cams {
       const hd = Math.atan2(f.z, f.x);
       if (this.liveHd === undefined || this.snap) this.liveHd = hd;
       this.liveHd += Math.atan2(Math.sin(hd - this.liveHd), Math.cos(hd - this.liveHd)) * Math.min(1, dt * 1.2);
-      const side = P.side, sw = 0.62 * side;
-      const back = (portrait ? 46 : 36) * (1 - b) + (portrait ? 34 : 26) * b, height = (portrait ? 34 : 24) * (1 - b) + (portrait ? 30 : 22) * b;
+      // which side of the car the camera swings to: the default side, unless a building, the
+      // paddock or a tree would stand between the camera and the car; then the other side, and if
+      // both are blocked, a higher, steeper shot over the top
+      this.clearShot(dt, p, portrait);
+      this.swingK = (this.swingK ?? 1) + ((this.liveSide ?? 1) - (this.swingK ?? 1)) * Math.min(1, dt * 1.5);
+      this.liftK = (this.liftK || 0) + ((this.liveLift || 0) - (this.liftK || 0)) * Math.min(1, dt * 1.5);
+      const side = P.side, sw = 0.62 * side * this.swingK;
+      const lift = this.liftK * (1 - b);
+      const back = ((portrait ? 46 : 36) * (1 - b) + (portrait ? 34 : 26) * b) * (1 - 0.45 * lift), height = ((portrait ? 34 : 24) * (1 - b) + (portrait ? 30 : 22) * b) * (1 + 1.1 * lift);
       const bx = sampleTrack(T, P.box[car.team.box], P.lat, {});
       const tgt = new THREE.Vector3().copy(p).lerp(new THREE.Vector3(bx.x, 0, bx.z), b);
       const ang = this.liveHd + Math.PI + sw * (1 - b) + b * (Math.PI / 2 * -side + Math.PI) * 0;

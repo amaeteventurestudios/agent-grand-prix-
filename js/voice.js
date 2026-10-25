@@ -6,8 +6,8 @@ export const VOICES = [
   { id: 'michael', name: 'Michael', note: 'American' }, { id: 'george', name: 'George', note: 'British' },
   { id: 'lewis', name: 'Lewis', note: 'British' }, { id: 'daniel', name: 'Daniel', note: 'British' },
   { id: 'fable', name: 'Fable', note: 'British' }, { id: 'nicola', name: 'Nicola', note: 'Italian' },
-  { id: 'alex', name: 'Alex', note: 'Spanish' }, { id: 'santa', name: 'Santa', note: 'Spanish' },
-  { id: 'alexpt', name: 'Alex', note: 'Portuguese' }, { id: 'santapt', name: 'Santa', note: 'Portuguese' },
+  { id: 'alex', name: 'Alex', note: 'Spanish' }, { id: 'santa', name: 'Santiago', note: 'Spanish' },
+  { id: 'alexpt', name: 'Tiago', note: 'Portuguese' }, { id: 'santapt', name: 'Rui', note: 'Portuguese' },
   { id: 'thorsten', name: 'Thorsten', note: 'German' }, { id: 'ronnie', name: 'Ronnie', note: 'Dutch' },
   { id: 'gilles', name: 'Gilles', note: 'French' },
 ];
@@ -36,17 +36,18 @@ export class Voice {
     }
     return this.ctx;
   }
-  pack() {
-    const id = this.id;
+  pack(id = this.id) {
     this.packs ||= new Map();
     if (!this.packs.has(id)) this.packs.set(id, import(`../${this.base}${id}.js`).then((m) => m.default).catch(() => ({})));
     return this.packs.get(id);
   }
+  // k is a clip id in the engineer's voice, or '@voice/clip' for someone else on the radio (a driver)
   load(k) {
     if (!this.id) return Promise.resolve(null);
-    const key = this.id + '/' + k;
+    const [id, clip] = k[0] === '@' ? k.slice(1).split('/') : [this.id, k];
+    const key = id + '/' + clip; k = clip;
     if (!this.buf.has(key)) {
-      this.buf.set(key, this.pack().then((p) => {
+      this.buf.set(key, this.pack(id).then((p) => {
         if (!p[k]) return null;
         const bin = atob(p[k]), u8 = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
