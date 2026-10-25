@@ -59,7 +59,7 @@ Limits from the platform: 12 outbound messages a minute (the agent keeps to 10 a
 
 The deploy builds the site with `tools/build-site.sh`, which minifies the game's own code into `dist/` (three.js and assets are copied as they are). Players get the squashed code; this repo keeps the readable one.
 
-The server can host other sites too. One shared Caddy (`caddy` service) loads every file in `/etc/caddy/sites/*.caddy`; this game writes `agent-grand-prix.caddy`. Another project adds its own file (its domains and its folder) and runs `sudo systemctl reload caddy`. HTTPS certificates come by themselves for every domain pointed at the server. Only one site can answer on the bare IP address (`:80`): this game does until `SITE_DOMAIN` is set (it can list several names, separated by spaces or commas).
+The server can host other sites too. One shared Caddy (`caddy` service) loads every file in `/etc/caddy/sites/*.caddy`; this game writes `agent-grand-prix.caddy`. Another project adds its own file (its domains and its folder) and runs `sudo systemctl reload caddy`. HTTPS certificates come by themselves for every domain pointed at the server. Only one site can answer on the bare IP address (`:80`), and this game does. Its domains come from `SITE_DOMAIN` (default `agentgrandprix.com www.agentgrandprix.com`): the first name serves the game, the others redirect to it.
 
 `.github/workflows/deploy.yml` puts the website and the WhatsApp agent on one server (Oracle Cloud,
 Ubuntu) on every push to main, or by hand from the Actions tab (Deploy to server > Run workflow).
