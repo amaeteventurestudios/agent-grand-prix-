@@ -19,18 +19,22 @@ sudo mkdir -p /etc/caddy/sites
 sudo tee /etc/caddy/Caddyfile >/dev/null <<'CADDY'
 import /etc/caddy/sites/*.caddy
 CADDY
-# SITE_DOMAIN can list several names (play.example.com, www.example.com); without one the game
-# answers on the bare IP address.
-ADDR=$(printf '%s' "${SITE_DOMAIN:-}" | tr ' ' ',' | sed 's/,,*/, /g; s/^, //; s/, $//')
-sudo tee /etc/caddy/sites/agent-grand-prix.caddy >/dev/null <<CADDY
-${ADDR:-:80} {
-	root * $WEB
+# SITE_DOMAIN lists the game's names, main one first (agentgrandprix.com www.agentgrandprix.com):
+# the first serves the game with HTTPS, the others send visitors to it. The bare IP address
+# (http://<IP>) keeps serving the game too.
+read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
+GAME='root * '"$WEB"'
 	encode zstd gzip
 	file_server
 	header /assets/* Cache-Control "public, max-age=604800"
-	header /vendor/* Cache-Control "public, max-age=604800"
-}
-CADDY
+	header /vendor/* Cache-Control "public, max-age=604800"'
+{
+  printf ':80 {\n\t%s\n}\n' "$GAME"
+  if [ ${#NAMES[@]} -gt 0 ]; then
+    printf '%s {\n\t%s\n}\n' "${NAMES[0]}" "$GAME"
+    for N in "${NAMES[@]:1}"; do printf '%s {\n\tredir https://%s{uri} permanent\n}\n' "$N" "${NAMES[0]}"; done
+  fi
+} | sudo tee /etc/caddy/sites/agent-grand-prix.caddy >/dev/null
 # The shared web server (replaces the first agp-web unit)
 if [ -f /etc/systemd/system/agp-web.service ]; then
   sudo systemctl disable --now agp-web >/dev/null 2>&1 || true; sudo rm -f /etc/systemd/system/agp-web.service
