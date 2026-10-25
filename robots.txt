@@ -1,0 +1,7 @@
+# Agent Grand Prix: everything public may be crawled.
+# The site has no accounts, admin pages or private routes yet; when it does, they are protected on the
+# server, not by this file.
+User-agent: *
+Allow: /
+
+Sitemap: https://agentgrandprix.com/sitemap.xml

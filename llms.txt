@@ -1,0 +1,37 @@
+# Agent Grand Prix
+
+> Agent Grand Prix is a free racing management game that runs in the web browser, on desktop and on phones. Two AI drivers race for your team; you are the team principal and make the strategy calls. No download or account is needed: open https://agentgrandprix.com/ and race.
+
+## How it works
+
+- Each race is simulated by a deterministic race engine (20 steps a second). The AI drivers handle the driving; your calls change how they race.
+- You choose tyres (soft, medium, hard, intermediate, wet), when to pit ("Box, box"), how to use the battery (harvest, balanced, deploy, plus a short boost), pace (save tyres, normal, push) and whether each car attacks, defends or stays neutral.
+- A race engineer talks to your drivers by voice throughout the race, and suggests a plan before the start. You can let the engineer make the calls instead.
+- Races include changing weather, tyre wear, pit stops with a full crew, safety cars, punctures and mechanical failures.
+- Driver DNA lets you shape each driver's driving style.
+
+## Game modes (available now)
+
+- Daily Grand Prix: one race a day, with the same circuit, grid and weather for every player, and a share card for your result.
+- Season: a 25-round championship, from Abuja to Abu Dhabi, saved in your browser.
+- Quick race: any of 46 original circuits in cities around the world, in short, medium or long length.
+
+## Getting started
+
+- First visit: choose "Build my team" (six short screens: team name and code, car, colours, driver names and numbers, engineer voice, who makes the calls) or "Just race" for a short guided race.
+- Progress is saved in the browser on that device. A refresh resumes a race in progress.
+
+## Not available yet (planned)
+
+- Accounts and sign-in, saving a team across devices, and online leaderboards.
+- Racing against other players live.
+- Racing over WhatsApp with a chat agent (built, not yet open to the public).
+
+## Notes
+
+- Circuits, teams, drivers and cars are original. Agent Grand Prix is not affiliated with Formula 1 or any racing series, team or driver.
+
+## Links
+
+- [Play Agent Grand Prix](https://agentgrandprix.com/)
+- [Sitemap](https://agentgrandprix.com/sitemap.xml)
