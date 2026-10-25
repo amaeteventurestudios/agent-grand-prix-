@@ -25,6 +25,7 @@ CADDY
 read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
 GAME='root * '"$WEB"'
 	encode zstd gzip
+	reverse_proxy /api/radio/* 127.0.0.1:8140
 	file_server
 	header /assets/* Cache-Control "public, max-age=604800"
 	header /vendor/* Cache-Control "public, max-age=604800"
@@ -73,14 +74,30 @@ fi
 
 # ---- WhatsApp agent (only once its key is set) ----
 sudo mkdir -p "$APP"
-sudo rm -rf "$APP"/agent "$APP"/js && sudo tar -xzf /tmp/app.tgz -C "$APP" && rm -f /tmp/app.tgz
+sudo rm -rf "$APP"/agent "$APP"/js "$APP"/server && sudo tar -xzf /tmp/app.tgz -C "$APP" && rm -f /tmp/app.tgz
 sudo install -m 600 -o root -g root /tmp/agp.env /etc/agent-grand-prix.env && rm -f /tmp/agp.env
+if [ ! -x "$NODE_DIR/bin/node" ]; then
+  NARCH=$([ "$ARCH" = amd64 ] && echo x64 || echo arm64)
+  curl -fsSL "https://nodejs.org/dist/$NODE_V/node-$NODE_V-linux-$NARCH.tar.xz" -o /tmp/node.tar.xz
+  sudo mkdir -p "$NODE_DIR" && sudo tar -xJf /tmp/node.tar.xz -C "$NODE_DIR" --strip-components=1 && rm -f /tmp/node.tar.xz
+fi
+# ---- team radio interpreter (always runs; it only calls Jev once TYPESAFE_API_KEY is set) ----
+sudo tee /etc/systemd/system/agp-radio.service >/dev/null <<UNIT
+[Unit]
+Description=Agent Grand Prix team radio interpreter
+After=network-online.target
+Wants=network-online.target
+[Service]
+EnvironmentFile=/etc/agent-grand-prix.env
+ExecStart=$NODE_DIR/bin/node $APP/server/radio.mjs
+WorkingDirectory=$APP
+Restart=always
+RestartSec=5
+DynamicUser=yes
+[Install]
+WantedBy=multi-user.target
+UNIT
 if sudo grep -q '^WHATSAPP_AGENT_TOKEN=.\+' /etc/agent-grand-prix.env; then
-  if [ ! -x "$NODE_DIR/bin/node" ]; then
-    NARCH=$([ "$ARCH" = amd64 ] && echo x64 || echo arm64)
-    curl -fsSL "https://nodejs.org/dist/$NODE_V/node-$NODE_V-linux-$NARCH.tar.xz" -o /tmp/node.tar.xz
-    sudo mkdir -p "$NODE_DIR" && sudo tar -xJf /tmp/node.tar.xz -C "$NODE_DIR" --strip-components=1 && rm -f /tmp/node.tar.xz
-  fi
   sudo tee /etc/systemd/system/agent-grand-prix.service >/dev/null <<UNIT
 [Unit]
 Description=Agent Grand Prix WhatsApp agent
@@ -103,6 +120,7 @@ sudo systemctl daemon-reload
 sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
 sudo systemctl enable caddy >/dev/null
 sudo systemctl is-active --quiet caddy && sudo systemctl reload caddy || sudo systemctl restart caddy
+sudo systemctl enable agp-radio >/dev/null; sudo systemctl restart agp-radio
 if [ -f /etc/systemd/system/agent-grand-prix.service ]; then
   sudo systemctl enable agent-grand-prix >/dev/null; sudo systemctl restart agent-grand-prix
 fi
@@ -110,3 +128,4 @@ sleep 3
 sudo systemctl is-active caddy
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
+curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio' || echo 'Team radio interpreter not answering yet'

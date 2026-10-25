@@ -19,6 +19,7 @@ import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
+import { parseCall, radioSupported, listen } from './teamradio.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -82,7 +83,7 @@ function attract() {
   G.attractT = 0;
   cams.setMode('live');
   $('#hud').hidden = true; $('#camPill').hidden = true; $('#follow').hidden = true;
-  $('#boost').hidden = true; $('#boxBtn').hidden = true; $('#stats').hidden = true; $('#pitline').hidden = true; $('#coach').hidden = true;
+  $('#boost').hidden = true; $('#boxBtn').hidden = true; $('#talkBtn').hidden = true; $('#talkSaid').hidden = true; $('#stats').hidden = true; $('#pitline').hidden = true; $('#coach').hidden = true;
   app.classList.add('attract');
   buildTower();
   home();
@@ -247,8 +248,11 @@ document.addEventListener('keydown', (e) => {
   if (k === ' ' || k === 'escape') { e.preventDefault(); $('#screen').hidden ? pauseMenu() : resume(); }
   const cm = { '1': 'live', '2': 'overview', '3': 'chase', '4': 'fpv', '5': 'tv', '6': 'pit' }[k]; if (cm) setCam(cm);
   if (k === 'm') setSound(S.settings.sound === false);
+  if (k === 't' && !e.repeat) { e.preventDefault(); talkStart(); }
   if (k === 'b' && G.mineSel) cmd({ box: G.race.byId.get(G.mineSel).pitReq ? null : boxPick(G.race.byId.get(G.mineSel)) });
 });
+
+document.addEventListener('keyup', (e) => { if (e.key.toLowerCase() === 't') talkStop(); });
 
 function buildTower() {
   const ol = $('#towerList'); ol.innerHTML = '';
@@ -309,6 +313,7 @@ function tick() {
   pitLine(R, f);
   boostBtn(R);
   boxBtn(R);
+  talkBtn(R);
   coach(R);
   engineer(R);
   live.save();
@@ -467,6 +472,207 @@ $('#boost').addEventListener('click', () => {
   boostCar(c);
   tick();
 });
+
+// ---------- team radio: talk to your drivers ----------
+// Hold the mic button (or T on a keyboard) and speak: "Box box, softs", "Nova, boost", "Echo, conserve
+// your tyres", "Tell Nova to let Echo through", "Strategist, what's our best option?", "Nova, why are you
+// losing time?". The browser turns speech into words while you talk (js/teamradio.js) and plain
+// JavaScript matches them to the same calls the buttons make: no server, no AI call. Drivers answer in
+// their own voices from what the car is really doing, and push back once on a call that looks wrong;
+// say it again and they do it. Anything the matcher can't place goes to the optional interpreter
+// (Jev, on our server) when it's switched on, and a call it isn't sure of is asked back, never guessed.
+const talk = { rec: null, done: false, heard: '', timer: 0, insist: {}, last: {}, plans: [], offer: null, n: 0, stats: [] };
+const myCars = () => ['you-0', 'you-1'].map((id) => G.race.byId.get(id));
+const radioStats = /[?&]radiostats\b/.test(location.search);
+function talkBtn(R) {
+  const b = $('#talkBtn');
+  b.hidden = G.attract || !radioSupported() || !R.byId.get(G.mineSel) || S.settings.talk === false;
+  radioPlans(R);
+}
+function talkSaid(text, kind) {
+  const el = $('#talkSaid'); clearTimeout(talkSaid.t);
+  if (!text) { el.hidden = true; return; }
+  el.hidden = false; el.className = 'talk-said ' + (kind || ''); el.textContent = text;
+  if (kind) talkSaid.t = setTimeout(() => { el.hidden = true; }, 2800);
+}
+// timings for each step of one transmission, in ms from pressing the button
+function mark(k) { const m = talk.m; if (m && m[k] == null) m[k] = Math.round(performance.now() - m.t0); }
+function talkStart() {
+  if (talk.rec || !G.race || G.attract || !radioSupported()) return;
+  talk.done = false; talk.heard = ''; talk.n++;
+  talk.m = { t0: performance.now(), id: talk.n };
+  voice.stop(); sound.duck(true);
+  $('#talkBtn').classList.add('on'); talkSaid('Listening…');
+  try {
+    talk.rec = listen({
+      lang: /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
+      onStart: () => mark('mic'),
+      onWords: (text, final, alts) => {
+        mark('words'); talk.heard = text; talkSaid('“' + text.trim() + '”');
+        clearTimeout(talk.timer);
+        if (talk.done) return;
+        // act on a partial result once it has held still for a moment, so a call lands while you talk
+        const go = () => { if (talk.done) return; const r = understand(text, alts); if (r) { talk.done = true; mark('understood'); radioDo(r, text); talkStop(); } };
+        if (final) go(); else talk.timer = setTimeout(go, 350);
+      },
+      onError: (err) => {
+        if (err === 'not-allowed' || err === 'service-not-allowed') { toast('Allow the microphone in your browser to talk to your drivers. The buttons still work.'); }
+        else if (err === 'network') toast('Team radio lost its connection. Hold the mic and try again.');
+        else if (err === 'audio-capture') toast('No microphone found.');
+      },
+      onEnd: () => {
+        clearTimeout(talk.timer); clearTimeout(talk.guard);
+        if (!talk.rec) return;
+        if (!talk.done && talk.heard.trim()) {
+          const heard = talk.heard, r = understand(heard);
+          if (r) { mark('understood'); radioDo(r, heard); }
+          else interpret(heard);
+        } else if (!talk.done) talkSaid('');
+        talk.rec = null; sound.duck(false); $('#talkBtn').classList.remove('on');
+      },
+    });
+  } catch { talk.rec = null; sound.duck(false); $('#talkBtn').classList.remove('on'); talkSaid(''); }
+}
+// some browsers never close the mic after stop(): give it a moment, then end the transmission ourselves
+function talkStop() {
+  const rec = talk.rec; if (!rec) return;
+  rec.stop(); clearTimeout(talk.guard);
+  talk.guard = setTimeout(() => { if (talk.rec === rec) { rec.abort(); rec.end(); } }, 1500);
+}
+function understand(text, alts = []) {
+  const cars = myCars().map((c) => ({ id: c.id, name: c.name, code: c.code }));
+  for (const t of [text, ...alts]) { const r = parseCall(t, cars, G.mineSel || 'you-0'); if (r) return r; }
+  return null;
+}
+// the optional interpreter for what the matcher can't place (off unless our server has a key)
+async function interpret(heard) {
+  const miss = () => { talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'); reply(G.mineSel || 'you-0', 'r_sayagain'); };
+  if (!G.interp) return miss();
+  const R = G.race, cars = myCars();
+  talkSaid('“' + heard.trim() + '” …');
+  try {
+    const t = performance.now();
+    const res = await fetch('/api/radio/interpret', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(1500),
+      body: JSON.stringify({ text: heard, sel: G.mineSel || 'you-0', cars: cars.map((c) => ({ id: c.id, name: c.name, code: c.code, pos: c.pos, tyre: c.tyre.c, wear: +c.tyre.wear.toFixed(2), ers: +c.ers.toFixed(2) })), wet: +R.wet.toFixed(2) }) });
+    const r = await res.json(); mark('understood'); if (talk.m) talk.m.interp = Math.round(performance.now() - t);
+    if (r && r.calls && r.calls.length) radioDo(r, heard);
+    else if (r && r.clarify) radioDo(r, heard);
+    else miss();
+  } catch { miss(); }
+}
+// one transmission: commands, questions, confirmations and questions back
+function radioDo(r, text) {
+  const R = G.race; if (!R) return;
+  addRadio({ from: 'you', text: text.trim().replace(/^./, (x) => x.toUpperCase()) });
+  talkSaid('“' + text.trim() + '”', 'ok');
+  if (r.clarify) { reply(G.mineSel || 'you-0', 'r_sayagain'); addRadio({ from: 'driver', code: R.byId.get(G.mineSel || 'you-0').code, text: `Say again: ${r.clarify}` }); return radioDone(); }
+  if (r.ask === 'why') { driverStatus(R.byId.get(r.id)); return radioDone(); }
+  if (r.ask === 'best') { strategist(R.byId.get(r.id)); return radioDone(); }
+  if (r.confirm) {
+    const o = talk.offer;
+    if (o && R.t - o.t < 30) { talk.offer = null; radioCalls([o.call]); } else reply(G.mineSel || 'you-0', 'r_sayagain');
+    return radioDone();
+  }
+  radioCalls(r.calls);
+  radioDone();
+}
+function radioDone() {
+  mark('done'); G.assisted = true; tick();
+  if (talk.m) { talk.stats.push(talk.m); if (talk.stats.length > 30) talk.stats.shift(); if (radioStats) toast(`📻 mic ${talk.m.mic ?? '–'} · words ${talk.m.words ?? '–'} · call ${talk.m.understood ?? '–'} · done ${talk.m.done} ms${talk.m.interp ? ` · interp ${talk.m.interp}` : ''}`); talk.m = null; }
+}
+// each call goes through the same functions as the buttons; a call that's still in flight (the same
+// call for the same car inside 2 seconds, from a repeated or partial transcript) is dropped
+function radioCalls(calls) {
+  const R = G.race, now = R.t;
+  for (const call of calls) {
+    const c = R.byId.get(call.id);
+    if (!c || c.dnf || c.finished) continue;
+    if (call.after) { talk.plans.push({ id: c.id, call: { ...call, after: null }, lap: R.lapOf(c) + call.after.laps }); continue; }
+    const key = c.id + ':' + call.k + (call.tyre || '');
+    if (performance.now() - (talk.last[key] || -1e9) < 2000) continue;
+    talk.last[key] = performance.now();
+    const insisted = talk.insist[c.id + call.k.replace('now', '')] > now - 40;
+    const back = (k, clip, line) => { talk.insist[c.id + k] = now; reply(c.id, clip); addRadio({ from: 'driver', code: c.code, text: line }); };
+    const planned = calls.some((x) => x.after && x.id === c.id);
+    const k = call.k;
+    if (k === 'box' || k === 'boxnow') {
+      if (c.pit) continue;
+      const tyre = call.tyre || boxPick(c);
+      const dryNow = R.wet < 0.17 && 'SMH'.includes(c.tyre.c) && 'SMH'.includes(tyre);
+      if (k === 'box' && !insisted && dryNow && c.tyre.wear < 0.25) { back('box', 'r_no_box', 'Tyres still feel good. I\'d rather stay out.'); continue; }
+      cmd({ box: tyre }, c.id, { spoken: true, reply: insisted ? 'r_ok_box' : 'r_box' });
+    } else if (k === 'cancel') { if (c.pitReq) cmd({ box: null }, c.id, { spoken: true }); else reply(c.id, 'r_stay'); }
+    else if (k === 'push') {
+      if (!insisted && c.tyre.wear > 0.72) { back('push', 'r_no_push', 'Tyres are gone. I can\'t push much longer.'); continue; }
+      cmd({ pace: 'push' }, c.id, { spoken: true, quietReply: c.tyre.wear > 0.5 });
+      if (c.tyre.wear > 0.5) { reply(c.id, 'r_push_worn'); addRadio({ from: 'driver', code: c.code, text: 'Copy, boss. But my tyres are starting to go.' }); }
+    } else if (k === 'save' || k === 'normal') {
+      cmd({ pace: k }, c.id, { spoken: true, quietReply: planned || (k === 'save' && talk.insist[c.id + 'push'] > now - 40) });
+      if (planned) { reply(c.id, 'r_plan'); addRadio({ from: 'driver', code: c.code, text: 'Copy. Saving now, then I\'ll push.' }); }
+      else if (k === 'save' && talk.insist[c.id + 'push'] > now - 40) { reply(c.id, 'r_manage'); addRadio({ from: 'driver', code: c.code, text: 'Understood. Managing the tyres.' }); }
+    } else if (k === 'boost') {
+      if (c.ers < 0.08 && !(G.boost && G.boost.id === c.id)) { back('boost', 'r_lowbat', 'Battery\'s empty. I need to charge first.'); continue; }
+      if (!(G.boost && G.boost.id === c.id)) { boostCar(c); reply(c.id, 'r_going'); }
+    } else if (k === 'harvest' || k === 'balanced') {
+      cmd({ ers: k }, c.id, { spoken: true, quietReply: !!call.until });
+      if (call.until) { talk.plans.push({ id: c.id, call: { id: c.id, k: 'balanced' }, gap: call.until.gap }); reply(c.id, 'r_wait'); addRadio({ from: 'driver', code: c.code, text: 'Copy. Charging until we\'re close.' }); }
+    } else if (k === 'attack' || k === 'defend' || k === 'neutral') cmd({ battle: k }, c.id, { spoken: true });
+    else if (k === 'swap') {
+      const [a, b] = myCars();
+      if (Math.abs(a.pos - b.pos) !== 1 || a.pit || b.pit) { toast('Swap places works when your two cars run nose to tail.'); continue; }
+      teamOrder('swap', true);
+    } else if (k === 'hold' || k === 'free') teamOrder(k, true);
+  }
+}
+// calls waiting for a lap ("then push in two laps") or a gap ("charge until we're close")
+function radioPlans(R) {
+  if (!talk.plans.length || !R) return;
+  const due = talk.plans.filter((p) => { const c = R.byId.get(p.id); return c && (p.lap != null ? R.lapOf(c) >= p.lap : c.interval > 0 && c.interval < p.gap); });
+  if (!due.length) return;
+  talk.plans = talk.plans.filter((p) => !due.includes(p));
+  for (const p of due) { const c = R.byId.get(p.id); addRadio({ from: 'engineer', text: `${c.code}: ${p.lap != null ? 'laps done' : 'you\'re within a second'}. ${p.call.k === 'balanced' ? 'Battery back to balanced.' : cap1(p.call.k) + ' now.'}` }); }
+  radioCalls(due.map((p) => p.call));
+}
+const cap1 = (k) => k[0].toUpperCase() + k.slice(1);
+// "Nova, why are you losing time?": the driver answers from the car's real state
+function driverStatus(c) {
+  const R = G.race, ahead = R.order[c.pos - 2];
+  const [clip, line] =
+    c.pit ? ['x_cold', 'In the pits now.'] :
+    c.stops && c.tyre.laps < 1 ? ['x_cold', 'Tyres are still cold after the stop.'] :
+    R.wet > 0.25 && 'SMH'.includes(c.tyre.c) ? ['x_wet', `It's really slippery out here on ${COMPOUNDS[c.tyre.c].name.toLowerCase()}s.`] :
+    c.tyre.wear > 0.6 ? ['x_tyres', `My tyres are going off. ${Math.round((1 - c.tyre.wear) * 100)}% left, I'm losing grip.`] :
+    c.pace === 'save' ? ['x_saving', 'I\'m saving the tyres, like you asked.'] :
+    c.ers < 0.15 || c.ersMode === 'harvest' ? ['x_battery', `Battery's at ${Math.round(c.ers * 100)}%, so I'm harvesting.`] :
+    ahead && c.interval > 0 && c.interval < 1.2 ? ['x_traffic', `I'm stuck in dirty air behind ${ahead.code}.`] :
+    ['x_fine', `Pace feels good, boss. P${c.pos}, tyres ${Math.round((1 - c.tyre.wear) * 100)}%.`];
+  reply(c.id, clip); addRadio({ from: 'driver', code: c.code, text: line });
+}
+// "Strategist, what's our best option?": the same reading of the race the coach uses, with a call you
+// can accept by saying "do it"
+function strategist(c) {
+  const R = G.race, left = R.laps - R.leaderLap(), ahead = R.order[c.pos - 2], behind = R.order[c.pos];
+  const rain = R.weather.showers.find((s) => s.start > R.t && (s.start - R.t) / (R.track.lapTime * 1.05) < 2.5);
+  let o;
+  if (c.pit || c.pitReq) o = { clip: ['s_stay'], text: `${c.code} is already boxing. Nothing to change.` };
+  else if (rain && 'SMH'.includes(c.tyre.c)) o = { clip: ['s_rain'], text: `Rain due in about ${Math.max(1, Math.round((rain.start - R.t) / (R.track.lapTime * 1.05)))} laps. Stay out until it starts, then box ${c.code} for inters.` };
+  else if (R.wet > 0.17 && 'SMH'.includes(c.tyre.c)) { const ty = boxPick(c); o = { clip: ['s_box', 'q_' + ty], text: `It's wet. Box ${c.code} for ${COMPOUNDS[ty].name}s.`, call: { id: c.id, k: 'boxnow', tyre: ty } }; }
+  else if (c.tyre.wear > 0.6 && left > 1) { const ty = boxPick(c); o = { clip: ['s_box', 'q_' + ty], text: `${c.code}'s tyres are at ${Math.round((1 - c.tyre.wear) * 100)}%. Box for ${COMPOUNDS[ty].name}s.`, call: { id: c.id, k: 'boxnow', tyre: ty } }; }
+  else if (behind && behind.pit && c.tyre.wear > 0.35 && left > 2) { const ty = boxPick(c); o = { clip: ['s_undercut'], text: `${behind.code} behind has pitted. Box ${c.code} now to cover the undercut.`, call: { id: c.id, k: 'boxnow', tyre: ty } }; }
+  else if (ahead && c.interval > 0 && c.interval < 1.0 && c.ers > 0.3) o = { clip: ['k_chase'], text: `${c.code} is ${c.interval.toFixed(1)} s behind ${ahead.code} with ${Math.round(c.ers * 100)}% battery. Boost and attack.`, call: { id: c.id, k: 'boost' } };
+  else if (c.ers < 0.25) o = { clip: ['k_harvest'], text: `${c.code}'s battery is at ${Math.round(c.ers * 100)}%. Harvest now for the next fight.`, call: { id: c.id, k: 'harvest' } };
+  else o = { clip: ['s_stay'], text: `Stay out. ${c.code}'s tyres are at ${Math.round((1 - c.tyre.wear) * 100)}% with ${left} laps to go.` };
+  if (o.call) { talk.offer = { call: o.call, t: R.t }; o.clip = [...o.clip, 's_confirm']; o.text += ' Say "do it" and I\'ll make the call.'; }
+  say(o.clip, true); addRadio({ from: 'engineer', text: o.text });
+}
+{
+  const b = $('#talkBtn');
+  b.addEventListener('pointerdown', (e) => { e.preventDefault(); b.setPointerCapture?.(e.pointerId); talkStart(); });
+  b.addEventListener('pointerup', talkStop); b.addEventListener('pointercancel', talkStop);
+  b.addEventListener('contextmenu', (e) => e.preventDefault());
+  // the interpreter is on only when our server says so (it holds the key; the browser never does)
+  fetch('/api/radio/health', { signal: AbortSignal.timeout(3000) }).then((r) => (r.ok ? r.json() : null)).then((j) => { G.interp = !!(j && j.interpreter); }).catch(() => { G.interp = false; });
+}
 
 // ---------- race coach ----------
 // On for quick races and a player's first races: watches your two cars and suggests the call that
@@ -696,22 +902,24 @@ $('#controls').addEventListener('click', (e) => {
   if (t.dataset.order) teamOrder(t.dataset.order);
   renderControls(true);
 });
-function cmd(c, id = G.mineSel || 'you-0') {
+function cmd(c, id = G.mineSel || 'you-0', o = {}) {
   const car = G.race.byId.get(id);
   if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); toast(`${car.code}: you took over the calls.`); }
   G.race.command(id, c);
-  if (c.box) { say([carTag(id), 'bb_' + c.box]); reply(id, 'r_box'); }
-  else if ('box' in c) { say([carTag(id), 'c_cancel']); reply(id, 'r_stay'); }
+  // a call you spoke on the radio needs no echo from the engineer, only the driver's answer
+  const eng = (parts) => { if (!o.spoken) say(parts); };
+  if (c.box) { eng([carTag(id), 'bb_' + c.box]); reply(id, o.reply || 'r_box'); }
+  else if ('box' in c) { eng([carTag(id), 'c_cancel']); reply(id, 'r_stay'); }
   const set = c.pace || c.ers || c.battle;
-  if (set) { say([carTag(id), 'c_' + set]); reply(id, { push: 'r_push', save: 'r_save', attack: 'r_attack', defend: 'r_defend' }[set] || 'r_copy'); }
+  if (set) { eng([carTag(id), 'c_' + set]); if (!o.quietReply) reply(id, { push: 'r_push', save: 'r_save', attack: 'r_attack', defend: 'r_defend' }[set] || 'r_copy'); }
   G.assisted = true;
   renderControls(true);
 }
-function teamOrder(o) {
+function teamOrder(o, spoken) {
   const id = G.mineSel || 'you-0', c = G.race.byId.get(id);
   if (c.auto) G.race.command(id, { auto: false });
   G.race.command(id, { order: o });
-  say([o === 'swap' ? 'o_swap' : o === 'hold' ? 'o_hold' : 'o_free']);
+  if (spoken) reply(id, 'r_copy'); else say([o === 'swap' ? 'o_swap' : o === 'hold' ? 'o_hold' : 'o_free']);
   G.assisted = true; renderControls(true);
 }
 function nextDry(c) { return c.tyre.c === 'S' ? 'M' : c.tyre.c === 'M' ? 'H' : 'M'; }
@@ -719,7 +927,7 @@ function nextDry(c) { return c.tyre.c === 'S' ? 'M' : c.tyre.c === 'M' ? 'H' : '
 // ---------- radio and toasts ----------
 function addRadio(m) {
   const ol = $('#radio'), li = document.createElement('li');
-  const who = m.from === 'engineer' ? 'Engineer' : m.from === 'driver' ? (m.code || 'Driver') : 'Race control';
+  const who = m.from === 'engineer' ? 'Engineer' : m.from === 'driver' ? (m.code || 'Driver') : m.from === 'you' ? 'You' : 'Race control';
   li.className = m.from;
   li.innerHTML = `<div class="who"><span>${esc(who)}</span><span>Lap ${G.race.leaderLap()}</span></div><div>${esc(m.text)}</div>`;
   if (m.action) {
@@ -1574,6 +1782,9 @@ window.__agp = {
     G.laps = null; startRace({}, false); lightsSequence(true);
   },
   cam: setCam, tab: setTab, select, results, pre, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
+  // team radio without a mic: radio('Nova, push') runs a transcript through the same path as speech
+  radio(text) { const r = understand(text); talk.m = { t0: performance.now(), id: ++talk.n }; if (r) radioDo(r, text); else { talk.m = null; interpret(text); } radioPlans(G.race); return r; },
+  get talk() { return talk; },
   voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
   car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
   info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr }),

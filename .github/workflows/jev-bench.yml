@@ -1,0 +1,15 @@
+# Runs tools/jev-bench.mjs: Jev against the game's own radio matcher, on the same phrases.
+# Needs the TYPESAFE_API_KEY secret (Settings > Secrets and variables > Actions). Run it by hand:
+# Actions > Jev benchmark > Run workflow, then open the run to read the table.
+name: Jev benchmark
+on: workflow_dispatch
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: node tools/jev-bench.mjs
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
