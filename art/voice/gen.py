@@ -2,6 +2,7 @@
 # into assets/voice/<voice>.js (base64 clips in one file, so a voice is a single download).
 # Kokoro (Apache 2.0) and Piper (MIT; the voices used here are CC0) run offline.
 # Usage: python3 gen.py <kokoro.onnx> <voices.bin> <piper dir> [voice ...]
+# LINES=academy uses academy.json and writes assets/voice/<voice>-academy.js (loaded only in the Racing Academy).
 import base64, json, os, subprocess, sys, tempfile
 import numpy as np, soundfile as sf
 
@@ -13,7 +14,9 @@ VOICES = {  # id: (engine, model, phonemes)
     'thorsten': ('piper', 'de_DE-thorsten-high', None), 'ronnie': ('piper', 'nl_NL-ronnie-medium', None), 'gilles': ('piper', 'fr_FR-gilles-low', None),
 }
 here = os.path.dirname(os.path.abspath(__file__))
-lines = json.load(open(os.path.join(here, 'lines.json')))
+SET = os.environ.get('LINES', '')
+lines = json.load(open(os.path.join(here, (SET or 'lines') + '.json')))
+suffix = '-' + SET if SET else ''
 kok_model, kok_voices, piper_dir = sys.argv[1:4]
 only = sys.argv[4:] or list(VOICES)
 kok = None; pipers = {}
@@ -32,7 +35,7 @@ def speak(engine, model, lang, text):
 
 for name in only:
     engine, model, lang = VOICES[name]
-    out = os.path.join(here, 'clips', name); os.makedirs(out, exist_ok=True)
+    out = os.path.join(here, 'clips', name + suffix); os.makedirs(out, exist_ok=True)
     pack = {}
     for key, text in lines.items():
         dst = os.path.join(out, key + '.mp3')
@@ -47,6 +50,6 @@ for name in only:
                 sf.write(t.name, a, sr)
                 subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', t.name, '-ac', '1', '-ar', '24000', '-b:a', '40k', dst], check=True)
         pack[key] = base64.b64encode(open(dst, 'rb').read()).decode()
-    js = os.path.join(here, '..', '..', 'assets', 'voice', name + '.js')
+    js = os.path.join(here, '..', '..', 'assets', 'voice', name + suffix + '.js')
     with open(js, 'w') as fh: fh.write('export default ' + json.dumps(pack, separators=(',', ':')) + ';\n')
     print(name, len(pack), os.path.getsize(js))

@@ -7,8 +7,14 @@ tyres, pit stops, battery, attack or defend, and the rain call. Static site, Thr
 - **Season**: 25 rounds, Abuja to Abu Dhabi, saved in the browser.
 - **Quick race**: any venue, Short, Medium or Long (`LENGTHS` in `js/game.js`); Sakhir and Singapore are the featured picks, and Race again repeats the last one.
 
-**First visit** (`onboard()` in `js/main.js`): a welcome card offers *Build my team* or *Just race* (a short guided race at Sakhir with the
-default team). Building a team is six screens, one decision each: team name and code, car, colours (the showroom in its `wizard` mode),
+**Racing Academy** (`js/academy.js`, wired up in `js/main.js`): five short lessons on a real race. Each step is taught by the
+engineer (voiced in every engineer voice: `assets/voice/<voice>-academy.js`, made with `LINES=academy art/voice/gen.py`), points at
+the control and moves on when you do it, through the same `cmd()` path as buttons and the team radio. No AI model: same actions, same
+lesson. Lessons run on a staged race (`stage` in `setupRace`: start positions, weather, no failures, a safety car on cue). Progress is
+saved as `S.academy`. Free practice (`freePractice()`) is a medium race at Sakhir that counts for nothing.
+
+**First visit** (`onboard()` in `js/main.js`): a welcome card offers three ways in: *Racing Academy*, *Jump into a race* (a short guided race at Sakhir with the
+default team) and *Free practice*, plus *Build my team first*. Anyone who has raced or done a lesson skips it. Building a team is six screens, one decision each: team name and code, car, colours (the showroom in its `wizard` mode),
 driver names, numbers (not those of AI drivers, `TAKEN_NUMS`) and driving style, engineer voice, and who makes the calls. It ends in a
 short first race at Sakhir with the coach on. A half-built team is kept as `S.team.draft` and races as the default team until finished.
 **Race setup** (`pre(o, step)`) is four screens: circuit (Quick race only), car, tyres (length, starting tyres, engineer's plan, tyre

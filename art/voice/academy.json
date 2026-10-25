@@ -1,0 +1,14 @@
+{
+ "a1_hello": "Welcome to the pit wall. I'm your race engineer. Your two drivers drive the cars. You're the team principal. You make the calls.",
+ "a1_two": "You run two cars. Tap your second driver on the pit wall to follow that car.",
+ "a1_each": "Good. Each car takes its own calls. Ready to race?",
+ "a1_push": "We're racing. Tell your driver to go faster. Tap push.",
+ "a1_tyres": "Push is faster, but the tyres wear quicker. Keep an eye on tyre life.",
+ "a1_boost": "Now the battery. Tap boost for twelve seconds of extra power.",
+ "a1_boost2": "Boost empties the battery. It fills up again under braking.",
+ "a1_box": "Time for a pit stop. Pick the soft tyres, then tap box.",
+ "a1_boxing": "Copy. Your driver pits at the end of this lap.",
+ "a1_stop": "Great stop. Fresh tyres, and back out on the fast lane.",
+ "a1_talk": "You can say every call. Hold the mic, and say: push. Or: box, box.",
+ "a1_done": "That's the job. Pace, battery, tyres and pit stops. Lesson one complete."
+}

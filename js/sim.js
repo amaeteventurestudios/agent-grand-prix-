@@ -89,6 +89,8 @@ export class Race {
   // opts: track, venue, seed, laps, grid (entries in grid order), weather
   constructor(opts) {
     Object.assign(this, { track: opts.track, venue: opts.venue, seed: opts.seed, laps: opts.laps });
+    // stage (Racing Academy only): { calm: no failures, cues: [{ t, sc: 'SC' | 'VSC' }] }
+    this.stage = opts.stage ? { ...opts.stage, cues: (opts.stage.cues || []).map((q) => ({ ...q })) } : null;
     this.r = rng(opts.seed);
     // Driver DNA's own risks draw from a separate stream, so they never shift the race's other dice
     this.rd = rng((opts.seed ^ 0x5eed1234) >>> 0);
@@ -425,7 +427,7 @@ export class Race {
         if (n < 0) car.lastTurn = -1;
         else if (n !== car.lastTurn) { car.lastTurn = n; if (!car.pit && !car.finished && car.mistakeT <= 0 && car.dist > 0 && !this.sc) this.dnaCorner(car, n, w); }
       }
-      if (!car.pit && !car.finished && !car.failing && car.dist > 0) this.reliability(car, dt);
+      if (!car.pit && !car.finished && !car.failing && car.dist > 0 && !(this.stage && this.stage.calm)) this.reliability(car, dt);
       // pit entry
       const s1 = ((car.dist % L) + L) % L;
       const pin = ((T.pit.inS % L) + L) % L;
@@ -436,6 +438,7 @@ export class Race {
     }
 
     this.separate();
+    if (this.stage) this.cues();
     this.safetyCar(dt);
 
     // order: a finished car keeps the distance at which it took the flag
@@ -755,6 +758,14 @@ export class Race {
     if (!want) { this.emit('flag', `Yellow flags for the stopped ${car.code}.`, car); return; }
     if (want === 'SC' && lap >= this.laps - 1) { this.deploy('VSC', car); return; }
     this.deploy(want, car);
+  }
+
+  // Racing Academy scenes: a safety car on cue, so a lesson can teach the call that goes with it
+  cues() {
+    for (const q of this.stage.cues || []) {
+      if (q.done || this.t < q.t) continue;
+      if (q.sc && !this.sc && this.leaderLap() < this.laps - 1) { q.done = true; this.emit('flag', 'Debris on the track.', null); this.deploy(q.sc, null); }
+    }
   }
 
   deploy(kind, car) {

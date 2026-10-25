@@ -214,7 +214,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .brand { font: 800 italic clamp(40px, 8vw, 76px)/.9 var(--f-display); letter-spacing: -.01em; color: #fff; text-shadow: 0 2px 24px rgba(0,0,0,.35); margin: 0 0 6px; text-wrap: balance; }
 .brand em { color: #8fb6ff; font-style: inherit; }
 .tag { color: #fff; font: 500 clamp(16px, 2.4vw, 20px)/1.35 var(--f-body); margin: 0 0 18px; max-width: 34em; text-shadow: 0 1px 12px rgba(0,0,0,.4); }
-.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
 @media (max-width: 760px) { .cards { grid-template-columns: 1fr; } .screen.home { align-items: end; } }
 .hc { background: var(--panel); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .hc h3 { margin: 0; font: 700 21px/1.1 var(--f-ui); }
@@ -581,11 +581,14 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
   .chips4 { display: none !important; }
   /* the coach sits over the top of the panel, never over the cars */
   .coach { position: fixed; top: calc(54% + 44px); left: 8px; right: 8px; width: auto; transform: none; animation-name: coachInP; z-index: 15; }
+  /* a lesson points at controls in the panel below, so its card sits over the top of the race instead */
+  .coach.lesson { position: absolute; top: calc(48px + env(safe-area-inset-top)); z-index: 7; }
   /* the pit-stop steps sit under the top bar, out of the way of the buttons */
   .pitline { top: 88px; bottom: auto; }
 }
 @media (max-height: 559px) and (orientation: landscape) {
   .coach { top: calc(44px + env(safe-area-inset-top)); left: auto; right: 0; width: 300px; border-radius: 0 0 0 14px; }
+  .coach.lesson { left: 8px; right: auto; width: min(340px, 52%); border-radius: 14px; max-height: calc(100% - 100px); overflow: auto; }
   .pitline { top: 52px; padding: 4px; gap: 2px; }
   .pitline li { font-size: 11px; padding: 4px 7px; }
   .boost { right: 8px; bottom: 108px; width: 64px; padding: 5px; }
@@ -657,3 +660,35 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
 .radio li.you { border-left-color: #00c2e0; }
 @media (max-width: 560px) { .talkfab { right: 8px; bottom: 170px; width: 66px; padding: 6px; } .talk-said { right: 82px; bottom: 170px; font-size: 13px; } }
 @media (max-height: 559px) and (orientation: landscape) { .talkfab { right: 8px; bottom: 164px; width: 64px; padding: 5px 4px; } .talkfab b { font-size: 17px; } .talk-said { right: 80px; bottom: 164px; } }
+
+/* Racing Academy: the lesson card over the race, the pulsing outline on the control it's about */
+.lesson { border-left-color: #00c2e0; z-index: 7; }
+.lesson .stp { font-weight: 600; letter-spacing: 0; }
+.lesson .bar { height: 4px; border-radius: 2px; background: var(--panel2); margin: 6px 0 2px; overflow: hidden; }
+.lesson .bar i { display: block; height: 100%; background: #00c2e0; transition: width .3s; }
+.lesson .learned { margin: 6px 0 8px; padding-left: 18px; font-size: 14px; line-height: 1.4; }
+.lesson .learned li::marker { content: '✓  '; color: #0f8a4a; font-weight: 700; }
+.badge-row { display: flex; align-items: center; gap: 5px; margin: 0 0 10px; font-size: 12px; color: var(--mute); }
+.badge-row i { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--f-ui); font-style: normal; background: var(--panel2); color: var(--mute); }
+.badge-row i.on { background: #00c2e0; color: #04121a; }
+.badge-row span { margin-left: 4px; }
+.lesson .acts { flex-wrap: wrap; }
+.hl { outline: 3px solid #00c2e0 !important; outline-offset: 2px; animation: hlp 1s ease-in-out infinite; position: relative; z-index: 2; }
+@keyframes hlp { 50% { outline-color: rgba(0, 194, 224, .25); } }
+.ways { display: grid; gap: 8px; margin: 10px 0 8px; }
+.way { text-align: left; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 12px; padding: 12px 14px; cursor: pointer; display: grid; gap: 3px; }
+.way b { font: 700 17px var(--f-ui); }
+.way span { font-size: 13px; color: var(--mute); }
+.way.rec { border: 2px solid #00c2e0; background: var(--panel); }
+.way:hover { border-color: var(--ink); }
+.hc .small { font-size: 13px; color: var(--mute); margin: 4px 0 0; }
+.link { border: 0; background: none; padding: 0; color: var(--ink); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.lessons { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.lessons li { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; background: var(--panel2); border-radius: 12px; padding: 10px 12px; }
+.lessons li > div { display: grid; gap: 2px; }
+.lessons li > div span { font-size: 13px; color: var(--mute); }
+.lessons .ln { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 700 15px var(--f-ui); background: var(--panel); border: 2px solid var(--line); }
+.lessons li.done .ln { background: #00c2e0; border-color: #00c2e0; color: #04121a; }
+.lessons li.soon { opacity: .6; }
+@media (max-width: 520px) { .lessons li { grid-template-columns: 30px 1fr; } .lessons li .btn { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { .hl { animation: none; } }
