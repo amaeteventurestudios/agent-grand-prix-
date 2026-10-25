@@ -153,10 +153,11 @@ function frame(now) {
     if (G.attractT > 9) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(cams.mode === 'live' ? 'tv' : 'live'); }
   }
   if (R && world) {
-    const showTags = cams.mode !== 'fpv' && cams.mode !== 'pit' && cams.mode !== 'crew';
+    // behind the home screen and menus the race is scenery: no tags or rings over the titles
+    const showTags = !G.attract && cams.mode !== 'fpv' && cams.mode !== 'pit' && cams.mode !== 'crew';
     const focus = cams.mode === 'overview' ? cams.controls.target : cams.look;
     world.update(R, R.started && !G.paused ? clamp(G.acc / DT, 0, 1) : 1, dt, camera, G.attract && cams.mode === 'tv' ? null : G.sel, mine(), showTags,
-      { speed: G.paused ? 0 : G.attract ? 1 : G.speed, focus, showRing: cams.mode !== 'fpv' });
+      { speed: G.paused ? 0 : G.attract ? 1 : G.speed, focus, showRing: !G.attract && cams.mode !== 'fpv' });
     cams.update(dt, cams.mode === 'overview' ? null : G.sel);
     if (!G.attract) sound.update(R, world, camera, G.sel, cams.mode, G.paused || R.done || !$('#screen').hidden ? 0 : G.speed);
   }
@@ -947,7 +948,7 @@ const OB_STEPS = ['team', 'car', 'colours', 'drivers', 'engineer', 'mode'];
 const OB_STYLES = ['balanced', 'attacker', 'technician'];
 let obThen = null;
 function dots(i, n) { return `<div class="wiz-dots" aria-label="Step ${i + 1} of ${n}">${Array.from({ length: n }, (_, k) => `<i class="${k < i ? 'done' : k === i ? 'on' : ''}"></i>`).join('')}<span>${i + 1} of ${n}</span></div>`; }
-const wizFoot = (next, back = 'Back') => `<div class="actions wiz-foot"><button class="btn" data-wiz="next" type="button">${next}</button>${back ? `<button class="btn ghost" data-wiz="back" type="button">${back}</button>` : ''}</div>`;
+const wizFoot = (next, back = 'Back') => `</div><div class="actions wiz-foot"><button class="btn" data-wiz="next" type="button">${next}</button>${back ? `<button class="btn ghost" data-wiz="back" type="button">${back}</button>` : ''}</div>`;
 function wizWire(sh, next, back) {
   $('[data-wiz="next"]', sh).addEventListener('click', next);
   const b = $('[data-wiz="back"]', sh); if (b) b.addEventListener('click', back);
@@ -957,7 +958,9 @@ function onboard(step = 'team', then) {
   if (!S.team || S.team.fresh) { S.team = { ...structuredClone(DEFAULT_TEAM), ...(S.team ? { c1: S.team.c1, c2: S.team.c2, glow: S.team.glow } : {}), name: '', short: '', draft: true, drivers: [{ name: '', code: '', num: 7 }, { name: '', code: '', num: 77 }] }; store.save(); }
   const t = S.team, i = OB_STEPS.indexOf(step), go = (k) => onboard(OB_STEPS[i + k]);
   const back = () => (i ? go(-1) : home());
-  const head = (title, lede) => `${dots(i, OB_STEPS.length)}<h2>${title}</h2><p class="lede">${lede}</p>`;
+  // header on the left in landscape, the choice on the right; wizFoot closes the body
+  const hdr = (title, lede) => `<header class="wiz-head">${dots(i, OB_STEPS.length)}<h2>${title}</h2><p class="lede">${lede}</p></header>`;
+  const head = (title, lede) => hdr(title, lede) + '<div class="wiz-body">';
   if (step === 'team') {
     let codeSet = !!t.short;
     const sh = show(`${head('Name your team', 'You are the team principal. What is your team called?')}
@@ -968,7 +971,7 @@ function onboard(step = 'team', then) {
       <button class="btn ghost dice" id="obDice" type="button">🎲 Suggest a name</button>
       <p class="note">The code shows on the timing tower next to your drivers.</p>
       <p class="err" id="obErr" hidden></p>
-      ${wizFoot('Next')}`, 'wiz');
+      ${wizFoot('Next')}`, 'wizp');
     const nm = $('#obName'), sc = $('#obShort');
     nm.addEventListener('input', () => { if (!codeSet) sc.value = nm.value.trim() ? codeOf(nm.value) : ''; });
     sc.addEventListener('input', () => { codeSet = !!sc.value; });
@@ -980,14 +983,14 @@ function onboard(step = 'team', then) {
   }
   if (step === 'car') {
     const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.')}
-      ${carTiles()}${wizFoot('Choose this car')}`, 'wiz');
+      ${carTiles()}${wizFoot('Choose this car')}`, 'wizp');
     wireCarTiles(sh, () => onboard('car'));
     wizWire(sh, () => go(1), back);
   }
   if (step === 'colours') {
     // the showroom, with your car turning while you paint it: main, accent and the colour of the lights
     openShowroom({ S, show, save: store.save, team }, { id: carModel() || 'falcon', lite, back,
-      wizard: { head: head('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), next: () => go(1) } });
+      wizard: { head: hdr('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), next: () => go(1) } });
   }
   if (step === 'drivers') {
     const prof = activeProfiles(S), style = SLOTS.map((sl) => { const o = (prof[sl] && prof[sl].origin || '').replace('preset:', ''); return OB_STYLES.includes(o) ? o : 'balanced'; });
@@ -999,7 +1002,7 @@ function onboard(step = 'team', then) {
         <div class="ob-style">${OB_STYLES.map((s) => { const p = PRESETS.find((x) => x.id === s); return `<button type="button" data-style="${s}" class="${style[k] === s ? 'on' : ''}"><b>${s === 'technician' ? 'Smooth' : p.name}</b><span>${esc(p.blurb)}</span></button>`; }).join('')}</div></div>`).join('')}
       <p class="note">More styles and every setting are in Driver DNA, any time.</p>
       <p class="err" id="obErr" hidden></p>
-      ${wizFoot('Next')}`, 'wiz');
+      ${wizFoot('Next')}`, 'wizp');
     $$('.ob-driver', sh).forEach((row) => {
       const k = +row.dataset.d;
       $$('[data-style]', row).forEach((b) => b.addEventListener('click', () => { style[k] = b.dataset.style; $$('[data-style]', row).forEach((x) => x.classList.toggle('on', x === b)); }));
@@ -1020,7 +1023,7 @@ function onboard(step = 'team', then) {
     const sh = show(`${head('Your race engineer', 'Your engineer talks to your drivers on the team radio, so you can watch the race instead of reading. Tap a voice to hear a call.')}
       ${vpickHTML()}
       <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your drivers reply in their own voices: "Copy. Boxing."</span></label>
-      ${wizFoot('Next')}`, 'wiz');
+      ${wizFoot('Next')}`, 'wizp');
     vpickWire(sh);
     $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
     wizWire(sh, () => go(1), back);
@@ -1030,7 +1033,7 @@ function onboard(step = 'team', then) {
     const sh = show(`${head("How you'll run it", 'Who makes the calls in the race? You can change this before every race, and take over at any time.')}
       ${modeHTML(auto)}
       <label class="coachopt"><input type="checkbox" id="coachOpt" ${S.settings.coach !== false ? 'checked' : ''}><span><b>Race coach</b> Tips at the right moment, with a button to act on them in one tap: your first box call, your first Push, your first BOOST.</span></label>
-      ${wizFoot(obThen ? 'Done' : 'Start my first race')}`, 'wiz');
+      ${wizFoot(obThen ? 'Done' : 'Start my first race')}`, 'wizp');
     $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
     wizWire(sh, () => {
       S.settings.auto = auto; S.settings.coach = $('#coachOpt').checked;
@@ -1184,7 +1187,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   const i = steps.indexOf(step), go = (k) => pre(o, steps[i + k]);
   const back = () => (i ? go(-1) : home());
   const label = o.first ? 'Your first race' : o.kind === 'daily' ? `Daily Grand Prix #${o.day}` : o.kind === 'season' ? `Season ${S.season.no} · Round ${o.round}` : 'Quick race';
-  const head = (title) => `${dots(i, steps.length)}<div class="sub">${label}</div>${o.venue && step !== 'circuit' ? `<h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>` : ''}${title}`;
+  const head = (title) => `<header class="wiz-head">${dots(i, steps.length)}<div class="sub">${label}</div>${o.venue && step !== 'circuit' ? `<h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>` : ''}${title}</header><div class="wiz-body">`;
 
   if (step === 'circuit') {
     const vb = (v) => `<button type="button" data-v="${v.id}" class="${v.id === (o.venue && o.venue.id) ? 'next' : ''}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span><span>${tempTxt(v.temp).split(' /')[0]} · ${v.rain > 0.35 ? 'Rain likely' : v.rain > 0.15 ? 'Rain possible' : 'Usually dry'}${v.time === 'night' ? ' · Night' : ''}</span></button>`;
@@ -1194,7 +1197,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
       <input class="vsearch" id="vSearch" type="search" placeholder="Search a city or country" aria-label="Search circuits" autocomplete="off">
       <div class="venues" id="vAll">${VENUES.filter((v) => !FEATURED.includes(v.id)).map(vb).join('')}</div>
       <p class="note" id="vNone" hidden>No circuit matches that.</p>
-      <div class="actions wiz-foot"><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`);
+      </div><div class="actions wiz-foot"><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
     $$('[data-v]', sh).forEach((b) => b.addEventListener('click', () => {
       o.venue = venueById(b.dataset.v); o.seed = hashString('quick-' + o.venue.id + '-' + Date.now()); P.picks = null;
       needTeam(() => pre(o, 'car'));
@@ -1213,7 +1216,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
 
   if (step === 'car') {
     const sh = show(`${head('<p class="lede">Your car is ready. Change it here, or tap a picture to spin it round in 3D.</p>')}
-      ${carTiles()}${wizFoot('Next')}`);
+      ${carTiles()}${wizFoot('Next')}`, 'wizp');
     wireCarTiles(sh, () => pre(o, 'car'));
     wizWire(sh, () => go(1), back);
     return;
@@ -1240,7 +1243,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
       <div class="plan"><div class="sub">Your engineer's plan</div><ul>${plan.lines.map((l) => `<li>${l}</li>`).join('')}</ul>
         <button class="btn ghost" id="usePlan" type="button">Use this plan</button> <button class="btn ghost" id="howWin" type="button">How to win</button></div>
       <details class="tg"${o.first ? ' open' : ''}><summary class="sub">What each tyre does here</summary>${tyreGuide(o.venue)}</details>
-      ${wizFoot('Next')}`);
+      ${wizFoot('Next')}`, 'wizp');
     $$('.box-row', sh).forEach((row) => $$('button', row).forEach((b) => b.addEventListener('click', () => {
       picks[row.dataset.car] = b.dataset.c; $$('button', row).forEach((x) => x.classList.toggle('on', x === b));
     })));
@@ -1264,7 +1267,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
     <div class="sub">Driver DNA</div>
     <div class="dna-pre">${dnaLine(S, team())}<button class="btn ghost" id="preDna" type="button">Tune</button></div>
     <label class="statsopt"><input type="checkbox" id="statsOpt" ${statsEl.hidden ? '' : 'checked'}> Show frame rate (for testing on your phone)</label>
-    <div class="actions wiz-foot"><button class="btn go" id="goGrid" type="button">Go to the grid</button><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`);
+    </div><div class="actions wiz-foot"><button class="btn go" id="goGrid" type="button">Go to the grid</button><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
   $$('[data-m]', sh).forEach((b) => b.addEventListener('click', () => { P.auto = b.dataset.m === '1'; $$('[data-m]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
   vpickWire(sh);
   $('#coachOpt').addEventListener('change', (e) => { P.coachOn = e.target.checked; S.settings.coach = P.coachOn; store.save(); });
