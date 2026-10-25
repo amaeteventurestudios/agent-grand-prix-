@@ -171,6 +171,8 @@ export class Race {
       else if (!cmd.box && car.pitReq && !car.pit) { car.pitReq = null; this.emit('radio', 'Understood, staying out.', car, { from: 'driver' }); }
     }
     if ('auto' in cmd) car.auto = !!cmd.auto;
+    // beginner assist: the engineer makes the pit calls, you keep pace, battery and battles
+    if ('assist' in cmd) car.assist = !!cmd.assist;
     if (cmd.order) this.teamOrder(car, cmd.order);
   }
 
@@ -887,7 +889,7 @@ export class Race {
       }
     }
     if (call && (!car.pitReq || car.pitReq !== call)) {
-      if (car.player && !car.auto) {
+      if (car.player && !car.auto && !car.assist) {
         const key = call + ':' + Math.floor(car.dist / this.track.L);
         if (!car.advised[key]) {
           car.advised[key] = true;

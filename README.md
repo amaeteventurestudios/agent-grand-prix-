@@ -11,7 +11,13 @@ tyres, pit stops, battery, attack or defend, and the rain call. Static site, Thr
 engineer (voiced in every engineer voice: `assets/voice/<voice>-academy.js`, made with `LINES=academy art/voice/gen.py`), points at
 the control and moves on when you do it, through the same `cmd()` path as buttons and the team radio. No AI model: same actions, same
 lesson. Lessons run on a staged race (`stage` in `setupRace`: start positions, weather, no failures, a safety car on cue). Progress is
-saved as `S.academy`. Free practice (`freePractice()`) is a medium race at Sakhir that counts for nothing.
+saved as `S.academy`; all five give the Academy graduate trophy. The lessons: Meet your team, Command your drivers (attack, defend,
+team orders), Master the circuit (Driver DNA, lent for the lesson), Strategy (tyre rule, a safety car on cue, rain) and Your first
+Grand Prix (a full race with the coach on, starting on the engineer's plan). A race that ends mid-lesson offers a rerun. The Race guide
+(ten ways to win) lives in the Academy. Free practice (`freePractice()`) is a medium race at Sakhir that counts for nothing.
+
+**Race coach and beginner assist**: the coach card folds into a small pill (`S.settings.coachMin`). *Engineer calls the stops* on the
+pit wall (`S.settings.assist`, the `assist` command in `js/sim.js`) lets the engineer box both cars while you keep pace, battery and battles.
 
 **First visit** (`onboard()` in `js/main.js`): a welcome card offers three ways in: *Racing Academy*, *Jump into a race* (a short guided race at Sakhir with the
 default team) and *Free practice*, plus *Build my team first*. Anyone who has raced or done a lesson skips it. Building a team is six screens, one decision each: team name and code, car, colours (the showroom in its `wizard` mode),
@@ -55,7 +61,7 @@ asks Jev (TypeSafe's classifier) three typed questions (call, car, tyre) and ret
 question back. It stays off until the `TYPESAFE_API_KEY` secret is set (key from console.typesafe.ai/keys); the key never reaches the
 browser. `tools/jev-bench.mjs` (Actions: *Jev benchmark*) compares Jev with the matcher on the same phrases.
 
-Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (baseline, cars, coach, dna, dna-effects, resume, radio, interp).
+Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (academy, baseline, cars, coach, dna, dna-effects, resume, radio, interp).
 
 ## WhatsApp agent
 

@@ -79,4 +79,39 @@ t('a normal race has no stage and is unchanged', () => {
   assert.deepEqual(a.grid.map((e) => e.id), b.grid.map((e) => e.id));
 });
 
+// each lesson, fed the actions its steps ask for, runs to the end
+const FEEDS = {
+  drivers: [{ type: 'next' }, { type: 'cmd', id: 'you-0', c: { battle: 'attack' } }, { type: 'boost', id: 'you-0' }, { type: 'cmd', id: 'you-1', c: { battle: 'defend' } }, { type: 'next' },
+    { type: 'order', o: 'hold' }, { type: 'order', o: 'swap' }, { type: 'radio' }],
+  dna: [{ type: 'next' }, { type: 'next' }, { type: 'race', ev: { car: 'you-0', type: 'dna', kind: 'lockup' } }, { type: 'next' }, { type: 'next' }, { type: 'next' }, { type: 'next' }],
+  strategy: [{ type: 'next' }, { type: 'next' }, { type: 'next' }, { type: 'cmd', id: 'you-0', c: { box: 'M' } }, { type: 'pitIn', id: 'you-0' }, { type: 'stopDone', id: 'you-0' },
+    { type: 'wet' }, { type: 'cmd', id: 'you-0', c: { box: 'I' } }, { type: 'stopDone', id: 'you-0' }],
+  gp: [{ type: 'next' }, { type: 'pitIn', id: 'you-0' }, { type: 'lastlap' }, { type: 'cmd', id: 'you-0', c: { pace: 'push' } }, { type: 'finish' }],
+};
+for (const [id, feed] of Object.entries(FEEDS)) t(`lesson ${lessonById(id).n} runs start to finish`, () => {
+  const def = lessonById(id), L = new Lesson(def, { mic: true }); L.start();
+  for (const e of feed) assert.ok(L.event(e), `${id}: step ${L.step && L.step.id} should take ${JSON.stringify(e)}`);
+  assert.ok(L.done, `${id} ends on ${L.step && L.step.id}`);
+  for (const s of def.steps) assert.ok(s.text, `${id}.${s.id} has text`);
+});
+
+{
+  const fs = await import('node:fs');
+  const lines = JSON.parse(fs.readFileSync(new URL('../../art/voice/academy.json', import.meta.url)));
+  t('every clip a lesson says has a line to record', () => {
+    for (const l of LESSONS) for (const s of l.steps) for (const k of s.say || []) assert.ok(lines[k], `${l.id}.${s.id}: ${k}`);
+  });
+}
+
+t('beginner assist: the engineer makes the pit calls, nothing else', () => {
+  const v = VENUES.find((x) => x.id === 'sakhir');
+  const R = setupRace({ venue: v, seed: 5, team: DEFAULT_TEAM, laps: 12 }).make(); R.start();
+  R.command('you-0', { assist: true });
+  while (!R.done) R.step();
+  const called = (id) => R.events.some((e) => e.car === id && e.type === 'radio' && /Boxing this lap/.test(e.text));
+  assert.ok(called('you-0') && R.byId.get('you-0').stops >= 1, 'the engineer boxed the assisted car');
+  assert.ok(!called('you-1'), 'the other car waits for your call');
+  assert.equal(R.byId.get('you-0').pace, 'normal', 'pace stays yours');
+});
+
 console.log(`academy: ${n} checks passed`);
