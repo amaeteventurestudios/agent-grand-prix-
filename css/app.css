@@ -567,9 +567,78 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
 .hc.welcome h3 { font-size: 26px; }
 @media (max-width: 520px) {
   .ob-drow { grid-template-columns: minmax(0, 1fr) auto 76px; }
-  .ob-style { grid-template-columns: 1fr; }
   .ob-style span { display: none; }
   .wiz-foot { bottom: -18px; margin: 14px -18px -18px; padding: 10px 18px 14px; }
 }
 .wizcol .sr-cut, .wizcol .sr-nav, .wizcol #srLine, .wizcol .sr-bars, .wizcol .sr-panel > .note, .wizcol .sr-tags { display: none; }
 .wizcol .sr-panel h2 { margin: 0 0 4px; font: 800 italic 30px/1 var(--f-display); }
+
+/* ---------- phones: keep the race view clear ---------- */
+@keyframes coachInP { from { opacity: 0; transform: translateY(-6px); } }
+@media (max-width: 999px), (max-height: 559px) {
+  /* the panel already shows position, gaps and tyres, so the race view drops the stat cards */
+  .chips4 { display: none !important; }
+  /* the coach sits over the top of the panel, never over the cars */
+  .coach { position: fixed; top: calc(54% + 44px); left: 8px; right: 8px; width: auto; transform: none; animation-name: coachInP; z-index: 15; }
+  /* the pit-stop steps sit under the top bar, out of the way of the buttons */
+  .pitline { top: 88px; bottom: auto; }
+}
+@media (max-height: 559px) and (orientation: landscape) {
+  .coach { top: calc(44px + env(safe-area-inset-top)); left: auto; right: 0; width: 300px; border-radius: 0 0 0 14px; }
+  .pitline { top: 52px; padding: 4px; gap: 2px; }
+  .pitline li { font-size: 11px; padding: 4px 7px; }
+  .boost { right: 8px; bottom: 48px; width: 64px; padding: 5px; }
+  .boost b { font-size: 14px; }
+  .boxfab { right: 8px; bottom: 108px; width: 64px; padding: 6px 4px; }
+  .boxfab b { font-size: 15px; }
+  .cam-pill { bottom: 6px; }
+  .hud { padding: 6px; }
+}
+
+/* setup screens on a landscape phone: title and buttons on the left, the choice on the right */
+@media (max-height: 500px) and (orientation: landscape) {
+  .screen { padding: 6px max(6px, env(safe-area-inset-right)) 6px max(6px, env(safe-area-inset-left)); }
+  .screen .sheet { max-height: 100%; padding: 14px 16px; }
+  .screen.wizp { padding: 0; place-items: stretch; }
+  .screen.wizp .sheet { width: 100%; height: 100%; max-height: none; border-radius: 0; padding: 0; display: grid;
+    grid-template-columns: minmax(210px, 32%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "head body" "foot body"; overflow: hidden; }
+  .wizp .wiz-head { grid-area: head; overflow: auto; padding: 14px 16px 6px max(16px, env(safe-area-inset-left)); }
+  .wizp .wiz-head h2 { font-size: 26px; }
+  .wizp .wiz-head .lede { font-size: 14px; margin-bottom: 0; }
+  .wizp .wiz-body { grid-area: body; overflow: auto; padding: 14px max(16px, env(safe-area-inset-right)) 16px 16px; border-left: 1px solid var(--line); }
+  .wizp .wiz-foot { grid-area: foot; position: static; margin: 0; padding: 8px 16px max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); border-top: 0; flex-direction: column; gap: 6px; }
+  .wizp .wiz-foot .btn { flex: none; width: 100%; min-height: 42px; }
+  .wizp .facts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .screen.home .sheet { width: 100%; }
+}
+@media (max-width: 520px) {
+  .ob-style { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ob-style button { padding: 8px; text-align: center; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  /* the pause menu's buttons in two columns so all of them fit */
+  .sheet .actions[style*="column"] { display: grid; grid-template-columns: 1fr 1fr; }
+  .sheet .actions[style*="column"] .btn:first-child { grid-column: 1 / -1; }
+}
+/* phone portrait: the top bar takes two rows, so the safety-car flag, pit steps and messages sit below it */
+@media (max-width: 560px) {
+  .scbar { top: 92px; }
+  .pitline { top: 124px; }
+  .toast { top: 124px; }
+  .toast div { font-size: 13px; padding: 5px 10px; }
+  .app:has(.pitline:not([hidden])) .toast { top: 164px; }
+}
+/* phone landscape: one row on top; the pit steps go to the bottom left, above the camera buttons */
+@media (max-height: 559px) and (orientation: landscape) {
+  .scbar { top: 48px; }
+  .pitline { top: auto; bottom: 46px; left: 8px; transform: none; max-width: calc(100% - 90px); }
+  .toast { top: 84px; }
+  .toast div { font-size: 13px; padding: 5px 10px; }
+}
+@media (max-height: 559px) and (orientation: landscape) {
+  /* keep the top bar to one row: flag without the city name, temperature without the state */
+  .chip { font-size: 14px; padding: 5px 8px; }
+  .chip.venue span:last-child, .chip.wx .state { display: none; }
+  .seg button { padding: 5px 8px; font-size: 13px; }
+}
