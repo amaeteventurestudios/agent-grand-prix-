@@ -36,7 +36,11 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$HOST" ] || [ -z "$KEY" ]; then echo '::error::Add the SERVER_HOST, SERVER_USER and SERVER_SSH_KEY secrets first.'; exit 1; fi
-          install -m 600 /dev/null key && printf '%s\n' "$KEY" > key
+          # Forgive extra words pasted into the secrets: keep just the address, the login and the key block
+          HOST=$(printf '%s' "$HOST" | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+' | tail -1)
+          USER=$(printf '%s' "$USER" | grep -oE '[a-z_][a-z0-9_-]*' | tail -1); USER="${USER:-ubuntu}"
+          install -m 600 /dev/null key && printf '%s\n' "$KEY" | tr -d '\r' | sed -n '/-----BEGIN/,/-----END/p' > key
+          [ -s key ] || { echo '::error::SERVER_SSH_KEY should hold the whole key file, from the -----BEGIN line to the -----END line.'; exit 1; }
           OPTS="-i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
           tar czf app.tgz agent js package.json
           tar czf site.tgz -C dist .
