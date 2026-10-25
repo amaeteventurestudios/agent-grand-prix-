@@ -20,6 +20,7 @@ import { openShowroom } from './showroom.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 import { parseCall, radioSupported, listen } from './teamradio.js';
+import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -71,7 +72,7 @@ function loadVenue(venue) {
 
 // ---------- the live race behind the home screen ----------
 function attract() {
-  G.attract = true; G.ended = false; sound.stop(); live.clear();
+  G.attract = true; G.ended = false; sound.stop(); live.clear(); G.lesson = null; lessonCard(null);
   const n = dayNumber(), venue = dailyVenue(n);
   loadVenue(venue);
   const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30, car: carModel() || 'falcon' });
@@ -117,7 +118,7 @@ const live = {
   },
   save(force) {
     const R = G.race, rec = this.rec;
-    if (!rec || G.attract || !R || R.done || !R.started) return;
+    if (!rec || G.attract || !R || R.done || !R.started || G.kind === 'academy') return;
     const now = performance.now(); if (!force && now - rec.at < 1000) return; rec.at = now;
     try { localStorage.setItem(LIVE_KEY, JSON.stringify({ ...rec, at: undefined, speed: G.speed, savedAt: Date.now() })); } catch (e) { /* storage full or blocked: the race just won't survive a refresh */ }
   },
@@ -196,6 +197,7 @@ canvas.addEventListener('pointerup', (e) => {
 function select(id) {
   G.sel = id;
   if (mine().includes(id)) G.mineSel = id;
+  lessonEvent({ type: 'select', id });
   buildCard(); renderControls(true); tick();
 }
 
@@ -204,8 +206,9 @@ $$('[data-speed]').forEach((b) => b.addEventListener('click', () => {
   if (fairRace()) return;
   G.speed = +b.dataset.speed; $$('[data-speed]').forEach((x) => x.classList.toggle('on', x === b));
 }));
-// the Daily Grand Prix and the season are competitive: everyone races them at real speed
-const fairRace = () => G.kind === 'daily' || G.kind === 'season';
+// the Daily Grand Prix and the season are competitive: everyone races them at real speed (and a
+// lesson runs at real speed too, so the engineer and the race keep time)
+const fairRace = () => G.kind === 'daily' || G.kind === 'season' || G.kind === 'academy';
 function speedUI() {
   if (fairRace()) G.speed = 1;
   $('.hud .speed').hidden = fairRace();
@@ -276,6 +279,7 @@ function buildTower() {
 const tyreHTML = (c) => `<span class="tyre" style="--c:${COMPOUNDS[c].color}"><b>${c}</b></span>`;
 
 function tick() {
+  lessonTick();
   const R = G.race; if (!R) return;
   // HUD
   const lead = R.order[0];
@@ -474,6 +478,7 @@ function boostCar(c) {
   if (G.boost && G.boost.id === c.id) { cmd({ ers: G.boost.prev }, c.id); G.boost = null; return; }
   if (G.boost) { const p = R.byId.get(G.boost.id); if (p.ersMode === 'deploy') R.command(p.id, { ers: G.boost.prev }); }
   const prev = c.ersMode === 'deploy' ? 'balanced' : c.ersMode; cmd({ ers: 'deploy' }, c.id); G.boost = { id: c.id, until: R.t + 12, prev }; toast(`⚡ ${c.code}: boost!`);
+  lessonEvent({ type: 'boost', id: c.id });
 }
 $('#boost').addEventListener('click', () => {
   const R = G.race, c = R && R.byId.get(G.mineSel); if (!c) return;
@@ -582,6 +587,7 @@ function radioDo(r, text) {
     return radioDone();
   }
   radioCalls(r.calls);
+  lessonEvent({ type: 'radio' });
   radioDone();
 }
 function radioDone() {
@@ -915,6 +921,7 @@ function cmd(c, id = G.mineSel || 'you-0', o = {}) {
   const car = G.race.byId.get(id);
   if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); toast(`${car.code}: you took over the calls.`); }
   G.race.command(id, c);
+  lessonEvent({ type: 'cmd', id, c });
   // a call you spoke on the radio needs no echo from the engineer, only the driver's answer
   const eng = (parts) => { if (!o.spoken) say(parts); };
   if (c.box) { eng([carTag(id), 'bb_' + c.box]); reply(id, o.reply || 'r_box'); }
@@ -1060,6 +1067,10 @@ function home() {
   const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n];
   const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
   const lr = S.lastRace && venueById(S.lastRace.venue), first = firstVisit();
+  const nAc = doneCount(S);
+  const academyCard = `<div class="hc"><span class="k">Racing Academy · ${nAc} of ${LESSONS.length}</span><h3>${nAc >= LESSONS.length ? '🎓 Graduate' : 'Learn the pit wall'}</h3>
+      <p>${nAc ? `Next: ${esc((LESSONS.find((l) => !progress(S).lessons[l.id]?.done) || LESSONS[0]).title)}.` : 'Five short lessons on a real race: your team, your drivers, the circuit, strategy, your first Grand Prix.'}</p>
+      <div class="row"><button class="btn${nAc ? ' ghost' : ''}" data-go="academy" type="button">${nAc ? 'Open the Academy' : 'Start lesson 1'}</button><button class="btn ghost" data-go="practice" type="button">Free practice</button></div></div>`;
   const cards = `
     <div class="cards">
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
@@ -1068,20 +1079,32 @@ function home() {
       <div class="hc"><span class="k">Season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
         <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
         <div class="row"><button class="btn" data-go="season" type="button">${seasonOver ? 'Standings' : S.season.round > 1 ? 'Next round' : 'Start the season'}</button><button class="btn ghost" data-go="standings" type="button">Standings</button></div></div>
+      ${academyCard}
       <div class="hc"><span class="k">Quick race</span><h3>Pick any circuit</h3>
         <p>${lr ? `Last time: ${lr.flag} ${esc(lr.city)}. Race again with the same tyres and calls, or pick another.` : `All ${VENUES.length} circuits, any time. No points, just racing.`}</p>
         <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button></div></div>
     </div>`;
+  // a first visit offers three ways in; nothing is forced, and anyone who has raced skips it
+  const choice = `
+    <div class="cards one"><div class="hc welcome"><span class="k">Welcome to the paddock</span><h3>Your drivers race. You command.</h3>
+      <p>Two AI drivers, ten cars, ${VENUES.length} circuits. They drive; you make the calls from the pit wall. How do you want to start?</p>
+      <div class="ways">
+        <button type="button" data-go="academy" class="way rec"><b>🎓 Racing Academy</b><span>Learn the pit wall in five short lessons. Best if you're new.</span></button>
+        <button type="button" data-go="just" class="way"><b>🏁 Jump into a race</b><span>A short race at Sakhir with the coach beside you.</span></button>
+        <button type="button" data-go="practice" class="way"><b>🔧 Free practice</b><span>No points, no pressure. Try every call.</span></button>
+      </div>
+      <p class="small"><button type="button" class="link" data-go="build">Build my team first</button> · name your team and drivers, pick a car and colours</p></div></div>`;
   const welcome = `
-    <div class="cards one"><div class="hc welcome"><span class="k">Welcome to the paddock</span><h3>Run your own racing team</h3>
-      <p>Two AI drivers, ten cars, ${VENUES.length} circuits. They drive; you make the calls from the pit wall. Build your team in about a minute, then race under the lights at Sakhir, Bahrain.</p>
+    <div class="cards one"><div class="hc welcome"><span class="k">Welcome back</span><h3>Run your own racing team</h3>
+      <p>Build your team in about a minute: name it, pick your car and colours, name your drivers.</p>
       <div class="row"><button class="btn" data-go="build" type="button">Build my team</button><button class="btn ghost" data-go="just" type="button">Just race</button></div></div></div>`;
+  const newcomer = first && !S.stats.starts && !nAc;
   const sh = show(`
     <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
     <p class="tag">Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.</p>
-    ${first ? welcome + (S.stats.starts ? cards : '') : cards}
+    ${newcomer ? choice : first ? welcome + cards : cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <button data-go="win" type="button">How to win</button></span></div>`, 'home');
   sh.onclick = homeClick;
 }
 function homeClick(e) {
@@ -1098,6 +1121,8 @@ function homeClick(e) {
   if (go === 'team') { if (firstVisit()) onboard('team', null); else teamSheet(home); }
   if (go === 'build') onboard('team', null);
   if (go === 'just') justRace();
+  if (go === 'academy') academyHome();
+  if (go === 'practice') freePractice();
   if (go === 'again') raceAgain();
   if (go.startsWith('v:')) needTeam(() => pre(quickO(venueById(go.slice(2))), 'car'));
   if (go === 'garage') showroom(home);
@@ -1262,6 +1287,118 @@ function onboard(step = 'team', then) {
   }
 }
 
+// ---------- Racing Academy ----------
+// Five short lessons on a real race (js/academy.js). The engineer explains one thing at a time on a
+// card over the race, points at the control, and the step finishes when you do it: by button or on
+// the radio, through the same cmd() path as any other call. Progress is saved with the rest (S.academy).
+const names = () => { const t = team(); return { A: t.drivers[0].name || 'Nova', B: t.drivers[1].name || 'Echo' }; };
+const acSay = (k) => { if (voiceId()) say(['@' + voiceId() + '-academy/' + k]); };
+function startLesson(id) {
+  const def = lessonById(id);
+  if (!def || def.soon) return academyHome();
+  const t0 = performance.now();
+  G.nextLesson = new Lesson(def, { mic: radioSupported() }, (st, i, n) => lessonShow(st, i, n));
+  G.nextLesson.t0 = t0;
+  G.lessonId = id;
+  Object.assign(G, { kind: 'academy', venue: venueById(def.race.venue), seed: hashString('academy-' + def.id), round: null, day: null, laps: def.race.laps });
+  G.coach = false;
+  startRace({}, false);
+}
+function lessonStart() {
+  G.lessonSeen = { pit: new Set(), stops: { 'you-0': 0, 'you-1': 0 } };
+  G.lesson.start();
+}
+function lessonEvent(e) { if (G.lesson && !G.attract) G.lesson.event(e); }
+function lessonShow(st, i, n) {
+  if (!st) return lessonCard(null);
+  const L = G.lesson || G.nextLesson, def = L.def;
+  if (st.go === 'lights' && !G.race.started) lightsSequence();
+  if (st.go === 'tab:wall') setTab('wall');
+  if (st.go && st.go.startsWith('cam:')) setCam(st.go.slice(4) === 'pit' && G.race.byId.get(G.mineSel || 'you-0').pit ? 'pit' : st.go.slice(4) === 'live' ? 'live' : cams.mode);
+  if (st.go === 'cam:pit') G.lessonPitCam = true;
+  (st.say || []).forEach(acSay);
+  lessonCard({ def, st, i, n });
+  if (st.end) lessonDone();
+}
+function lessonCard(o) {
+  const el = $('#lesson');
+  $$('.hl').forEach((x) => x.classList.remove('hl'));
+  G.lessonHl = null; G.lessonHlShown = null;
+  if (!o) { el.hidden = true; return; }
+  const { def, st, i, n } = o;
+  G.lessonHl = st.hl || null;
+  el.innerHTML = `<div class="ch"><span>🎓 Lesson ${def.n} · ${esc(def.title)}</span><span class="stp">${Math.min(i + 1, n)} / ${n}</span></div>
+    <div class="bar"><i style="width:${Math.round((i + (st.end ? 1 : 0)) / n * 100)}%"></i></div>
+    <p>${fill(st.text, Object.fromEntries(Object.entries(names()).map(([k, v]) => [k, esc(v)])))}</p>
+    <div class="acts">${st.act ? `<button type="button" class="go" data-l="next">${st.act}</button>` : ''}${st.end ? '' : '<button type="button" class="no" data-l="leave">Leave lesson</button>'}</div>`;
+  el.hidden = false;
+  lessonHl();
+}
+// the control the step is about gets a pulsing outline (the pit wall redraws, so this runs each tick)
+function lessonHl() {
+  const sel = G.lessonHl;
+  if (!sel) return;
+  const t = $(sel);
+  if (t && !t.classList.contains('hl')) {
+    $$('.hl').forEach((x) => x.classList.remove('hl')); t.classList.add('hl');
+    // bring it into view once, when the step starts (the pit wall scrolls on phones)
+    if (G.lessonHlShown !== sel) { G.lessonHlShown = sel; if (t.closest('.wall, .tower')) t.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
+  }
+}
+$('#lesson').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-l]'); if (!b) return;
+  if (b.dataset.l === 'next') lessonEvent({ type: 'next' });
+  if (b.dataset.l === 'leave') { G.lesson = null; lessonCard(null); if (!G.race.started) lightsSequence(); toast('Lesson left. Keep racing, or open the Academy from the menu.'); }
+  if (b.dataset.l === 'academy') academyHome();
+  if (b.dataset.l === 'nextlesson') startLesson(b.dataset.id);
+  if (b.dataset.l === 'keep') lessonCard(null);
+});
+let lessonLast = 0;
+function lessonTick() {
+  const L = G.lesson, R = G.race;
+  if (!L || G.attract || !R) return;
+  const now = performance.now(), dt = lessonLast ? Math.min(0.5, (now - lessonLast) / 1000) : 0; lessonLast = now;
+  if (!G.paused && $('#screen').hidden) L.tick(dt);
+  // what the race did: a car of yours entering the pit lane, and finishing its stop
+  const seen = G.lessonSeen;
+  if (seen) for (const id of ['you-0', 'you-1']) {
+    const c = R.byId.get(id);
+    if (c.pit && !seen.pit.has(id)) { seen.pit.add(id); G.mineSel = id; select(id); lessonEvent({ type: 'pitIn', id }); }
+    if (c.pit && c.pit.phase === 'stop' && G.lessonPitCam && cams.mode !== 'pit' && G.mineSel === id) setCam('pit');
+    if (c.stops > seen.stops[id]) { seen.stops[id] = c.stops; seen.pit.delete(id); G.lessonPitCam = false; lessonEvent({ type: 'stopDone', id }); }
+  }
+  lessonHl();
+}
+function lessonDone() {
+  const L = G.lesson; if (!L || L.saved) return;
+  L.saved = true;
+  const secs = (performance.now() - L.t0) / 1000;
+  complete(S, L.def.id, secs); store.save();
+  setTimeout(() => { if (G.lesson === L) lessonSummary(L, secs); }, 3200);
+}
+function lessonSummary(L, secs) {
+  const def = L.def, n = doneCount(S), next = LESSONS.find((l) => l.n === def.n + 1);
+  const el = $('#lesson');
+  el.innerHTML = `<div class="ch"><span>🎓 Lesson ${def.n} complete</span><span class="stp">${Math.floor(secs / 60)}:${String(Math.round(secs % 60)).padStart(2, '0')}</span></div>
+    <ul class="learned">${def.learn.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+    <div class="badge-row">${LESSONS.map((l) => `<i class="${progress(S).lessons[l.id]?.done ? 'on' : ''}" title="${esc(l.title)}">${l.n}</i>`).join('')}<span>${n} of ${LESSONS.length} for the Academy badge</span></div>
+    <div class="acts">${next && !next.soon ? `<button type="button" class="go" data-l="nextlesson" data-id="${next.id}">Lesson ${next.n}: ${esc(next.title)}</button>` : ''}<button type="button" class="${next && !next.soon ? '' : 'go'}" data-l="keep">Keep racing</button><button type="button" data-l="academy">Academy</button></div>`;
+  el.hidden = false;
+}
+function academyHome(back = home) {
+  const A = progress(S), n = doneCount(S);
+  const sh = show(`<h2>Racing Academy</h2>
+    <p class="lede">Five short lessons on a real race. Your engineer explains one thing at a time and you try it straight away. ${n ? `${n} of ${LESSONS.length} done.` : 'About three minutes each.'}</p>
+    <ol class="lessons">${LESSONS.map((l) => { const d = A.lessons[l.id]?.done; return `<li class="${d ? 'done' : ''}${l.soon ? ' soon' : ''}"><span class="ln">${d ? '✓' : l.n}</span><div><b>${esc(l.title)}</b><span>${esc(l.goal)}</span></div>
+      <button type="button" class="btn ${d ? 'ghost' : ''}" data-lesson="${l.id}" ${l.soon ? 'disabled' : ''}>${l.soon ? 'Soon' : d ? 'Again' : `Start · ${l.mins} min`}</button></li>`; }).join('')}</ol>
+    <div class="actions"><button class="btn ghost" data-ac="back" type="button">Back</button></div>`);
+  sh.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.lesson) startLesson(b.dataset.lesson);
+    if (b.dataset.ac === 'back') back();
+  };
+}
+
 function helpSheet(back) {
   const sh = show(`
     <h2>How to play</h2>
@@ -1350,6 +1487,17 @@ function justRace() {
   const st = planFor(v, probe).start;
   G.coach = true;
   startRace({ 'you-0': st[0], 'you-1': st[1] }, false);
+}
+
+// Free practice: your two cars in a medium-length race at Sakhir with the coach on, every speed
+// allowed and nothing at stake (no points, starts or trophies)
+function freePractice() {
+  const v = venueById('sakhir');
+  live.clear();
+  Object.assign(G, { kind: 'practice', venue: v, seed: hashString('practice-' + Date.now()), round: null, day: null });
+  G.laps = raceLaps(trackFor(v), 'medium');
+  G.coach = true;
+  startRace({}, false);
 }
 
 // the garage tiles: tap a name to race that car, the picture for the 3D showroom
@@ -1502,12 +1650,15 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
 
 function startRace(picks, auto, saved = null) {
   hide();
+  // a Racing Academy lesson rides on this race when startLesson() asked for one
+  G.lesson = saved ? null : G.nextLesson || null; G.nextLesson = null;
+  G.stage = G.lesson ? G.lesson.def.race.stage : null; lessonCard(null);
   G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set();
   speedUI();
   app.classList.remove('attract');
   loadVenue(G.venue);
   // everything the race is built from is kept, so a refresh can build the same race again
-  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined };
+  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.stage ? { stage: G.stage } : {}) };
   const setup = setupRace({ venue: G.venue, seed: G.seed, ...args });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
   live.track(G.race, args, saved);
@@ -1526,7 +1677,9 @@ function startRace(picks, auto, saved = null) {
   }
   if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
   tick();
-  if (!saved) lightsSequence();
+  // a lesson starts the lights itself, once the engineer has said hello
+  if (G.lesson) lessonStart();
+  else if (!saved) lightsSequence();
 }
 
 let lightsTimers = [];
@@ -1591,13 +1744,15 @@ function pauseMenu() {
       <button class="btn ghost wide" id="pVoice" type="button">Radio voices</button>
       <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
-      <button class="btn ghost wide" id="pRestart" type="button">Restart race</button>
+      <button class="btn ghost wide" id="pAcademy" type="button">Racing Academy</button>
+      <button class="btn ghost wide" id="pRestart" type="button">${G.kind === 'academy' ? 'Restart lesson' : 'Restart race'}</button>
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
   $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
   $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
   $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
-  $('#pRestart').addEventListener('click', () => pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }, 'tyres'));
+  $('#pRestart').addEventListener('click', () => (G.kind === 'academy' && G.lessonId ? startLesson(G.lessonId) : G.kind === 'practice' ? freePractice() : pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }, 'tyres')));
+  $('#pAcademy').addEventListener('click', () => academyHome(pauseMenu));
   $('#pQuit').addEventListener('click', () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); });
 }
 function resume() { hide(); G.paused = false; }
@@ -1621,8 +1776,10 @@ function results() {
   const wet = R.weather.showers.length > 0 || R.weather.wet0 > 0;
   const assisted = G.assisted || !G.auto0;
   const earned = [];
-  const give = (k) => { if (!S.trophies[k]) { S.trophies[k] = Date.now(); earned.push(TROPHIES[k]); } };
-  if (G.kind !== 'quick' || true) {
+  // lessons and free practice count for nothing: no starts, points or trophies
+  const counts = G.kind !== 'academy' && G.kind !== 'practice';
+  const give = (k) => { if (counts && !S.trophies[k]) { S.trophies[k] = Date.now(); earned.push(TROPHIES[k]); } };
+  if (counts) {
     S.stats.starts++; S.stats.points += pts;
     if (best === 1) S.stats.wins++;
     if (best <= 3) S.stats.podiums++;
@@ -1682,7 +1839,7 @@ function results() {
   const pod = (x, cls) => `<div class="${cls}" style="background:${x.car.team.c1};color:${readable(x.car.team.c1)}"><b>${x.pos}</b>${esc(x.car.code)}<br><small>${esc(x.car.team.short)}</small></div>`;
   G.resShare = share;
   G.resHTML = `
-    <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : 'Quick race'}</div>
+    <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : 'Quick race'}</div>
     <h2>${best === 1 ? 'You won!' : best <= 3 ? 'Podium!' : best <= 10 ? 'In the points' : 'Tough day'}</h2>
     <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? 'retired' : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>
     <div class="podium">${pod(top[1], 'p2')}${pod(top[0], 'p1')}${pod(top[2], 'p3')}</div>
@@ -1791,7 +1948,8 @@ window.__agp = {
     Object.assign(G, { kind, venue: v, seed: hashString((kind === 'daily' ? 'daily-' : 'quick-') + (kind === 'daily' ? n : v.id)), day: n, round: kind === 'season' ? S.season.round : null });
     G.laps = null; startRace({}, false); lightsSequence(true);
   },
-  cam: setCam, tab: setTab, select, results, pre, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
+  cam: setCam, tab: setTab, select, results, pre, academy: startLesson, practice: freePractice,
+  get lesson() { const L = G.lesson; return L ? { step: L.step && L.step.id, i: L.i, n: L.steps.length, done: L.done } : null; }, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
   // team radio without a mic: radio('Nova, push') runs a transcript through the same path as speech
   radio(text) { const r = understand(text); talk.m = { t0: performance.now(), id: ++talk.n }; if (r) radioDo(r, text); else { talk.m = null; interpret(text); } radioPlans(G.race); return r; },
   get talk() { return talk; },

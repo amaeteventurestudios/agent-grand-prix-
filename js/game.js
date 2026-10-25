@@ -60,7 +60,9 @@ export function raceLaps(track, length = 'short') {
   return lapsFor(track);
 }
 
-export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car }) {
+// stage: a Racing Academy scene. { grid: { 'you-0': 6 } (start positions), showers: [{ start, end, peak }]
+// (seconds; [] for a dry race), calm: true (no failures), cues: [{ t, sc: 'SC' }] }. Normal races have none.
+export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null }) {
   const track = trackFor(venue);
   const L = laps || lapsFor(track);
   const entries = roster(team, withPlayer);
@@ -70,7 +72,13 @@ export function setupRace({ venue, seed, team, withPlayer = true, laps, startCom
     if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; }
     if (e.team.you && dna) { const p = dna[slotOf(e.id)]; e.dna = simInputs(p); e.dnaProfile = p; }
   }
-  const grid = qualify(entries, venue, seed, track);
-  const weather = weatherFor(source, venue, seed, L * track.lapTime * 1.1);
-  return { track, laps: L, grid, weather, make: () => new Race({ track, venue, seed, laps: L, grid, weather }) };
+  let grid = qualify(entries, venue, seed, track);
+  let weather = weatherFor(source, venue, seed, L * track.lapTime * 1.1);
+  if (stage && stage.grid) {
+    const placed = Object.entries(stage.grid).sort((a, b) => a[1] - b[1]), rest = grid.filter((e) => !(e.id in stage.grid));
+    for (const [id, pos] of placed) rest.splice(Math.min(pos - 1, rest.length), 0, grid.find((e) => e.id === id));
+    grid = rest;
+  }
+  if (stage && stage.showers) weather = { ...weather, showers: stage.showers, wet0: stage.wet0 || 0, clouds: stage.showers.length ? 0.8 : 0.2 };
+  return { track, laps: L, grid, weather, stage, make: () => new Race({ track, venue, seed, laps: L, grid, weather, stage }) };
 }
