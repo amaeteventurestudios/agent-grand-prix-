@@ -52,9 +52,9 @@ fi
 
 # ---- WhatsApp agent (only once its key is set) ----
 sudo mkdir -p "$APP"
-sudo rm -rf "$APP"/agent "$APP"/js && sudo tar -xzf /tmp/agp-app.tgz -C "$APP" && rm -f /tmp/agp-app.tgz
+sudo rm -rf "$APP"/agent "$APP"/js && sudo tar -xzf /tmp/app.tgz -C "$APP" && rm -f /tmp/app.tgz
 sudo install -m 600 -o root -g root /tmp/agp.env /etc/agent-grand-prix.env && rm -f /tmp/agp.env
-if grep -q '^WHATSAPP_AGENT_TOKEN=.\+' /etc/agent-grand-prix.env; then
+if sudo grep -q '^WHATSAPP_AGENT_TOKEN=.\+' /etc/agent-grand-prix.env; then
   if [ ! -x "$NODE_DIR/bin/node" ]; then
     NARCH=$([ "$ARCH" = amd64 ] && echo x64 || echo arm64)
     curl -fsSL "https://nodejs.org/dist/$NODE_V/node-$NODE_V-linux-$NARCH.tar.xz" -o /tmp/node.tar.xz
