@@ -13,9 +13,17 @@ if [ ! -x /usr/local/bin/caddy ]; then
 fi
 sudo mkdir -p "$WEB.new" && sudo tar -xzf /tmp/site.tgz -C "$WEB.new" && rm -f /tmp/site.tgz
 sudo rm -rf "$WEB.old"; [ -d "$WEB" ] && sudo mv "$WEB" "$WEB.old"; sudo mv "$WEB.new" "$WEB"; sudo rm -rf "$WEB.old"
-sudo mkdir -p /etc/caddy
-sudo tee /etc/caddy/Caddyfile >/dev/null <<CADDY
-${SITE_DOMAIN:-:80} {
+# One shared Caddy serves every project on this server. Each project drops its own file in
+# /etc/caddy/sites/ (its domains + root), so adding Palasora or anything else never touches this one.
+sudo mkdir -p /etc/caddy/sites
+sudo tee /etc/caddy/Caddyfile >/dev/null <<'CADDY'
+import /etc/caddy/sites/*.caddy
+CADDY
+# SITE_DOMAIN can list several names (play.example.com, www.example.com); without one the game
+# answers on the bare IP address.
+ADDR=$(printf '%s' "${SITE_DOMAIN:-}" | tr ' ' ',' | sed 's/,,*/, /g; s/^, //; s/, $//')
+sudo tee /etc/caddy/sites/agent-grand-prix.caddy >/dev/null <<CADDY
+${ADDR:-:80} {
 	root * $WEB
 	encode zstd gzip
 	file_server
@@ -23,9 +31,13 @@ ${SITE_DOMAIN:-:80} {
 	header /vendor/* Cache-Control "public, max-age=604800"
 }
 CADDY
-sudo tee /etc/systemd/system/agp-web.service >/dev/null <<UNIT
+# The shared web server (replaces the first agp-web unit)
+if [ -f /etc/systemd/system/agp-web.service ]; then
+  sudo systemctl disable --now agp-web >/dev/null 2>&1 || true; sudo rm -f /etc/systemd/system/agp-web.service
+fi
+sudo tee /etc/systemd/system/caddy.service >/dev/null <<UNIT
 [Unit]
-Description=Agent Grand Prix website (Caddy)
+Description=Web server for every site on this machine (Caddy)
 After=network-online.target
 Wants=network-online.target
 [Service]
@@ -79,12 +91,13 @@ UNIT
 fi
 
 sudo systemctl daemon-reload
-sudo systemctl enable agp-web >/dev/null
-sudo systemctl restart agp-web
+sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+sudo systemctl enable caddy >/dev/null
+sudo systemctl is-active --quiet caddy && sudo systemctl reload caddy || sudo systemctl restart caddy
 if [ -f /etc/systemd/system/agent-grand-prix.service ]; then
   sudo systemctl enable agent-grand-prix >/dev/null; sudo systemctl restart agent-grand-prix
 fi
 sleep 3
-sudo systemctl is-active agp-web
+sudo systemctl is-active caddy
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
