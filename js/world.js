@@ -15,6 +15,9 @@ import { lagos, dakar, nairobi, capeTown, tokyo, iceland, singapore, shanghai, m
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
+const TAG_W = 320;   // tag canvas width; a tag uses as much of it as its text needs
+// the name on a car's tag: the driver's first name, in capitals, cut to fit
+const tagName = (n) => { const w = String(n || '').trim().split(/\s+/)[0].toUpperCase(); return w.length > 11 ? w.slice(0, 10) + '.' : w; };
 const col = (h) => new THREE.Color(h);
 
 // value noise for terrain and colour patches
@@ -494,7 +497,8 @@ export class World {
       return P.lat * e;
     };
     const asph = col('#7a7f87'), cc = new THREE.Color();
-    const laneG = ribbon(T, P.inS, P.outS, (s) => lane(s) - 4.5 * sd, (s) => lane(s) + 4.5 * sd, 0.025, () => asph, 2);
+    // both lanes: the fast lane by the pit wall and the working lane in front of the boxes
+    const laneG = ribbon(T, P.inS, P.outS, (s) => lane(s) * P.fast / P.lat - 3 * sd, (s) => lane(s) + 4.5 * sd, 0.025, () => asph, 2);
     const laneM = new THREE.Mesh(laneG, this.trackMat); laneM.receiveShadow = true;
     // box markings in team colours
     this.boxColors = [];
@@ -1001,30 +1005,67 @@ export class World {
   }
 
   makeTag(c) {
-    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 64;
+    const cv = document.createElement('canvas'); cv.width = TAG_W; cv.height = 64;
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true, sizeAttenuation: false }));
     sp.renderOrder = 10; sp.center.set(0.5, 0);
-    sp.userData = { cv, tex, key: '' };
+    sp.userData = { cv, tex, key: '', w: 160 };
     return sp;
   }
 
-  // "22 P1": the car number in a team-coloured chip, then the position
-  drawTag(o, pos, selected, mine) {
-    const key = pos + '|' + selected + '|' + mine;
+  // "7 NOVA P8": the car number in a team-coloured chip, the driver's name, then the position. The
+  // compact form ("7 P8") is used when tags crowd together or the camera is far away.
+  drawTag(o, pos, selected, mine, full) {
+    const key = pos + '|' + selected + '|' + mine + '|' + full;
     const ud = o.tag.userData; if (ud.key === key) return; ud.key = key;
     const x = ud.cv.getContext('2d'), c = o.car;
-    x.clearRect(0, 0, 160, 64);
+    const name = full ? tagName(c.name) : '';
+    x.font = '700 25px "Barlow Semi Condensed", system-ui, sans-serif';
+    const nameW = name ? Math.ceil(x.measureText(name).width) + 12 : 0;
+    x.font = '700 27px "Barlow Semi Condensed", system-ui, sans-serif';
+    const posW = Math.ceil(x.measureText('P' + pos).width);
+    const w = Math.min(TAG_W, 10 + 62 + 10 + nameW + posW + 16);
+    x.clearRect(0, 0, TAG_W, 64);
     x.fillStyle = selected ? '#d4ff3a' : '#ffffff';
-    roundRect(x, 4, 8, 152, 46, 12); x.fill();
+    roundRect(x, 4, 8, w - 8, 46, 12); x.fill();
+    if (mine && !selected) { x.strokeStyle = c.team.c1; x.lineWidth = 3; roundRect(x, 5.5, 9.5, w - 11, 43, 11); x.stroke(); }
     x.fillStyle = c.team.c1; roundRect(x, 10, 14, 62, 34, 8); x.fill();
     const lum = (h) => { const q = new THREE.Color(h); return 0.299 * q.r + 0.587 * q.g + 0.114 * q.b; };
     x.fillStyle = lum(c.team.c1) > 0.6 ? '#111827' : '#ffffff';
     x.font = '700 26px "Barlow Semi Condensed", system-ui, sans-serif'; x.textBaseline = 'middle'; x.textAlign = 'center';
     x.fillText(String(c.num ?? ''), 41, 32);
-    x.fillStyle = '#111827'; x.font = '700 27px "Barlow Semi Condensed", system-ui, sans-serif';
-    x.fillText('P' + pos, 114, 32);
-    ud.tex.needsUpdate = true;
+    x.textAlign = 'left';
+    if (name) { x.fillStyle = '#111827'; x.font = '700 25px "Barlow Semi Condensed", system-ui, sans-serif'; x.fillText(name, 82, 32); }
+    x.fillStyle = name ? '#5b6472' : '#111827'; x.font = '700 27px "Barlow Semi Condensed", system-ui, sans-serif';
+    x.fillText('P' + pos, 82 + nameW, 32);
+    ud.w = w;
+    ud.tex.repeat.set(w / TAG_W, 1); ud.tex.needsUpdate = true;
+  }
+
+  // keep tags from piling on top of each other: the followed car first, then yours, then by
+  // position; a tag that would overlap one already placed shrinks to its compact form, and if it
+  // still overlaps (and isn't one of yours) it is hidden for now
+  viewH() { return this.renderer.domElement.clientHeight || innerHeight; }
+
+  declutter(list, camera, W, H) {
+    list.sort((a, b) => a.rank - b.rank);
+    const placed = [], v = new THREE.Vector3();
+    const hit = (r) => placed.some((q) => r.x0 < q.x1 && r.x1 > q.x0 && r.y0 < q.y1 && r.y1 > q.y0);
+    for (const t of list) {
+      v.copy(t.o.tag.position).project(camera);
+      if (v.z > 1) { t.o.tag.visible = false; continue; }
+      const sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H, h = t.hPx;
+      const rect = (wPx) => ({ x0: sx - wPx / 2, x1: sx + wPx / 2, y0: sy - h, y1: sy });
+      let full = t.wantFull, r;
+      if (full) { this.drawTag(t.o, t.pos, t.sel, t.mine, true); r = rect(h * t.o.tag.userData.w / 64 * 0.86); if (hit(r)) full = false; }
+      if (!full) { this.drawTag(t.o, t.pos, t.sel, t.mine, false); r = rect(h * t.o.tag.userData.w / 64 * 0.86); if (hit(r) && !t.key) { t.o.tag.visible = false; continue; } }
+      // your own cars always keep a tag: lift it above the one it would cover
+      let lift = 0;
+      while (hit(r) && lift < 3) { lift++; r = { ...r, y0: r.y0 - h * 0.8, y1: r.y1 - h * 0.8 }; }
+      t.o.tag.center.y = -lift * 0.8;
+      t.o.tag.scale.set(t.scaleY * t.o.tag.userData.w / 64, t.scaleY, 1);
+      placed.push(r);
+    }
   }
 
   buildFx() {
@@ -1076,6 +1117,7 @@ export class World {
     let mr = 0;
     const blink = race.wet > 0.15 && Math.floor(performance.now() / 250) % 2 === 0;
     this.rainLightMat.color.set(blink ? '#ff2a2a' : '#3a0a0a');
+    const tags = [];
     for (const c of race.cars) {
       const o = this.carObjs.get(c.id); if (!o) continue;
       const d = c.prevDist + (c.dist - c.prevDist) * alpha, lat = c.prevLat + (c.lat - c.prevLat) * alpha;
@@ -1087,15 +1129,19 @@ export class World {
       g.rotation.y = -Math.atan2(tmp.tz, tmp.tx) - yaw;
       o.tag.visible = showTags && !c.dnf;
       if (o.tag.visible) {
-        this.drawTag(o, c.pos, c.id === selectedId, mineIds.includes(c.id));
         // tags keep one size on screen, like a broadcast graphic; hide the ones right under the lens
         const dcam = camera.position.distanceTo(g.position);
-        const far = dcam > 170, key = c.id === selectedId || mineIds.includes(c.id);
-        const k = (camera.aspect < 0.8 ? 1.15 : 1) * (key ? 1.1 : 1) * (far ? 0.8 : 1) * Math.tan(camera.fov * Math.PI / 360) / 0.4142;
+        const far = dcam > 170, sel = c.id === selectedId, mine = mineIds.includes(c.id), key = sel || mine;
+        const phone = camera.aspect < 0.8, H = this.viewH();
+        // about the same size in pixels on every screen (30 to 46 px for the sprite)
+        const px = clamp(H * 0.05, phone ? 30 : 34, 46) * (key ? 1.1 : 1) * (far ? 0.82 : 1);
+        const k = px / H * 2 * Math.tan(camera.fov * Math.PI / 360) / 0.04;
         // from far away only the followed cars, yours and the top three keep a tag
         o.tag.visible = dcam > 14 && (!far || key || c.pos <= 3);
-        o.tag.scale.set(0.1 * k, 0.04 * k, 1);
         o.tag.position.set(g.position.x, 2.8, g.position.z);
+        // names when the camera is close enough; on a phone only for your cars
+        const wantFull = key || (!far && dcam < 110 && !phone);
+        if (o.tag.visible) tags.push({ o, pos: c.pos, sel, mine, key, wantFull, scaleY: 0.04 * k, hPx: px, rank: sel ? -2 : mine ? -1 : c.pos });
       }
       if (c.id === selectedId) {
         this.ring.position.set(g.position.x, 0.14, g.position.z); this.ring.rotation.y = g.rotation.y;
@@ -1107,6 +1153,7 @@ export class World {
         r.visible = h.visible = true;
       }
     }
+    if (tags.length) this.declutter(tags, camera, this.viewH() * camera.aspect, this.viewH());
     this.ring.visible = this.halo.visible = !!selectedId && showRing;
     for (let i = mr; i < 2; i++) this.mineRings[i].r.visible = this.mineRings[i].h.visible = false;
     if (mr) { const k = 0.5 + 0.5 * Math.sin(performance.now() / 260); for (const { r, h } of this.mineRings) { r.material.opacity = 0.62 + 0.3 * k; h.material.opacity = 0.1 + 0.08 * k; } }

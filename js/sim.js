@@ -348,12 +348,16 @@ export class Race {
         let rel = s0; if (rel > L / 2) rel -= L;
         const toEntry = T.pit.inS - rel;
         if (toEntry > 0 && toEntry < 250) vt = Math.min(vt, 44 + Math.sqrt(2 * 24 * toEntry));
+        // a queue just inside the entry: be ready to stop behind it
+        if (toEntry > 0 && toEntry < 120) vt = this.pitFollow(car, vt, rel, true);
       }
       // pit lane
       if (car.pit) vt = this.pitLane(car, vt, s0);
       if (car.stopT > 0) {
         car.stopT -= dt; car.v = 0;
-        if (car.stopT <= 0) this.finishStop(car);
+        // the crew holds the car until the fast lane behind it is clear (no unsafe release)
+        if (car.stopT <= 0 && (car.pit.wait = (car.pit.wait || 0) + dt) < 6 && !this.pitClear(car)) car.stopT = dt * 0.999;
+        else if (car.stopT <= 0) this.finishStop(car);
         continue;
       }
       if (vt > car.v) car.v = Math.min(vt, car.v + (13 * (1 - car.v / 92) + 1.5) * dt * (car.pace === 'push' ? 1.03 : 1) * (car.pass && !car.pass.abort ? 1.3 : 1));
@@ -402,12 +406,16 @@ export class Race {
       if (car.failing) {
         latT = car.failing.side * (T.half + 4);
         car.failing.v = Math.max(0, car.failing.v - 6 * dt);
-        if (car.failing.v <= 0.5 && Math.abs(car.lat - latT) < 0.6) this.retire(car);
+        if (car.failing.v <= 0.5 && (car.pit || Math.abs(car.lat - latT) < 0.6)) this.retire(car);
       }
-      if (car.pit) latT = car.pitLat;
       if (car.finished) latT = T.ideal[i] * 0.5;
-      const rate = car.pit ? 12 : car.offT > 0 || car.failing ? 6 : car.pass ? 3.6 : 2.6;
-      car.lat += clamp(latT - car.lat, -rate * dt, rate * dt);
+      if (car.pit) latT = car.pitLat;   // a car that takes the flag in the pit lane stays in it
+      const rate = car.pit ? Math.min(Math.abs(latT - car.lat) > 7 ? 12 : 9, (car.pit.phase === 'out' ? 4 : 1.6) + car.v * 0.45) : car.offT > 0 || car.failing ? 6 : car.pass ? 3.6 : 2.6;
+      const nl = car.lat + clamp(latT - car.lat, -rate * dt, rate * dt);
+      // in the pit lane, never slide sideways into a car alongside: wait for it to pass
+      if (!car.pit) car.lat = nl;
+      else if (this.pitBeside(car, nl)) car.pit.blk = (car.pit.blk || 0) + dt;
+      else { car.lat = nl; car.pit.blk = 0; }
       // mistakes
       if (!car.pit && !T.straight[i] && car.mistakeT <= 0 && !car.finished) this.maybeMistake(car, w, i);
       if (car.pressT > 0) car.pressT -= dt;
@@ -492,8 +500,8 @@ export class Race {
 
   enterPit(car) {
     const T = this.track;
-    car.pit = { phase: 'in', box: car.pitReq };
-    car.pitLat = T.pit.lat;
+    car.pit = { phase: 'in', box: car.pitReq, seq: this.pitSeq = (this.pitSeq || 0) + 1 };
+    car.pitLat = T.pit.fast;
     car.pass = null;
     if (car.player) this.emit('pit', `${car.code} is in the pit lane.`, car);
   }
@@ -502,32 +510,109 @@ export class Race {
     const T = this.track, L = T.L, P = T.pit;
     let rel = s; if (rel > L / 2) rel -= L; // pit zone straddles the line
     if (car.pit.phase === 'in') {
-      if (rel > P.inS + 35) vt = Math.min(vt, P.speed);
-      if (rel > P.inS + 10) vt = Math.min(vt, Math.max(P.speed, 30 + (P.inS + 35 - rel) * 1.6));
-      const mateStopped = this.cars.some((o) => o !== car && o.team.id === car.team.id && o.stopT > 0);
-      const teamBox = P.box[car.team.box] - (mateStopped ? 10 : 0);
+      // brake smoothly down to the limit through the entry, so a car close behind can follow
+      vt = Math.min(vt, rel > P.inS + 35 ? P.speed : Math.sqrt(P.speed * P.speed + 2 * 20 * (P.inS + 35 - rel)));
+      // a double stack: with the teammate still ahead in or at the box, pull into the working lane
+      // just behind it and wait there; move up once the teammate has pulled away
+      const box = P.box[car.team.box], spacing = P.box[1] - P.box[0];
+      const mate = this.cars.find((o) => o !== car && o.team.id === car.team.id && o.pit && !o.dnf);
+      let mr = mate ? ((mate.dist % L) + L) % L : 0; if (mr > L / 2) mr -= L;
+      const stacked = mate && (mr > rel + 0.5 || (Math.abs(mr - rel) <= 0.5 && mate.pit.seq < car.pit.seq)) && mr < box + 9;
+      const turn = Math.min(9, spacing - 7.8);
+      // the second car waits a car's length short of its box on the line halfway between the
+      // lanes, clear of the cars in the boxes and of the fast lane, so nobody else is held up
+      const teamBox = stacked ? box - CAR_L - 0.5 : box;
+      // stay in the fast lane past every other team's box, and only turn in at your own
+      // slowing for the box, move halfway across first (clear of the cars in the boxes and of the
+      // fast lane), so the cars behind can carry on past at the limit
+      car.pitLat = !stacked && rel > box - turn ? P.lat : rel > box - 40 ? (P.lat + P.fast) / 2 : P.fast;
+      // two cars diving in side by side: the one behind holds its line and tucks in behind
+      if (rel < P.inS + 60 && rel < box - 45) {
+        for (const o of this.cars) {
+          if (o === car || !o.pit || o.dnf || o.pit.phase !== 'in') continue;
+          let r = ((o.dist % L) + L) % L; if (r > L / 2) r -= L;
+          if (r > rel && r - rel < CAR_L + 1 && Math.abs(o.lat - car.lat) < CAR_W + 0.6) { car.pitLat = car.lat; vt = Math.min(vt, o.v - 3); }
+        }
+      }
+      if (stacked) {
+        vt = Math.min(vt, Math.sqrt(2 * 26 * Math.max(0, teamBox - rel)), Math.max(0, (teamBox - rel) * 2.2));
+        return this.pitFollow(car, vt, rel);
+      }
       // brake into the box on a steady curve, and stop there once across in the lane
       vt = Math.min(vt, Math.sqrt(2 * 26 * Math.max(0, teamBox - rel)) + 1.5);
-      if (rel >= teamBox - 0.6 && rel < teamBox + 20) {
+      if (rel >= teamBox - 0.6 && rel < teamBox + 20 && Math.abs(car.lat - P.lat) > 1.5) vt = Math.min(vt, Math.max(0, (teamBox + 0.5 - rel) * 2)); // still crossing: wait at the box
+      else if (rel >= teamBox - 0.6 && rel < teamBox + 20) {
         car.pit.phase = 'stop';
-        if (Math.abs(teamBox - rel) < 3) car.dist += teamBox - rel;
+        if (Math.abs(teamBox - rel) < 8) car.dist += teamBox - rel;
         car.lat = car.pitLat; car.prevLat = car.lat;
-        const mate = this.cars.find((o) => o !== car && o.team.id === car.team.id && o.stopT > 0);
         let stop = 2.2 + this.r.range(0, 0.7);
         if (this.r() < 0.04) { stop += this.r.range(2, 4); this.slowStop = car.id; }
-        if (mate) stop += mate.stopT + 0.5;
         car.stopT = stop; car.stopLen = stop;
         car.v = 0;
         return 0;
       }
-      if (rel > teamBox - 25) vt = Math.min(vt, Math.max(2, (teamBox - rel) * 1.2));
+      if (rel > teamBox - 25) vt = Math.min(vt, Math.max(2, (teamBox - rel) * 2.2));
     } else if (car.pit.phase === 'out') {
       vt = Math.min(vt, P.speed);
+      car.pitLat = P.fast;
       if (!car.pit.looked && rel > P.box[car.team.box] + 4) { car.pit.looked = true; this.exitBattle(car, rel); }
       if (rel > P.outS - 40) car.pitLat = 0;
       if (rel > P.outS) { car.pit = null; car.pitLat = 0; }
     }
+    return this.pitFollow(car, vt, rel);
+  }
+
+  // a car within a car's length that a sideways move to lat would run into. After a second of
+  // waiting only cars alongside or ahead count, so two cars side by side can never block each other
+  // (the one further back gives way). A car just released has the fast lane: the crew checked it was clear
+  pitBeside(car, lat) {
+    const L = this.track.L;
+    for (const o of this.cars) {
+      if (o === car || o.dnf || o.finished || o.dist <= 0) continue;
+      let d = (o.dist - car.dist) % L; if (d > L / 2) d -= L; if (d < -L / 2) d += L;
+      if (d > (car.pit.blk > 1 || car.pit.phase === 'out' ? -2.5 : -CAR_L - 0.4) && d < CAR_L + 0.4 && Math.abs(o.lat - lat) < CAR_W + 0.2 && Math.abs(o.lat - lat) < Math.abs(o.lat - car.lat)) return true;
+    }
+    return false;
+  }
+
+  // no car drives into the one ahead in the pit lane: in the same lane, keep a car's length and more
+  pitFollow(car, vt, rel, anyLane) {
+    const ahead = this.pitAhead(car, rel, anyLane);
+    if (ahead) {
+      const gap = ahead.d - CAR_L - 0.6;   // free road beyond a car's length and a little more
+      vt = Math.min(vt, Math.max(0, ahead.o.v + (gap > 0 ? Math.sqrt(2 * 30 * gap) : 4 * gap)));
+    }
     return vt;
+  }
+
+  // the nearest car ahead in the same pit lane, and how far ahead it is (m)
+  pitAhead(car, rel, anyLane) {
+    const L = this.track.L, P = this.track.pit, entering = (c) => Math.abs(c.lat) < Math.abs(P.fast) - 1;
+    let best = null;
+    for (const o of this.cars) {
+      // the same lane: less than a car's width apart, or both still crossing over from the track
+      if (o === car || !o.pit || o.dnf || (!anyLane && Math.abs(o.lat - car.lat) >= CAR_W && !(entering(o) && entering(car)))) continue;
+      if (anyLane && Math.abs(o.lat) > Math.abs(P.fast) + 2) continue;   // already in the working lane
+      let r = ((o.dist % L) + L) % L; if (r > L / 2) r -= L;
+      const d = r - rel;
+      if (d > 0 && d < 70 && (!best || d < best.d)) best = { o, d };
+    }
+    return best;
+  }
+
+  // is the fast lane clear for a car leaving its box? (no car in it from 30 m behind to a car's length ahead)
+  pitClear(car) {
+    const L = this.track.L, P = this.track.pit;
+    let rel = ((car.dist % L) + L) % L; if (rel > L / 2) rel -= L;
+    for (const o of this.cars) {
+      if (o === car || !o.pit || o.dnf || o.stopT > 0 || o.team.id === car.team.id || Math.abs(o.lat - P.fast) > 3.5 * Math.abs(P.fast)) continue;
+      if (Math.abs(o.lat - P.fast) > 3 && Math.abs(o.lat) > Math.abs(P.fast)) continue; // in the working lane
+      let r = ((o.dist % L) + L) % L; if (r > L / 2) r -= L;
+      // alongside, or coming down the lane fast enough to be there in well under a second
+      if (r >= rel - CAR_L - 2 && r < rel + CAR_L + 2) return false;
+      if (r < rel && o.v > 3 && (rel - r) / o.v < 0.7) return false;
+    }
+    return true;
   }
 
   // will someone reach the pit exit at the same moment? That is the shot everyone wants.
@@ -720,7 +805,8 @@ export class Race {
   // no car drives through another: side by side they keep a car's width apart, nose to tail a car's length
   separate() {
     const L = this.track.L, room = this.track.half - 1.4;
-    const cars = this.cars.filter((c) => !c.dnf && !c.pit && !c.finished && c.dist > 0 && !(c.stopT > 0));
+    // cars in the pit lane count too (a stopped car sits in its box, out of the way)
+    const cars = this.cars.filter((c) => !c.dnf && !c.finished && c.dist > 0 && !(c.stopT > 0));
     for (let a = 0; a < cars.length; a++) for (let b = a + 1; b < cars.length; b++) {
       const A = cars[a], B = cars[b];
       let d = (A.dist - B.dist) % L; if (d > L / 2) d -= L; if (d < -L / 2) d += L;
@@ -728,7 +814,11 @@ export class Race {
       const dl = A.lat - B.lat;
       if (Math.abs(dl) >= CAR_W) continue;
       const passing = (A.pass && A.pass.id === B.id) || (B.pass && B.pass.id === A.id);
-      if (passing || Math.abs(d) < CAR_L * 0.6) {
+      if (A.pit || B.pit) {
+        // in or next to the pit lane nobody is pushed sideways: the one behind waits
+        const [back, front] = d < 0 ? [A, B] : [B, A];
+        if (Math.abs(d) < CAR_L) { back.dist -= Math.min(0.15, CAR_L - Math.abs(d)); back.v = Math.min(back.v, front.v * 0.6); }
+      } else if (passing || Math.abs(d) < CAR_L * 0.6) {
         // alongside: ease apart sideways, the passing car doing most of the moving
         const push = Math.min(0.14, (CAR_W - Math.abs(dl)) * 0.5) * (dl >= 0 ? 1 : -1);
         const wa = A.pass && A.pass.id === B.id ? 0.8 : B.pass && B.pass.id === A.id ? 0.2 : 0.5;
@@ -776,7 +866,9 @@ export class Race {
         // a stop costs far less under the safety car: take it if one was due soon
         const cheap = this.sc && this.sc.phase === 'out' && left > 1 && lap >= 1 && (car.tyre.wear > 0.45 || (car.plan.lap !== null && lap >= car.plan.lap - 3));
         if (cheap && !car.pitReq) why = this.sc.kind === 'SC' ? 'Safety car! Cheap stop, box now.' : 'Virtual safety car. Box, box!';
-        if ((planned || late || mustStop || cheap) && !(this.rain > 0.05 && car.traits.brain > 0.6 && left > 2)) {
+        // like a real pit wall, avoid a double stack: a planned stop waits a lap while the teammate is boxing
+        const m = this.mate(car), stagger = m && (m.pitReq || m.pit) && !mustStop && !cheap && left > 2 && car.tyre.wear < 0.93;
+        if ((planned || late || mustStop || cheap) && !stagger && !(this.rain > 0.05 && car.traits.brain > 0.6 && left > 2)) {
           call = car.plan.next || this.dryChoice(car);
           if (car.used.length === 1 && call === c) call = this.dryChoice(car, c);
           if (!cheap || planned || late || mustStop) why = late ? 'These tyres are finished. Box!' : mustStop ? 'We still need a second compound. Box now.' : 'Pit window is open.';

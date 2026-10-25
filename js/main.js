@@ -113,7 +113,7 @@ const live = {
     }
     while (k < cmds.length) { R.command(cmds[k][1], cmds[k][2]); k++; }
     this.replaying = false;
-    G.speed = saved.speed || 1; $$('[data-speed]').forEach((x) => x.classList.toggle('on', +x.dataset.speed === G.speed));
+    G.speed = saved.speed || 1; speedUI();
   },
   save(force) {
     const R = G.race, rec = this.rec;
@@ -201,8 +201,16 @@ function select(id) {
 
 // ---------- HUD and panels ----------
 $$('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+  if (fairRace()) return;
   G.speed = +b.dataset.speed; $$('[data-speed]').forEach((x) => x.classList.toggle('on', x === b));
 }));
+// the Daily Grand Prix and the season are competitive: everyone races them at real speed
+const fairRace = () => G.kind === 'daily' || G.kind === 'season';
+function speedUI() {
+  if (fairRace()) G.speed = 1;
+  $('.hud .speed').hidden = fairRace();
+  $$('[data-speed]').forEach((x) => x.classList.toggle('on', +x.dataset.speed === G.speed));
+}
 $$('[data-cam]').forEach((b) => b.addEventListener('click', () => setCam(b.dataset.cam)));
 function setCam(m) { cams.setMode(m); $$('[data-cam]').forEach((x) => x.classList.toggle('on', x.dataset.cam === m)); }
 $$('[data-tab]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
@@ -260,7 +268,7 @@ function buildTower() {
     const li = document.createElement('li');
     li.dataset.id = c.id;
     li.innerHTML = `<span class="p"></span><span class="bar" style="background:${c.team.c1}"></span><span class="n"></span><span class="g"></span><span class="t"></span>`;
-    li.addEventListener('click', () => { select(c.id); if (matchMedia('(max-width: 999px)').matches && cams.mode === 'overview') setCam('live'); });
+    li.addEventListener('click', () => { select(c.id); if (matchMedia('(max-width: 999px), (max-width: 1199px) and (orientation: portrait)').matches && cams.mode === 'overview') setCam('live'); });
     ol.append(li);
   }
 }
@@ -770,7 +778,8 @@ function wetWord(w) { return w < 0.08 ? 'Dry' : w < 0.25 ? 'Damp' : w < 0.6 ? 'W
 function weatherHTML(R) {
   const fc = nextRain(R);
   const icon = R.rain > 0.5 ? '🌧️' : R.rain > 0.05 ? '🌦️' : G.venue.time === 'night' ? '🌙' : G.venue.time === 'dusk' ? '🌇' : '☀️';
-  let txt = `${icon} <span class="state">${wetWord(R.wet)}</span> ${tempTxt(G.venue.temp)}`;
+  // the weather is the race's own forecast, not the real one at the venue, and says so
+  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${tempTxt(G.venue.temp)}`;
   if (fc !== null && R.rain < 0.05) txt += ` <span class="fc">· rain in ~${fc} lap${fc > 1 ? 's' : ''}</span>`;
   return txt;
 }
@@ -879,7 +888,7 @@ function renderControls(force) {
       <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'Your AI makes every call.' : 'You make the calls. Your engineer advises.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
     </div>
-    <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 8 seconds.' : 'Pick the tyres, then BOX: your driver pits next time round, about 8 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
+    <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 10 seconds.' : 'Pick the tyres, then BOX: your driver pits next time round, about 10 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
     <div class="ctl"><label>Pace</label><div class="opts">${opt('pace', 'save', 'Save tyres')}${opt('pace', 'normal', 'Normal')}${opt('pace', 'push', 'Push')}</div>${why(PACE_WHY[c.pace])}</div>
     <div class="ctl"><label>ERS (battery)</label><div class="opts">${opt('ersMode', 'harvest', 'Harvest')}${opt('ersMode', 'balanced', 'Balanced')}${opt('ersMode', 'deploy', 'Deploy')}</div>${why(ERS_WHY[c.ersMode])}</div>
     <div class="ctl"><label>Battle</label><div class="opts">${opt('battle', 'defend', 'Defend')}${opt('battle', 'neutral', 'Neutral')}${opt('battle', 'attack', 'Attack')}</div>${why(BATTLE_WHY[c.battle])}</div>
@@ -1260,7 +1269,7 @@ function helpSheet(back) {
     <ul class="help">
       <li><b>Tyres.</b> Softs are fastest but wear out quickest. Mediums and Hards last longer. In a dry race you must use two different dry compounds.</li>
       <li><b>Rain.</b> Watch the radar in the top bar. On a damp track switch to Inters (green); on a soaked track, Wets (blue). Back to slicks when it dries.</li>
-      <li><b>Pit stop.</b> Tap a tyre under <i>Box this lap</i>. Your driver pits the next time past the pit entry. A stop costs about 8 seconds.</li>
+      <li><b>Pit stop.</b> Tap a tyre under <i>Box this lap</i>. Your driver pits the next time past the pit entry. A stop costs about 10 seconds.</li>
       <li><b>ERS (battery).</b> Deploy for speed on the straights, Harvest to recharge.</li>
       <li><b>Battle.</b> Attack to go for gaps, Defend to hold position. Both cost a little.</li>
       <li><b>Autonomous.</b> Flip the switch and your AI makes every call. Races you run fully autonomous are marked that way.</li>
@@ -1303,7 +1312,7 @@ function winSheet(back) {
       <li><b>Split your two cars.</b> Put them on different tyres or stop on different laps. If the weather or a safety car goes against one, the other benefits.</li>
       <li><b>The undercut.</b> Stuck behind someone? Box a lap before they do. Fresh tyres are about a second a lap faster, so you can come out ahead when they stop.</li>
       <li><b>Watch tyre life.</b> Under 25%, grip falls off a cliff. Near 0% a tyre can puncture, and a puncture can end your race.</li>
-      <li><b>Safety car means a cheap stop.</b> A normal stop costs about 8 seconds. Under the safety car it costs about half. If your stop was due in the next few laps, box now.</li>
+      <li><b>Safety car means a cheap stop.</b> A normal stop costs about 10 seconds. Under the safety car it costs about half. If your stop was due in the next few laps, box now.</li>
       <li><b>Rain.</b> Damp track: Inters. Soaked: Wets. When it dries, the first car on slicks gains the most. The radar in the top bar warns you a few laps ahead.</li>
       <li><b>ERS (battery).</b> Harvest when you're alone so you have charge for a fight. Then hit BOOST or Deploy when you're within a second of the car ahead, or to defend.</li>
       <li><b>Pace.</b> Save tyres on a long stint and Push in the last two laps. Attack makes passes more likely but risks contact. Defend makes you harder to pass.</li>
@@ -1439,7 +1448,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
       <div class="facts">
         <div><small>Laps</small><b>${probe.laps}</b></div>
         <div><small>Lap length</small><b>${(T.L / 1000).toFixed(2)} km</b></div>
-        <div><small>Weather</small><b>${tempTxt(o.venue.temp)} · ${rainTxt}</b></div>
+        <div><small>Weather · simulated</small><b>${tempTxt(o.venue.temp)} · ${rainTxt}</b></div>
         <div><small>Tyre wear</small><b>${o.venue.wear >= 1.15 ? 'High' : o.venue.wear <= 0.85 ? 'Low' : 'Medium'}</b></div>
       </div>
       ${o.kind === 'daily' || o.first ? '' : `<div class="sub">Race length</div>
@@ -1494,6 +1503,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
 function startRace(picks, auto, saved = null) {
   hide();
   G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set();
+  speedUI();
   app.classList.remove('attract');
   loadVenue(G.venue);
   // everything the race is built from is kept, so a refresh can build the same race again
