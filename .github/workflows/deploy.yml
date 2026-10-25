@@ -13,7 +13,7 @@ name: Deploy to server
 on:
   push:
     branches: [main]
-    paths: ['agent/**', 'js/**', 'css/**', 'assets/**', 'vendor/**', 'index.html', 'server/**', '.github/workflows/deploy.yml']
+    paths: ['agent/**', 'tools/build-site.sh', 'js/**', 'css/**', 'assets/**', 'vendor/**', 'index.html', 'server/**', '.github/workflows/deploy.yml']
   workflow_dispatch:
 concurrency: deploy
 jobs:
@@ -24,6 +24,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Check the race engine still runs
         run: node agent/selftest.mjs
+      - name: Build the site (minify the game's code)
+        run: bash tools/build-site.sh
       - name: Copy to the server and (re)start the services
         env:
           HOST: ${{ secrets.SERVER_HOST }}
@@ -37,7 +39,7 @@ jobs:
           install -m 600 /dev/null key && printf '%s\n' "$KEY" > key
           OPTS="-i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
           tar czf app.tgz agent js package.json
-          tar czf site.tgz index.html css js assets vendor
+          tar czf site.tgz -C dist .
           scp $OPTS app.tgz site.tgz "$USER@$HOST:/tmp/"
           SITE_URL="${DOMAIN:+https://$DOMAIN}"; SITE_URL="${SITE_URL:-http://$HOST}"
           printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'

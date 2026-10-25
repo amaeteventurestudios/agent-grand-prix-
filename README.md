@@ -57,6 +57,8 @@ Limits from the platform: 12 outbound messages a minute (the agent keeps to 10 a
 
 ## Server
 
+The deploy builds the site with `tools/build-site.sh`, which minifies the game's own code into `dist/` (three.js and assets are copied as they are). Players get the squashed code; this repo keeps the readable one.
+
 `.github/workflows/deploy.yml` puts the website and the WhatsApp agent on one server (Oracle Cloud,
 Ubuntu) on every push to main, or by hand from the Actions tab (Deploy to server > Run workflow).
 `server/install.sh` runs there: Caddy serves the site from `/var/www/agent-grand-prix` (with HTTPS by
