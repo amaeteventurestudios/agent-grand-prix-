@@ -38,7 +38,7 @@ jobs:
           TOKEN: ${{ secrets.WHATSAPP_AGENT_TOKEN }}
           JEV: ${{ secrets.TYPESAFE_API_KEY }}
           BRAIN: ${{ secrets.ANTHROPIC_API_KEY }}
-          NOVENIQUE: ${{ vars.NOVENIQUE_URL }}
+          NOVENIQUE: ${{ vars.NOVENIQUE_URL || 'https://accounts.129-146-26-28.sslip.io' }}   # Novenique Core's public address; set the variable to change it
           DOMAIN: ${{ vars.SITE_DOMAIN || 'agentgrandprix.com www.agentgrandprix.com' }}
         run: |
           set -euo pipefail

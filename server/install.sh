@@ -29,6 +29,7 @@ GAME='root * '"$WEB"'
 	reverse_proxy /api/me/* 127.0.0.1:8141
 	reverse_proxy /auth/novenique/* 127.0.0.1:8141
 	reverse_proxy /api/board/* 127.0.0.1:8142
+	reverse_proxy /api/live/* 127.0.0.1:8143
 	file_server
 	header /assets/* Cache-Control "public, max-age=604800"
 	header /vendor/* Cache-Control "public, max-age=604800"
@@ -108,6 +109,12 @@ StateDirectory=agp-radio
 [Install]
 WantedBy=multi-user.target
 UNIT
+# ---- the key that signs the game's session cookie, made once and kept ----
+# accounts, leaderboards and live races all read it, so each knows who a player is; it never leaves this server
+if [ ! -s /etc/agp-session.env ]; then
+  printf 'SESSION_SECRET=%s\n' "$(head -c 32 /dev/urandom | base64 | tr -d '\n=+/')" | sudo tee /etc/agp-session.env >/dev/null
+  sudo chmod 0600 /etc/agp-session.env
+fi
 # ---- accounts (always runs; waits for the Novenique client secret) ----
 # the service reads the account service's own secret from Novenique Core's client file, so no key
 # is ever sent from GitHub; the game's save files live in its own state directory.
@@ -122,7 +129,10 @@ EnvironmentFile=/etc/agent-grand-prix.env
 # Novenique Core puts this game's client id and secret here when Core is installed on this server
 # (core/deploy/install.sh); until then the service runs and answers { accounts: false }.
 EnvironmentFile=-/etc/novenique/clients/agp.env
+EnvironmentFile=-/etc/agp-session.env
 ExecStart=$NODE_DIR/bin/node $APP/server/accounts.mjs
+# Core runs on this same server: talk to it directly, keep the public address for the browser
+Environment=NOVENIQUE_INTERNAL_URL=http://127.0.0.1:8200
 WorkingDirectory=$APP
 Environment=SAVE_DIR=/var/lib/agp-accounts
 Restart=always
@@ -143,6 +153,7 @@ Wants=network-online.target
 EnvironmentFile=/etc/agent-grand-prix.env
 # the same client secret signs the session cookie the accounts service sets, so a board knows who you are
 EnvironmentFile=-/etc/novenique/clients/agp.env
+EnvironmentFile=-/etc/agp-session.env
 ExecStart=$NODE_DIR/bin/node $APP/server/leaders.mjs
 WorkingDirectory=$APP
 Environment=BOARD_DIR=/var/lib/agp-board
@@ -150,6 +161,25 @@ Restart=always
 RestartSec=5
 DynamicUser=yes
 StateDirectory=agp-board
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# ---- live races (seats ten teams on one grid and times their calls; the racing runs in each browser) ----
+sudo tee /etc/systemd/system/agp-live.service >/dev/null <<UNIT
+[Unit]
+Description=Agent Grand Prix live races
+After=network-online.target
+Wants=network-online.target
+[Service]
+EnvironmentFile=/etc/agent-grand-prix.env
+EnvironmentFile=-/etc/novenique/clients/agp.env
+EnvironmentFile=-/etc/agp-session.env
+ExecStart=$NODE_DIR/bin/node $APP/server/live.mjs
+WorkingDirectory=$APP
+Restart=always
+RestartSec=5
+DynamicUser=yes
 [Install]
 WantedBy=multi-user.target
 UNIT
@@ -187,6 +217,8 @@ sudo systemctl enable agp-accounts >/dev/null && sudo systemctl restart agp-acco
 sleep 1; curl -fsS http://127.0.0.1:8141/api/me/health && echo ' <- accounts (false until the Novenique secret is set)' || echo 'Accounts service not answering yet'
 sudo systemctl enable agp-board >/dev/null && sudo systemctl restart agp-board
 sleep 1; curl -fsS http://127.0.0.1:8142/api/board/health && echo ' <- leaderboards' || echo 'Leaderboard service not answering yet'
+sudo systemctl enable agp-live >/dev/null && sudo systemctl restart agp-live
+sleep 1; curl -fsS http://127.0.0.1:8143/api/live/health && echo ' <- live races' || echo 'Live race service not answering yet'
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
 curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio (interpreter = Jev, brain = drivers AI)' || echo 'Team radio interpreter not answering yet'

@@ -72,7 +72,10 @@ t('Driver DNA outside the bounds is put back inside them', () => {
   r.args.dna = { car1: { slot: 'car1', params: { late_braking: 9999, cornering: -500 }, origin: 'custom', name: 'Cheat' },
     car2: { slot: 'car2', params: { late_braking: 9999 }, origin: 'custom', name: 'Cheat' } };
   const out = verify(DAY, r);
-  assert.ok(out.best >= 1 && out.best <= 20, 'the race still runs, inside the bounds everyone races under');
+  const edge = structuredClone(plain.rec);
+  edge.args.dna = { car1: { slot: 'car1', params: { late_braking: 100, cornering: 0 }, origin: 'custom', name: 'Edge' },
+    car2: { slot: 'car2', params: { late_braking: 100 }, origin: 'custom', name: 'Edge' } };
+  assert.deepEqual(out, verify(DAY, edge), 'a slider past the end races exactly as the end itself');
 });
 
 await ta('the race your agent ran while you were away checks out too', async () => {

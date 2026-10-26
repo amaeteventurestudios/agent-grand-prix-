@@ -3,7 +3,7 @@ import { VENUES, TEAMS } from './data.js';
 import { hashString } from './rng.js';
 import { generateTrack } from './track.js';
 import { Race, qualify, lapsFor } from './sim.js';
-import { simInputs, slotOf } from './dna.js';
+import { simInputs, slotOf, lockForRace } from './dna.js';
 import { weatherFor } from './weather.js';
 import { teamCars } from './carspec.js';
 
@@ -43,6 +43,26 @@ export function roster(team, withPlayer = true) {
   return entries;
 }
 
+// A live race's grid (js/live.js, server/live.mjs): ten seats, each { team, dna, car, auto } or empty.
+// Seat k races in team slot k (the nine series teams, then the tenth box), so every browser builds the
+// same twenty cars in the same order and the race is the same race everywhere. An empty series seat
+// keeps its own team, driven by the engine; an empty tenth seat is the Paddock Club, driven the same
+// way. Every person's cars race with the same driver traits, so the only edge is the calls and the DNA.
+const SEAT_TRAITS = [{ pace: 0.88, tyre: 0.7, wet: 0.7, aggro: 0.55, brain: 0.75 }, { pace: 0.84, tyre: 0.75, wet: 0.75, aggro: 0.45, brain: 0.75 }];
+const PADDOCK = { name: 'Paddock Club', short: 'PAD', c1: '#6b7280', c2: '#e5e7eb', drivers: [{ name: 'Sol', code: 'SOL' }, { name: 'Kai', code: 'KAY' }] };
+export function seatRoster(seats) {
+  return roster(PADDOCK, false).map((e) => {
+    const di = +e.id.split('-').pop(), k = e.team.you ? 9 : TEAMS.findIndex((t) => t.id === e.team.id), s = seats[k];
+    if (!s) return e.team.you ? { ...e, id: `seat9-${di}`, traits: SEAT_TRAITS[di], team: { ...e.team, id: 'seat9', you: false } } : e;
+    const t = s.team || {}, d = (t.drivers || [])[di] || {};
+    return { ...e, id: `seat${k}-${di}`, name: String(d.name || `Driver ${di + 1}`).slice(0, 16), code: String(d.code || `S${k}${di}`).slice(0, 3).toUpperCase(),
+      num: d.num || e.num, helmet: d.helmet, face: d.face, traits: SEAT_TRAITS[di], player: true, seat: s, di,
+      team: { id: `seat${k}`, name: String(t.name || `Team ${k + 1}`).slice(0, 24), short: t.short, c1: t.c1 || '#888888', c2: t.c2 || '#ffffff', glow: t.glow, finish: t.finish, box: k } };
+  });
+}
+// the same team object for both cars of a seat, so a team order or a team colour change reaches both
+function shareTeams(entries) { const by = {}; for (const e of entries) e.team = (by[e.team.id] ||= e.team); return entries; }
+
 // dna: the locked Driver DNA profiles for your two cars ({ car1, car2 }, see js/dna.js), or none
 // for the engine's own behaviour. weather: a weather source id (js/weather.js).
 // car: the model your team races (js/carspec.js); the other teams race the rest of the series. Left
@@ -62,13 +82,19 @@ export function raceLaps(track, length = 'short') {
 
 // stage: a Racing Academy scene. { grid: { 'you-0': 6 } (start positions), showers: [{ start, end, peak }]
 // (seconds; [] for a dry race), calm: true (no failures), cues: [{ t, sc: 'SC' }] }. Normal races have none.
-export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null, stops = null }) {
+export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null, stops = null, seats = null, me = -1 }) {
   const track = trackFor(venue);
   const L = laps || lapsFor(track);
-  const entries = roster(team, withPlayer);
-  const cars = car === undefined ? null : teamCars(TEAMS.map((t) => t.id), car || 'falcon');
+  const entries = seats ? shareTeams(seatRoster(seats)) : roster(team, withPlayer);
+  const cars = car === undefined && !seats ? null : teamCars(TEAMS.map((t) => t.id), car || 'falcon');
   for (const e of entries) {
-    if (cars) e.team.car = e.car = cars[e.team.id];
+    if (e.seat) {
+      // a person's car in a live race: their own car model, their own Driver DNA, their own calls
+      e.team.car = e.car = e.seat.car || 'falcon'; e.auto = !!e.seat.auto;
+      if (e.seat.dna) { const p = lockForRace(e.seat.dna)[e.di ? 'car2' : 'car1']; e.dna = simInputs(p); e.dnaProfile = p; }
+      continue;
+    }
+    if (cars) e.team.car = e.car = cars[e.team.id] || cars.you;
     if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; if (stops && stops[e.id]) e.stops = stops[e.id]; }
     if (e.team.you && dna) { const p = dna[slotOf(e.id)]; e.dna = simInputs(p); e.dnaProfile = p; }
   }
@@ -80,5 +106,8 @@ export function setupRace({ venue, seed, team, withPlayer = true, laps, startCom
     grid = rest;
   }
   if (stage && stage.showers) weather = { ...weather, showers: stage.showers, wet0: stage.wet0 || 0, clouds: stage.showers.length ? 0.8 : 0.2 };
+  // your seat becomes you-0 and you-1 in this browser only, after qualifying: an id decides nothing in
+  // the race itself, so every browser still runs the same race, and the whole page keeps working as is
+  if (seats && me >= 0) for (const e of grid) if (e.team.id === `seat${me}`) { e.id = `you-${e.di}`; e.team.you = true; }
   return { track, laps: L, grid, weather, stage, make: () => new Race({ track, venue, seed, laps: L, grid, weather, stage }) };
 }

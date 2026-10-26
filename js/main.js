@@ -21,7 +21,8 @@ import { buildReport, reportHTML, shareText } from './report.js';
 import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
 import { account, start as accountStart, signIn, signOut } from './account.js';
 import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLesson, LESSON_TITLES } from './career.js';
-import { boardOn, fetchBoard, submitDaily, boardHTML } from './board.js';
+import { fetchBoard, submitDaily, boardHTML } from './board.js';
+import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as stopListening, stepAt, secondsToStart, applyDue } from './live.js';
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
@@ -80,7 +81,7 @@ function loadVenue(venue) {
 
 // ---------- the live race behind the home screen ----------
 function attract() {
-  G.attract = true; G.ended = false; sound.stop(); live.clear(); G.lesson = null; lessonCard(null);
+  G.attract = true; G.ended = false; sound.stop(); live.clear(); G.room = null; stopListening(); G.lesson = null; lessonCard(null);
   const n = dayNumber(), venue = dailyVenue(n);
   loadVenue(venue);
   const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30, car: carModel() || 'falcon' });
@@ -140,6 +141,8 @@ addEventListener('pagehide', () => live.save(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) live.save(true); });
 function resumeRace(saved) {
   const v = VENUES.find((x) => x.id === saved.venue); if (!v) return false;
+  // a live race is rejoined from its room, which holds every call; the browser's own copy isn't needed
+  if (saved.kind === 'live') { readRoom(saved.args.room).then((r) => { if (r && r.you >= 0 && !r.error) liveStart(r); else { live.clear(); attract(); } }); return true; }
   Object.assign(G, { kind: saved.kind, venue: v, seed: saved.seed, round: saved.round, day: saved.day, laps: saved.laps });
   startRace(saved.args.startCompounds, saved.args.auto, saved);
   return true;
@@ -152,7 +155,8 @@ function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   cheerBurst *= Math.exp(-dt * 0.5);
   const R = G.race;
-  if (R && R.started && !G.paused && !R.done) {
+  if (R && R.started && !R.done && G.room && !G.attract) liveCatchUp();
+  else if (R && R.started && !G.paused && !R.done) {
     // reduced motion: the race behind the home page holds still, a picture rather than a film
     G.acc += dt * (G.attract ? (reduce ? 0 : 1) : G.speed);
     let n = 0;
@@ -225,7 +229,7 @@ $$('[data-speed]').forEach((b) => b.addEventListener('click', () => {
 }));
 // the Daily Grand Prix and the season are competitive: everyone races them at real speed (and a
 // lesson runs at real speed too, so the engineer and the race keep time)
-const fairRace = () => G.kind === 'daily' || G.kind === 'season' || G.kind === 'academy';
+const fairRace = () => G.kind === 'daily' || G.kind === 'season' || G.kind === 'academy' || G.kind === 'live';
 function speedUI() {
   if (fairRace()) G.speed = 1;
   $('.hud .speed').hidden = fairRace();
@@ -1363,6 +1367,9 @@ function home() {
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
         <p>${done ? `${done.agent ? 'Your agent' : 'You'} finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
         <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}<button class="btn ghost" data-go="board" type="button">Leaderboard</button></div></div>
+      <div class="hc"><span class="k">Live Grand Prix · up to 10 teams</span><h3>Race people</h3>
+        <p>Ten teams on one grid, everyone on their own radio at the same time. A new race every five minutes.</p>
+        <div class="row"><button class="btn" data-go="live" type="button">Find a race</button></div></div>
       <div class="hc"><span class="k">Championship · season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
         <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
         ${standingsPeek()}
@@ -1397,7 +1404,7 @@ function home() {
     <p class="tag">${newcomer ? 'Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
     ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button>${first ? '' : ' <button data-go="agent" type="button">My agent</button>'}${account.on ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button>${first ? '' : ' <button data-go="agent" type="button">My agent</button>'}${account.signin ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
   sh.onclick = homeClick;
 }
 // your team on the home page: both drivers' faces, and the last race with its report
@@ -1502,6 +1509,104 @@ function agentSheet(back) {
     if (e.target.closest('#pbDone')) { back(); agentCatchUp(); }
   };
 }
+// ---------- Live Grand Prix (js/live.js, server/live.mjs): up to ten teams on one grid ----------
+// Every browser runs the whole race; the room only seats people and gives every call the engine step
+// it lands on. So in a live race the clock is the room's: the race runs at real speed from the room's
+// start time, catching up after a slow frame, and your calls go to the room and come back to every
+// browser, yours included, to be applied at the same step. A call that arrives late (a dropped
+// connection) means the race is built again from the start with every call, in a blink.
+function liveLobby(back) {
+  const t = team();
+  const sh = show(`<div class="sub">Live Grand Prix</div><h2>Ten teams, one grid</h2>
+    <p class="lede">Race people, not just the field: up to ten teams on one grid, everyone making their own calls at the same time. A race starts every five minutes; open seats are raced by the series teams.</p>
+    <div class="lbody"><p class="note">Finding the next race…</p></div>
+    <div class="actions"><button class="btn" data-l="join" type="button" disabled>Take a seat</button><button class="btn ghost" data-l="back" type="button">Back</button></div>`, 'live');
+  const body = $('.lbody', sh), joinB = $('[data-l="join"]', sh);
+  let room = null, timer = 0;
+  const draw = () => {
+    if (!body.isConnected) { clearInterval(timer); return; }
+    if (!room) return;
+    const v = venueById(room.venue), secs = secondsToStart(room);
+    body.innerHTML = `<div class="facts"><div><small>Circuit</small><b>${v.flag} ${esc(v.city)}</b></div><div><small>Lights out</small><b>${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}</b></div>
+      <div><small>Teams</small><b>${room.taken} of ${room.seats_total}</b></div><div><small>Laps</small><b>${room.laps}</b></div></div>
+      <ol class="seats">${room.seats.map((x, k) => `<li class="${x ? '' : 'open'}${k === room.you ? ' you' : ''}"><i style="background:${x ? esc(x.team.c1 || '#888') : 'transparent'}"></i><span>${x ? esc(x.team.name) : 'Open seat'}</span>${k === room.you ? '<em>You</em>' : x ? `<em>${x.auto ? 'Autonomous' : 'On the radio'}</em>` : ''}</li>`).join('')}</ol>
+      <p class="small">${room.you >= 0 ? 'You have a seat. Stay on this page: the race starts by itself when the lights go out.' : `Your ${esc(t.name)} take the next open seat, with your car and Driver DNA.`} Calls in a live race reach the car about a second after you make them.</p>`;
+    joinB.hidden = room.you >= 0;
+    if (room.you >= 0 && secs <= 0) { clearInterval(timer); stopListening(); liveStart(room); }
+  };
+  liveOn().then(async (on) => {
+    if (!on) { body.innerHTML = '<p class="note">Live races are not running right now. Every other race works as usual.</p>'; return; }
+    room = await readRoom(''); if (!room) { body.innerHTML = '<p class="note">Could not reach the race room. Try again in a moment.</p>'; return; }
+    joinB.disabled = false; draw();
+    timer = setInterval(draw, 1000);
+    listenRoom(room.id, { seats: (r) => { room = { ...room, ...r, you: room.you }; draw(); } });
+  });
+  sh.onclick = async (e) => {
+    const b = e.target.closest('[data-l]'); if (!b) return;
+    if (b.dataset.l === 'join') {
+      b.disabled = true; b.textContent = 'Taking a seat…';
+      const r = await joinLive({ team: t, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', auto: !!S.settings.auto });
+      if (!r || r.error) { b.disabled = false; b.textContent = 'Take a seat'; toast(r && r.error === 'the grid is full' ? 'This grid is full. The next race opens in a few minutes.' : 'Could not take a seat. Try again in a moment.'); return; }
+      room = { ...room, ...r }; draw(); return;
+    }
+    clearInterval(timer); stopListening(); back();
+  };
+}
+function liveStart(room) {
+  const v = venueById(room.venue);
+  G.room = { id: room.id, startAt: room.startAt, me: room.you, calls: (room.cmds || []).slice(), from: { i: 0 }, stale: false };
+  Object.assign(G, { kind: 'live', venue: v, seed: room.seed, laps: room.laps, day: null, round: null });
+  hide();
+  const seats = room.seats;
+  G.nextLesson = null;
+  startLive({ seats, me: room.you, laps: room.laps, room: room.id, auto: seats[room.you] && seats[room.you].auto });
+  listenRoom(room.id, {
+    room: (r) => { for (const c of r.cmds || []) addCall(c); },
+    call: (c) => addCall(c),
+  });
+}
+// a call from the room, kept in step order; one for a step already raced means the race is rebuilt
+function addCall(c) {
+  const L = G.room; if (!L) return;
+  if (L.calls.some((x) => x[0] === c[0] && x[1] === c[1] && x[2] === c[2] && JSON.stringify(x[3]) === JSON.stringify(c[3]))) return;
+  L.calls.push(c); L.calls.sort((a, b) => a[0] - b[0]);
+  if (c[0] < L.n) L.stale = true;
+}
+function startLive(args) {
+  startRace({}, !!args.auto, { kind: 'live', live: true, args, cmds: [], n: 0 });
+  G.room.n = 0;
+  wireLive(G.race);
+}
+// your calls go to the room; the room's calls (yours included) are applied when they are due
+function wireLive(R) {
+  const inner = R.command.bind(R);
+  R.command = (id, c, from) => {
+    if (G.room && !G.room.applying && /^you-[01]$/.test(id)) { sendCall(G.room.id, +id.slice(4), c); return true; }
+    return inner(id, c, from);
+  };
+}
+function liveCatchUp() {
+  const L = G.room; let R = G.race;
+  if (L.stale) {
+    // build the same race again from the start with every call, then carry on from where we were
+    L.stale = false;
+    const at = L.n;
+    R = G.race = G.setup.make(); R.start(); wireLive(R); world.setCars(R.cars);
+    L.n = 0; L.from = { i: 0 };
+    while (L.n < at && !R.done) { L.applying = true; applyDue(R, L.calls, L.n, L.me, L.from); L.applying = false; R.step(); L.n++; }
+    G.evIdx = R.events.length;
+  }
+  const target = stepAt(L);
+  let k = 0;
+  while (L.n < target && k++ < 400 && !R.done) {
+    L.applying = true; applyDue(R, L.calls, L.n, L.me, L.from); L.applying = false; R.step(); L.n++;
+    // the running order every ten seconds, the same in every browser (checked by the live tests)
+    if (L.n % 200 === 0) { (L.snaps ||= {})[L.n] = R.order.map((c) => c.team.id + '/' + c.code).join(' '); }
+  }
+  G.acc = 0;
+  if (R.done) { stopListening(); }
+}
+
 // ---------- the Daily leaderboard (js/board.js, server/leaders.mjs) ----------
 // Your scored run is sent as the race itself: the setup and every call. The server replays it with
 // the game's own engine and ranks what it finds, so nothing a browser claims about a result is read.
@@ -1596,6 +1701,7 @@ function homeClick(e) {
   if (go === 'watch') watchRace();
   if (go.startsWith('driver:')) needTeam(() => driverSheet(go.slice(7), home));
   if (go === 'board') boardSheet(dayNumber(), home);
+  if (go === 'live') needTeam(() => liveLobby(home));
   if (go === 'agent') agentSheet(home);
   if (go === 'account') accountSheet(home);
   if (go === 'awayok') { S.agent.unseen = []; store.save(); home(); }
@@ -2324,6 +2430,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
 
 function startRace(picks, auto, saved = null) {
   hide();
+  if (!(saved && saved.live)) { G.room = null; stopListening(); }
   // a Racing Academy lesson rides on this race when startLesson() asked for one
   G.lesson = saved ? null : G.nextLesson || null; G.nextLesson = null;
   G.stage = G.lesson ? G.lesson.def.race.stage : null; lessonCard(null);
@@ -2340,7 +2447,7 @@ function startRace(picks, auto, saved = null) {
   // each driver's own brain, its manner from the Driver DNA it races with
   G.brains = { 'you-0': new Brain('you-0', args.dna?.car1?.params), 'you-1': new Brain('you-1', args.dna?.car2?.params) };
   live.track(G.race, args, saved);
-  if (!saved && !auto && S.settings.assist && G.kind !== 'academy') ['you-0', 'you-1'].forEach((id) => G.race.command(id, { assist: true }));
+  if (!saved && !auto && S.settings.assist && G.kind !== 'academy' && G.kind !== 'live') ['you-0', 'you-1'].forEach((id) => G.race.command(id, { assist: true }));
   world.setCars(G.race.cars);
   G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; G.boxPicks = {}; coachHide(); G.suggest = null; $('#suggest').hidden = true;
   $('#radio').innerHTML = '';
@@ -2358,7 +2465,8 @@ function startRace(picks, auto, saved = null) {
     const st = [{ lap: c.plan.lap, tyre: c.plan.next }, ...(c.stopsLeft || [])];
     addRadio({ from: 'engineer', text: `${c.code} plan: ${st.length > 1 ? `${st.length} stops, around laps ${st.map((x) => x.lap + 1).join(' and ')}, onto ${st.map((x) => COMPOUNDS[x.tyre].name + 's').join(' then ')}` : `one stop around lap ${c.plan.lap + 1}, then ${COMPOUNDS[c.plan.next].name}s`}. The pit wall will show you when the window opens.` });
   }
-  if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
+  if (saved && saved.live) lightsSequence(true);   // a live race's lights are the room's clock
+  else if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
   tick();
   // a lesson starts the lights itself, once the engineer has said hello
   if (G.lesson) lessonStart();
@@ -2533,7 +2641,7 @@ function results() {
   G.props = strategistAfterRace(R);
   if (G.props.length) say(['d_notes']);
   store.save();
-  const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : 'Quick race';
+  const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : G.kind === 'live' ? 'Live Grand Prix' : 'Quick race';
   G.report = buildReport(R, { venue: G.venue, label, mine: ['you-0', 'you-1'] });
   if (G.kind !== 'academy') { S.lastReport = G.report; store.save(); }
   G.resShare = share || shareText(G.report, location.origin + location.pathname);
@@ -2671,6 +2779,7 @@ window.__agp = {
     Object.assign(G, { kind, venue: v, seed: hashString((kind === 'daily' ? 'daily-' : 'quick-') + (kind === 'daily' ? n : v.id)), day: n, round: kind === 'season' ? S.season.round : null });
     G.laps = null; startRace({}, false); lightsSequence(true);
   },
+  get room() { const L = G.room; return L ? { id: L.id, n: L.n, me: L.me, calls: L.calls.length, snaps: L.snaps || {} } : null; },
   cam: setCam, tab: setTab, select, results, pre, academy: startLesson, practice: freePractice,
   get lesson() { const L = G.lesson; return L ? { step: L.step && L.step.id, i: L.i, n: L.steps.length, done: L.done } : null; }, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
   // team radio without a mic: radio('Nova, push') runs a transcript through the same path as speech
