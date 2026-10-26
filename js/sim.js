@@ -123,7 +123,7 @@ export class Race {
       const traits = e.traits;
       const start = e.startCompound || (this.wet > 0.7 ? 'W' : this.wet > 0.17 ? 'I' : this.r.pick(['S', 'M', 'M', 'H']));
       const car = {
-        i, id: e.id, num: e.num, name: e.name, code: e.code, helmet: e.helmet, team: e.team, traits, player: !!e.player,
+        i, id: e.id, num: e.num, name: e.name, code: e.code, helmet: e.helmet, face: e.face, team: e.team, traits, player: !!e.player,
         auto: e.auto !== false,
         grid: i + 1,
         dist: -10 - i * 9, lat: i % 2 ? -2.6 : 2.6, latT: 0, v: 0, prevDist: 0, prevLat: 0,
@@ -132,7 +132,7 @@ export class Race {
         pitReq: null, pit: null, stopT: 0,
         pass: null, yieldT: 0, mistakeT: 0,
         finished: false, dnf: false, pos: i + 1,
-        lapStart: 0, lastLap: 0, best: Infinity, lapsDone: 0,
+        lapStart: 0, lastLap: 0, best: Infinity, lapsDone: 0, trace: [],
         gap: 0, interval: 0, loop: Math.floor((-10 - i * 9) / LOOP),
         react: 0.15 + (1 - traits.pace) * 0.4 + this.r.range(0, 0.25),
         mismatch: 0, plan: null, think: this.r.range(0, 1), advised: {},
@@ -522,6 +522,8 @@ export class Race {
       const lapT = this.t - car.lapStart;
       car.lapStart = this.t;
       car.lapsDone = ln;
+      // a lap-by-lap record for the race report (read only; nothing in the race depends on it)
+      car.trace.push({ lap: ln, at: this.t, pos: car.pos, tyre: car.tyre.c, wear: car.tyre.wear });
       car.tyre.laps++;
       if (ln >= 2 || true) {
         car.lastLap = lapT;

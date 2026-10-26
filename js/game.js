@@ -36,7 +36,7 @@ export function roster(team, withPlayer = true) {
   const p = team || DEFAULT_TEAM;
   const traits = [{ pace: 0.88, tyre: 0.7, wet: 0.7, aggro: 0.55, brain: 0.75 }, { pace: 0.84, tyre: 0.75, wet: 0.75, aggro: 0.45, brain: 0.75 }];
   p.drivers.forEach((d, di) => entries.push({
-    id: `you-${di}`, num: d.num || (di ? 77 : 7), name: d.name, code: d.code, helmet: d.helmet, traits: traits[di], player: withPlayer,
+    id: `you-${di}`, num: d.num || (di ? 77 : 7), name: d.name, code: d.code, helmet: d.helmet, face: d.face, traits: traits[di], player: withPlayer,
     team: { id: 'you', name: p.name, short: p.short, c1: p.c1, c2: p.c2, glow: p.glow, finish: p.finish, box: 9, you: true },
   }));
   // nine AI teams use boxes 0..8, the player's team box 9
