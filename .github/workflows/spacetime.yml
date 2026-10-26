@@ -1,0 +1,70 @@
+# One SpacetimeDB for every game (spacetime/README.md). Each push first builds and tests every game's module on
+# GitHub's own machine; on main it then installs or updates the server. Uses the same SERVER_* secrets as Deploy.
+name: SpacetimeDB
+on:
+  push:
+    paths: ['spacetime/**', 'server/spacetime-install.sh', '.github/workflows/spacetime.yml']
+  workflow_dispatch:
+concurrency: spacetime-${{ github.ref }}
+env:
+  GAMES: agp palasora
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Install SpacetimeDB
+        run: |
+          curl -sSf https://install.spacetimedb.com | sh -s -- --yes
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+      - name: Start a throwaway server
+        run: |
+          spacetime --version || true
+          (spacetime start --listen-addr 127.0.0.1:3010 > stdb.log 2>&1 &)
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:3010/v1/ping && break; sleep 1; done
+          spacetime server add --url http://127.0.0.1:3010 --no-fingerprint home || spacetime server add --help
+          spacetime server set-default home
+          spacetime login --server-issued-login home
+      - name: Publish and poke every game
+        run: |
+          set -e
+          for g in $GAMES; do
+            (cd spacetime/$g && npm install --silent --no-audit --no-fund --ignore-scripts)
+            spacetime publish --server home --module-path spacetime/$g --yes $g
+          done
+          spacetime call --server home agp hello '"Harmattan Five"' '"race"'
+          spacetime sql --server home agp "SELECT * FROM lobby"
+          spacetime sql --server home agp "SELECT * FROM player"
+          spacetime call --server home palasora hello '"Ada"' '"downtown"'
+          spacetime sql --server home palasora "SELECT * FROM pulse"
+          # privacy: a stranger sees the public counts but never the private player rows
+          spacetime sql --anonymous --server home agp "SELECT * FROM lobby"
+          if spacetime sql --anonymous --server home agp "SELECT * FROM player" 2>&1 | grep -q Harmattan; then echo '::error::private table readable by a stranger'; exit 1; fi
+          echo 'private table is private'
+          spacetime logs --server home agp | tail -20
+      - if: failure()
+        run: tail -60 stdb.log || true
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install or update the server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          HOST=$(printf '%s' "$HOST" | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+' | tail -1)
+          USER=$(printf '%s' "$USER" | grep -oE '[a-z_][a-z0-9_-]*' | tail -1); USER="${USER:-ubuntu}"
+          install -m 600 /dev/null key && printf '%s\n' "$KEY" | tr -d '\r' | sed -n '/-----BEGIN/,/-----END/p' > key
+          OPTS="-i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          tar czf mods.tgz -C spacetime $GAMES
+          scp $OPTS mods.tgz server/spacetime-install.sh "$USER@$HOST:/tmp/"
+          ssh $OPTS "$USER@$HOST" "rm -rf /tmp/stdb-modules && mkdir -p /tmp/stdb-modules && tar xzf /tmp/mods.tgz -C /tmp/stdb-modules && GAMES='$GAMES' bash /tmp/spacetime-install.sh"

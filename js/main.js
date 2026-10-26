@@ -1438,7 +1438,7 @@ const GLANCE = matchMedia('(max-width: 760px), (max-height: 540px)');
 GLANCE.addEventListener?.('change', () => { if (G.attract && /\bhome\b/.test($('#screen').className) && !$('#screen').hidden) home(); });
 function glanceHome(start, first) {
   const n = dayNumber(), dv = dailyVenue(n);
-  const line = first ? 'Two AI drivers race. You make the calls from the pit wall.' : start.line;
+  const line = first ? 'Two AI agents race for you. Make the calls from the pit wall, or let them run the team.' : start.line;
   const sh = show(`
     <div class="gl-top"><h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
       <p class="tag">Your drivers race. You command.</p></div>
@@ -1474,7 +1474,7 @@ function home() {
   // a first visit offers three ways in; nothing is forced, and anyone who has raced skips it
   const choice = `
     <div class="cards one"><div class="hc welcome"><span class="k">Welcome to the paddock</span><h3>Your drivers race. You command.</h3>
-      <p>Two AI drivers, ten cars, ${VENUES.length} circuits. They drive; you make the calls from the pit wall. How do you want to start?</p>
+      <p>Two AI agents, ten cars, ${VENUES.length} circuits. They drive; you make the calls from the pit wall. How do you want to start?</p>
       <div class="ways">
         <button type="button" data-go="academy" class="way rec"><b>🎓 Racing Academy</b><span>Learn the pit wall in five short lessons. Best if you're new.</span></button>
         <button type="button" data-go="just" class="way"><b>🏁 Jump into a race</b><span>A short race at Sakhir with the coach beside you.</span></button>
@@ -1496,7 +1496,7 @@ function home() {
   const sh = show(`
     ${GLANCE.matches && G.attract ? '<button type="button" class="gl-back" data-go="glance">✕ <span>Back to the race</span></button>' : ''}
     <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
-    <p class="tag">${newcomer ? 'Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
+    <p class="tag">${newcomer ? 'Your AI agents race, and run the team when you’re away. When you’re here, the calls are yours: tyres, pit stops, battery and the weather. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
     ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
       <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button>${first ? '' : ' <button data-go="agent" type="button">My agent</button>'}${account.signin ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
