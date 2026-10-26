@@ -566,7 +566,7 @@ export class Race {
     let rel = s; if (rel > L / 2) rel -= L; // pit zone straddles the line
     // a car held at a standstill in the lane for seconds is in a knot (two cars each waiting for the
     // other): it squeezes on through at a crawl, the one rule that never deadlocks
-    car.pit.wait = car.v < 0.1 && car.pit.phase !== 'stop' ? (car.pit.wait || 0) + DT : 0;
+    car.pit.knot = car.v < 0.1 && car.pit.phase !== 'stop' ? (car.pit.knot || 0) + DT : 0;
     if (car.pit.phase === 'in') {
       // brake smoothly down to the limit through the entry, so a car close behind can follow
       vt = Math.min(vt, rel > P.inS + 35 ? P.speed : Math.sqrt(P.speed * P.speed + 2 * 20 * (P.inS + 35 - rel)));
@@ -634,7 +634,7 @@ export class Race {
   }
   pitBeside(car, lat) {
     const L = this.track.L;
-    if (car.pit.wait > 4) return false;
+    if (car.pit.knot > 4) return false;
     for (const o of this.cars) {
       if (o === car || o.dnf || o.finished || o.dist <= 0) continue;
       let d = (o.dist - car.dist) % L; if (d > L / 2) d -= L; if (d < -L / 2) d += L;
@@ -646,7 +646,7 @@ export class Race {
   // no car drives into the one ahead in the pit lane: in the same lane, keep a car's length and more
   pitFollow(car, vt, rel, anyLane) {
     const ahead = this.pitAhead(car, rel, anyLane);
-    if (ahead && !(car.pit && car.pit.wait > 4)) {
+    if (ahead && !(car.pit && car.pit.knot > 4)) {
       const gap = ahead.d - CAR_L - 0.6;   // free road beyond a car's length and a little more
       vt = Math.min(vt, Math.max(0, ahead.o.v + (gap > 0 ? Math.sqrt(2 * 30 * gap) : 4 * gap)));
     }

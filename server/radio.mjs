@@ -3,7 +3,8 @@
 // (which call, which car, which tyre) and answers with the same calls the buttons make. Anything Jev
 // isn't sure of comes back as a question for the player, never a guess. The key stays on the server
 // (TYPESAFE_API_KEY); with no key the service still answers /health with { interpreter: false }.
-// No packages: Node 18+.
+// It also serves the drivers' AI brain at /api/radio/talk once ANTHROPIC_API_KEY is set (Anthropic's
+// SDK, MIT, installed beside the app by install.sh). Node 18+.
 import http from 'node:http';
 
 const KEY = process.env.TYPESAFE_API_KEY || '';
@@ -69,6 +70,32 @@ export async function interpret(text, cars, sel, { key = KEY, fetchImpl = fetch 
   return { ...toCalls(j.answers || {}, cars, sel), ms: Date.now() - t0, model: j.model };
 }
 
+// ---- the drivers' AI brain (server/talk.mjs): Claude answers in character, checked before use ----
+const AKEY = process.env.ANTHROPIC_API_KEY || '';
+const BRAIN = process.env.BRAIN_MODEL || 'claude-haiku-5-5';
+let claude = null;
+export async function talk(j, { fetchModel } = {}) {
+  const { system, user, SCHEMA, accept } = await import('./talk.mjs');
+  const facts = j.facts && typeof j.facts === 'object' ? j.facts : null;
+  if (!facts || (facts.id !== 'you-0' && facts.id !== 'you-1')) return null;
+  const driver = { name: clean(j.driver?.name, 30) || 'Driver', tone: ['f', 'c', 'e'].includes(j.driver?.tone) ? j.driver.tone : 'e', dna: clean(j.driver?.dna, 120) };
+  const memory = (Array.isArray(j.memory) ? j.memory : []).slice(0, 6).map((m) => clean(m, 160));
+  const t0 = Date.now();
+  let raw;
+  if (fetchModel) raw = await fetchModel(system(driver), user(facts, memory, clean(j.said, 300)));
+  else {
+    if (!claude) { const { default: Anthropic } = await import('@anthropic-ai/sdk'); claude = new Anthropic({ apiKey: AKEY, timeout: 2600, maxRetries: 0 }); }
+    const r = await claude.messages.create({
+      model: BRAIN, max_tokens: 300, thinking: { type: 'disabled' }, system: system(driver),
+      messages: [{ role: 'user', content: user(facts, memory, clean(j.said, 300)) }],
+      output_config: { format: { type: 'json_schema', schema: SCHEMA } },
+    });
+    raw = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
+  }
+  const ok = accept(raw, facts);
+  return ok ? { ...ok, ms: Date.now() - t0 } : null;
+}
+
 // ---- the service ----
 const hits = new Map(); // ip -> [times]: 20 calls a minute each, plenty for one race
 const limited = (ip) => {
@@ -82,16 +109,18 @@ const clean = (s, n) => String(s ?? '').replace(/[^\p{L}\p{N} .,'?!-]/gu, '').sl
 
 export function serve(port = PORT) {
   return http.createServer((req, res) => {
-    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: !!KEY });
-    if (req.url !== '/api/radio/interpret' || req.method !== 'POST') return send(res, 404, {});
-    if (!KEY) return send(res, 503, { error: 'off' });
+    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: !!KEY, brain: !!AKEY });
+    const isTalk = req.url === '/api/radio/talk';
+    if ((req.url !== '/api/radio/interpret' && !isTalk) || req.method !== 'POST') return send(res, 404, {});
+    if (!(isTalk ? AKEY : KEY)) return send(res, 503, { error: 'off' });
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',').pop().trim();
     if (limited(ip)) return send(res, 429, { error: 'slow down' });
     let body = '';
-    req.on('data', (d) => { body += d; if (body.length > 4000) req.destroy(); });
+    req.on('data', (d) => { body += d; if (body.length > 8000) req.destroy(); });
     req.on('end', async () => {
       try {
         const j = JSON.parse(body);
+        if (isTalk) { const r = await talk(j); return send(res, r ? 200 : 422, r || { error: 'no usable reply' }); }
         const cars = (Array.isArray(j.cars) ? j.cars : []).filter((c) => c.id === 'you-0' || c.id === 'you-1').map((c) => ({ id: c.id, name: clean(c.name, 30), code: clean(c.code, 4) }));
         const text = clean(j.text, 200), sel = j.sel === 'you-1' ? 'you-1' : 'you-0';
         if (!text.trim() || cars.length !== 2) return send(res, 400, {});
@@ -101,4 +130,4 @@ export function serve(port = PORT) {
   }).listen(port, '127.0.0.1');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) { serve(); console.log(`team radio on 127.0.0.1:${PORT}, interpreter ${KEY ? 'on' : 'off (no TYPESAFE_API_KEY)'}`); }
+if (import.meta.url === `file://${process.argv[1]}`) { serve(); console.log(`team radio on 127.0.0.1:${PORT}, interpreter ${KEY ? 'on' : 'off (no TYPESAFE_API_KEY)'}, driver brain ${AKEY ? 'on' : 'off (no ANTHROPIC_API_KEY)'}`); }

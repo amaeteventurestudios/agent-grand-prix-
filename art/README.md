@@ -13,6 +13,13 @@ npx gltfpack@0.22.0 -i assets/vehicles/falcon/falcon.glb -o assets/vehicles/falc
 blender -b art/cars/falcon.blend -P art/cars/render.py -- /tmp/falcon 0 '#c6f53a' '#1b1d22'
 ```
 
+The safety car (`cars/safety.py`) is built and exported by its own script: a long-bonnet grand tourer in its own colours (vertex colour is the real colour), with roof lamps `lamp_L` and `lamp_R` as separate meshes the game flashes.
+
+```
+blender -b --factory-startup -P art/cars/safety.py [-- --render /tmp/sc]
+npx gltfpack@0.22.0 -i assets/vehicles/safety/safety.glb -o assets/vehicles/safety/safety.glb -cc -kn -km -vp 14 -vn 8 -vc 8
+```
+
 Livery mask: each vertex colour is R primary paint, G secondary paint, B light strip, and A finish (1 paint, 0.55 carbon, 0.8 metal, 0 rubber). `js/cars.js` tints it with each team's colours, so one file serves every livery.
 
 Budgets per car: LOD 0 at most 30k triangles, LOD 1 8k, LOD 2 1.5k, and 450 KB compressed. Blender's GPL licence doesn't apply to the models; gltfpack is MIT.

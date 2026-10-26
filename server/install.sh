@@ -81,7 +81,12 @@ if [ ! -x "$NODE_DIR/bin/node" ]; then
   curl -fsSL "https://nodejs.org/dist/$NODE_V/node-$NODE_V-linux-$NARCH.tar.xz" -o /tmp/node.tar.xz
   sudo mkdir -p "$NODE_DIR" && sudo tar -xJf /tmp/node.tar.xz -C "$NODE_DIR" --strip-components=1 && rm -f /tmp/node.tar.xz
 fi
-# ---- team radio interpreter (always runs; it only calls Jev once TYPESAFE_API_KEY is set) ----
+# the drivers' AI brain talks to Claude through Anthropic's SDK (MIT), installed beside the app
+SDK_V=1.3.0
+if ! grep -qs "\"version\": \"$SDK_V\"" "$APP/node_modules/@anthropic-ai/sdk/package.json"; then
+  sudo env PATH="$NODE_DIR/bin:$PATH" npm install --prefix "$APP" --no-save --no-audit --no-fund --omit=dev "@anthropic-ai/sdk@$SDK_V" >/dev/null 2>&1 || echo 'Could not install the AI brain SDK (drivers fall back to the rules brain)'
+fi
+# ---- team radio interpreter + drivers' AI brain (always runs; each part waits for its key) ----
 sudo tee /etc/systemd/system/agp-radio.service >/dev/null <<UNIT
 [Unit]
 Description=Agent Grand Prix team radio interpreter
@@ -128,4 +133,4 @@ sleep 3
 sudo systemctl is-active caddy
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
-curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio' || echo 'Team radio interpreter not answering yet'
+curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio (interpreter = Jev, brain = drivers AI)' || echo 'Team radio interpreter not answering yet'

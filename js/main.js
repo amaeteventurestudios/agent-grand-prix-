@@ -631,7 +631,7 @@ function addressed(text, cars) {
 }
 // the optional interpreter for what the matcher can't place (off unless our server has a key)
 async function interpret(heard) {
-  const miss = () => { talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'); reply(G.mineSel || 'you-0', 'r_sayagain'); };
+  const miss = () => (G.aiBrain ? aiTalk(heard) : (talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'), reply(G.mineSel || 'you-0', 'r_sayagain')));
   if (!G.interp) return miss();
   const R = G.race, cars = myCars();
   talkSaid('“' + heard.trim() + '” …');
@@ -723,6 +723,37 @@ function radioPlans(R) {
   radioCalls(due.map((p) => p.call));
 }
 const cap1 = (k) => k[0].toUpperCase() + k.slice(1);
+// free talk: what neither the matcher nor the interpreter could place goes to the driver's AI brain on
+// our server (Claude, checked against the race data there); with no answer in time, the rules brain
+// answers. The driver never acts: a call in the reply comes back as an offer for you to accept.
+async function aiTalk(heard) {
+  const R = G.race; if (!R) return;
+  const c = R.byId.get(addressed(heard, myCars())), b = G.brains?.[c.id];
+  if (!c || !b) return;
+  addRadio({ from: 'you', text: heard.trim().replace(/^./, (x) => x.toUpperCase()) });
+  talkSaid('“' + heard.trim() + '” …');
+  const P = b.p, dna = `${P.bold > 0.6 ? 'aggressive racer' : P.bold < 0.4 ? 'patient racer' : 'balanced racer'}, ${P.care > 0.6 ? 'gentle on tyres' : P.care < 0.4 ? 'hard on tyres' : 'average on tyres'}`;
+  const memory = b.mem.slice(0, 6).map((m) => `${m.from}: ${m.text || m.kind || (m.cmd && JSON.stringify(m.cmd)) || ''}`);
+  const asked = R.t;
+  try {
+    const res = await fetch('/api/radio/talk', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(3200),
+      body: JSON.stringify({ driver: { name: c.name, tone: P.tone, dna }, facts: brainRead(R, c), memory, said: heard }) });
+    const r = res.ok ? await res.json() : null;
+    if (!r || !r.text || G.race !== R) throw new Error('no reply');
+    talkSaid('“' + heard.trim() + '”', 'ok');
+    b.remember({ t: Date.now(), from: 'you', kind: 'talk', text: heard.slice(0, 120) });
+    b.remember({ t: Date.now(), from: 'driver', kind: 'talk', text: r.text });
+    // the free words have no recorded clip: the driver's voice says a short ack, the words show on the radio
+    reply(c.id, 'r_copy');
+    addRadio({ from: 'driver', code: c.code, text: r.text });
+    if (r.call && R.t - asked < 10) { talk.offer = { call: r.call, t: R.t, from: c.id }; driverCard(c, { text: r.text, call: r.call }); }
+    G.assisted = true;
+  } catch {
+    talkSaid('“' + heard.trim() + '”', 'ok');
+    driverAsk(c, brainIntent(heard) || (isQuestion(heard) ? 'opinion' : 'why'));
+  }
+  radioDone();
+}
 // ---------- your drivers' brains (js/brain.js) ----------
 // A driver speaks in its own voice: 'br_*' clips from its brain pack, the rest from its main pack.
 function driverSay(c, res) {
@@ -801,7 +832,11 @@ function strategist(c) {
   b.addEventListener('pointerup', talkStop); b.addEventListener('pointercancel', talkStop);
   b.addEventListener('contextmenu', (e) => e.preventDefault());
   // the interpreter is on only when our server says so (it holds the key; the browser never does)
-  fetch('/api/radio/health', { signal: AbortSignal.timeout(3000) }).then((r) => (r.ok ? r.json() : null)).then((j) => { G.interp = !!(j && j.interpreter); }).catch(() => { G.interp = false; });
+  // (asked again a little later if the first try is lost while the page is still busy loading)
+  const health = (again) => fetch('/api/radio/health', { signal: AbortSignal.timeout(4000) }).then((r) => (r.ok ? r.json() : null))
+    .then((j) => { G.interp = !!(j && j.interpreter); G.aiBrain = !!(j && j.brain); })
+    .catch(() => { G.interp = G.aiBrain = false; if (again) setTimeout(() => health(false), 8000); });
+  health(true);
 }
 
 // ---------- race coach ----------

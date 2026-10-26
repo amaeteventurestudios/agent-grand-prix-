@@ -8,6 +8,8 @@
 #                           without it only the website goes up
 #     TYPESAFE_API_KEY      optional: a key from console.typesafe.ai/keys switches on the Jev interpreter for team
 #                           radio phrases the game's own matcher can't place. Without it voice calls still work.
+#     ANTHROPIC_API_KEY     optional: switches on the drivers' AI brain (free conversation with your drivers).
+#                           Without it the drivers answer from the rules brain.
 #   Variables (optional):
 #     SITE_DOMAIN           the game's domains, main one first (default: agentgrandprix.com www.agentgrandprix.com). The
 #                           site gets HTTPS by itself; leave it out and the site answers on http://<IP>
@@ -35,6 +37,7 @@ jobs:
           KEY: ${{ secrets.SERVER_SSH_KEY }}
           TOKEN: ${{ secrets.WHATSAPP_AGENT_TOKEN }}
           JEV: ${{ secrets.TYPESAFE_API_KEY }}
+          BRAIN: ${{ secrets.ANTHROPIC_API_KEY }}
           DOMAIN: ${{ vars.SITE_DOMAIN || 'agentgrandprix.com www.agentgrandprix.com' }}
         run: |
           set -euo pipefail
@@ -49,8 +52,8 @@ jobs:
           tar czf site.tgz -C dist .
           scp $OPTS app.tgz site.tgz "$USER@$HOST:/tmp/"
           MAIN="${DOMAIN%% *}"; SITE_URL="${MAIN:+https://$MAIN}"; SITE_URL="${SITE_URL:-http://$HOST}"
-          JEV=$(printf '%s' "$JEV" | tr -d ' \r\n')
-          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\nTYPESAFE_API_KEY=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" "$JEV" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
+          JEV=$(printf '%s' "$JEV" | tr -d ' \r\n'); BRAIN=$(printf '%s' "$BRAIN" | tr -d ' \r\n')
+          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\nTYPESAFE_API_KEY=%s\nANTHROPIC_API_KEY=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" "$JEV" "$BRAIN" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
           ssh $OPTS "$USER@$HOST" "SITE_DOMAIN='$DOMAIN' bash -s" < server/install.sh
           rm -f key
           echo "::notice::Live at $SITE_URL"
