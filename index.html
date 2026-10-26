@@ -112,6 +112,9 @@
       <button type="button" data-cam="live" class="on">Live</button><button type="button" data-cam="overview">Overview</button><button type="button" data-cam="chase">Chase</button><button type="button" data-cam="fpv">Cockpit</button><button type="button" data-cam="tv">TV</button><button type="button" data-cam="pit">Pit</button>
     </div>
     <div id="follow" class="follow" hidden></div>
+    <div id="drivers" class="drivers" hidden aria-label="Your two cars"></div>
+    <div id="suggest" class="suggest" hidden aria-live="polite"></div>
+    <div id="ack" class="ack" hidden aria-live="polite"></div>
     <button id="boost" class="boost" type="button" hidden aria-label="ERS boost"><b>BOOST</b><span><i></i></span><small></small></button>
     <button id="boxBtn" class="boxfab" type="button" hidden aria-label="Box this lap"><b>BOX</b><small></small></button>
     <button id="talkBtn" class="talkfab" type="button" hidden aria-label="Team radio: hold and speak to your drivers" title="Hold and speak (or hold T)"><b>🎙</b><small>HOLD TO TALK</small></button>
@@ -128,8 +131,9 @@
   </main>
 
   <nav class="tabs" id="tabs" role="tablist">
-    <button type="button" data-tab="wall" class="on">Pit wall</button>
-    <button type="button" data-tab="order">Order</button>
+    <button type="button" id="grip" class="grip" aria-label="Open or close the panel"><i></i></button>
+    <button type="button" data-tab="wall" class="on">Strategy</button>
+    <button type="button" data-tab="order">Timing</button>
     <button type="button" data-tab="radio">Radio <span id="radioDot" class="dot" hidden></span></button>
   </nav>
   <aside id="wall" class="wall panel" aria-label="Pit wall">

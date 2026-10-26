@@ -16,6 +16,12 @@ team orders), Master the circuit (Driver DNA, lent for the lesson), Strategy (ty
 Grand Prix (a full race with the coach on, starting on the engineer's plan). A race that ends mid-lesson offers a rerun. The Race guide
 (ten ways to win) lives in the Academy. Free practice (`freePractice()`) is a medium race at Sakhir that counts for nothing.
 
+**Phone race control** (upright phones and tablets, `PHONE_UP` in `js/main.js`): the race fills the screen with your two cars as
+cards on top (tap to give a car calls, tap again for its Strategy panel), BOOST, RADIO and BOX in one row, and Strategy, Timing and Radio
+in a panel that swipes up from the tab bar (`app.dataset.sheet`: peek, half, full). A lesson opens the panel when it points at a control
+in it and closes it again after. The engineer's suggestions show as a card with the call on a button, and every call gets a short
+"copied" chip.
+
 **Race coach and beginner assist**: the coach card folds into a small pill (`S.settings.coachMin`). *Engineer calls the stops* on the
 pit wall (`S.settings.assist`, the `assist` command in `js/sim.js`) lets the engineer box both cars while you keep pace, battery and battles.
 
