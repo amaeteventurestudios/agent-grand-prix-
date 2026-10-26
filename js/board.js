@@ -6,8 +6,8 @@
 const API = '/api/board';
 const TIMEOUT = 6000;
 
-async function ask(route, opts) {
-  const c = new AbortController(), t = setTimeout(() => c.abort(), TIMEOUT);
+async function ask(route, opts, wait = TIMEOUT) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), wait);
   try { const r = await fetch(API + route, { credentials: 'same-origin', signal: c.signal, ...opts }); return r.ok ? await r.json() : null; }
   catch { return null; } finally { clearTimeout(t); }
 }
@@ -22,7 +22,7 @@ export async function fetchBoard(day) { return (await boardOn()) ? ask(`/daily?d
 // send the race you just raced. The server decides what it was worth; a refused record is simply not ranked.
 export async function submitDaily({ day, team, agent, rec }) {
   if (!rec || !(await boardOn())) return null;
-  return ask('/daily', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ day, team, agent: !!agent, rec }) });
+  return ask('/daily', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ day, team, agent: !!agent, rec }) }, 30000);   // the server runs the whole race again
 }
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
