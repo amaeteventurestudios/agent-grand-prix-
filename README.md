@@ -19,8 +19,15 @@ Grand Prix (a full race with the coach on, starting on the engineer's plan). A r
 **Phone race control** (upright phones and tablets, `PHONE_UP` in `js/main.js`): the race fills the screen with your two cars as
 cards on top (tap to give a car calls, tap again for its Strategy panel), BOOST, RADIO and BOX in one row, and Strategy, Timing and Radio
 in a panel that swipes up from the tab bar (`app.dataset.sheet`: peek, half, full). A lesson opens the panel when it points at a control
-in it and closes it again after. The engineer's suggestions show as a card with the call on a button, and every call gets a short
-"copied" chip.
+in it and closes it again after. Every call gets a short "copied" chip.
+
+**Who's in charge** (`Race.may()` in `js/sim.js`): every command carries who made it (`principal`, `engineer`, `strategist`), and the
+engine refuses what that caller may not do. In Team Principal mode only you command your cars: the strategist never pits, paces,
+deploys, attacks or swaps them, and the engineer shows facts only (a *Race info* card with the plain reading, the event's `fact`) and
+gives a view when you tap *Ask the engineer* (card or pit wall); its call still goes through your own command path. Beginner assist
+lets the engineer make pit calls and nothing else. In Autonomous mode the strategist runs the car. Switching modes is yours alone; on a
+handover your queued calls ("in two laps", a boost) are dropped, a box call already made stays and the pit wall says whose it is
+(`car.pitBy`), and a strategist call never replaces one of yours. Replays record the caller. Tests: `tools/test/authority.test.mjs`.
 
 **Race coach and beginner assist**: the coach card folds into a small pill (`S.settings.coachMin`). *Engineer calls the stops* on the
 pit wall (`S.settings.assist`, the `assist` command in `js/sim.js`) lets the engineer box both cars while you keep pace, battery and battles.

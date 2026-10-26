@@ -103,17 +103,17 @@ const live = {
     const rec = this.rec = { kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
     const step = R.step.bind(R), command = R.command.bind(R);
     R.step = () => { step(); rec.n++; };
-    R.command = (id, c) => { if (!this.replaying) rec.cmds.push([rec.n, id, c]); command(id, c); };
+    R.command = (id, c, from) => { if (!this.replaying) rec.cmds.push(from ? [rec.n, id, c, from] : [rec.n, id, c]); return command(id, c, from); };
   },
   replay(R, saved) {
     this.replaying = true;
     if (!R.started) R.start();
     const cmds = saved.cmds; let k = 0;
     while (this.rec.n < saved.n && !R.done) {
-      while (k < cmds.length && cmds[k][0] <= this.rec.n) { R.command(cmds[k][1], cmds[k][2]); k++; }
+      while (k < cmds.length && cmds[k][0] <= this.rec.n) { R.command(cmds[k][1], cmds[k][2], cmds[k][3]); k++; }
       R.step();
     }
-    while (k < cmds.length) { R.command(cmds[k][1], cmds[k][2]); k++; }
+    while (k < cmds.length) { R.command(cmds[k][1], cmds[k][2], cmds[k][3]); k++; }
     this.replaying = false;
     G.speed = saved.speed || 1; speedUI();
   },
@@ -269,6 +269,7 @@ const driverVoice = (id) => DRIVER_VOICES.filter((v) => v !== voiceId())[id === 
 function reply(id, clip) { if (S.settings.replies !== false) say(['@' + driverVoice(id) + '/' + clip]); }
 const WHY_CLIPS = [['soaked', 'w_soaked'], ['wet out here', 'w_wet'], ['standing water', 'w_water'], ['overheating', 'w_wetshot'], ['dry line', 'w_dryline'],
   ['Safety car! Cheap', 'w_sc'], ['Virtual safety car. Box', 'w_vsc'], ['finished', 'w_finished'], ['second compound. Box now', 'w_second'], ['Pit window', 'w_window']];
+const FACT_CLIPS = ['w_finished', 'w_second', 'w_window', 'w_water'];
 const whyClip = (t) => (WHY_CLIPS.find(([k]) => t.includes(k)) || [])[1];
 // the crowd in the stands reacts to the same moments the crowd sound does
 let cheerBurst = 0;
@@ -439,7 +440,7 @@ function engUpdate(R, c, kind, E) {
     // only worth a word when there's a fight on
     if (ga !== null && ga < 1.3) {
       parts.push(mateAhead ? 'u_mate_ahead' : 'u_ahead', gapClip(ga));
-      if (pa !== undefined && !mateAhead) parts.push(ga < pa - 0.15 ? (ga < 1.0 ? 'u_pushpush' : 'u_catching') : ga > pa + 0.15 ? 'u_pulling' : null);
+      if (pa !== undefined && !mateAhead) parts.push(ga < pa - 0.15 ? (ga < 1.0 && c.auto ? 'u_pushpush' : 'u_catching') : ga > pa + 0.15 ? 'u_pulling' : null);
     } else if (gb !== null && gb < 1.0) {
       parts.push(mateBehind ? 'u_mate_behind' : 'u_behind', gapClip(gb));
       if (pb !== undefined && !mateBehind && gb < pb - 0.15) parts.push('u_closing');
@@ -716,6 +717,7 @@ function strategist(c) {
   else o = { clip: ['s_stay'], text: `Stay out. ${c.code}'s tyres are at ${Math.round((1 - c.tyre.wear) * 100)}% with ${left} laps to go.` };
   if (o.call) { talk.offer = { call: o.call, t: R.t }; o.clip = [...o.clip, 's_confirm']; o.text += ' Say "do it" and I\'ll make the call.'; }
   say(o.clip, true); addRadio({ from: 'engineer', text: o.text });
+  return o;
 }
 {
   const b = $('#talkBtn');
@@ -834,27 +836,45 @@ $('#drivers').addEventListener('click', (e) => {
   G.mineSel = id; select(id);
 });
 
-// the engineer's suggestion as a card with the call on a button, and a short "copied" when a call lands
-function suggest(car, text, action) {
+// Team Principal mode: the engineer shows what matters (the fact, never an order) and gives a view
+// only when you ask. "Ask the engineer" gets the strategist's reading with the call on a button; the
+// call is still yours to make, so it goes through your own command path.
+function suggest(car, fact, action) {
   const el = $('#suggest');
-  // a lesson teaches one thing at a time, so the engineer's own suggestions wait until it's over
-  if (!action || car.dnf || car.finished || (G.lesson && !G.lesson.done)) return;
+  // a lesson teaches one thing at a time, so race info waits until it's over
+  if (!fact || car.dnf || car.finished || car.auto || (G.lesson && !G.lesson.done)) return;
   coachHide();
-  const label = action.box ? `Box for ${COMPOUNDS[action.box].name}s` : action.ers === 'harvest' ? 'Harvest' : 'Do it';
-  el.innerHTML = `<div class="ch"><span>📻 Engineer suggests · ${esc(car.code)}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(text)}</p>
-    <div class="acts"><button type="button" class="go">${label}</button><button type="button" class="no">Not now</button></div>`;
-  el.hidden = false;
   const at = performance.now(); G.suggest = { id: car.id, at, action };
+  el.innerHTML = `<div class="ch"><span>📊 Race info · ${esc(car.code)}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(fact)}</p>
+    <div class="acts"><button type="button" class="go">Ask the engineer</button><button type="button" class="no">OK</button></div>`;
+  el.hidden = false;
   const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
   el.querySelector('.x').onclick = el.querySelector('.no').onclick = close;
-  el.querySelector('.go').onclick = () => { close(); cmd(action, car.id); renderControls(true); tick(); };
+  el.querySelector('.go').onclick = () => { close(); askEngineer(car); };
   setTimeout(close, 16000);
 }
+// you asked: the engineer's view in the same card, with the call ready if there is one
+function askEngineer(car) {
+  const R = G.race; if (!R || car.dnf || car.finished || (G.lesson && !G.lesson.done)) return;
+  const o = strategist(car), el = $('#suggest');
+  coachHide();
+  const at = performance.now(); G.suggest = { id: car.id, at, action: o.call ? callAction(o.call) : {}, asked: true };
+  const label = !o.call ? '' : o.call.k === 'boxnow' ? `Box for ${COMPOUNDS[o.call.tyre].name}s` : o.call.k === 'boost' ? 'Boost' : o.call.k === 'harvest' ? 'Harvest' : 'Do it';
+  el.innerHTML = `<div class="ch"><span>🎧 Engineer · ${esc(car.code)}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(o.text.replace(/ Say "do it".*$/, ''))}</p>
+    <div class="acts">${o.call ? `<button type="button" class="go">${label}</button>` : ''}<button type="button" class="no">${o.call ? 'Not now' : 'OK'}</button></div>`;
+  el.hidden = false;
+  const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
+  el.querySelector('.x').onclick = el.querySelector('.no').onclick = close;
+  const go = el.querySelector('.go');
+  if (go) go.onclick = () => { close(); talk.offer = null; radioCalls([o.call]); renderControls(true); tick(); };
+  setTimeout(close, 20000);
+}
+const callAction = (c) => (c.k === 'boxnow' ? { box: c.tyre } : c.k === 'harvest' ? { ers: 'harvest' } : c.k === 'boost' ? { boost: true } : {});
 function suggestCheck(R) {
   const s = G.suggest; if (!s) return;
   const c = R.byId.get(s.id);
-  // the moment passed: the car pitted, or the call was made some other way
-  if (c.pit || c.dnf || c.finished || (s.action.box && c.pitReq) || (s.action.ers && c.ersMode === s.action.ers)) { $('#suggest').hidden = true; G.suggest = null; }
+  // the moment passed: the car pitted, you handed it over, or the call was made some other way
+  if (c.pit || c.dnf || c.finished || c.auto || (s.action.box && c.pitReq) || (s.action.ers && c.ersMode === s.action.ers)) { $('#suggest').hidden = true; G.suggest = null; }
 }
 let ackT = 0;
 function ack(text) {
@@ -962,6 +982,24 @@ const ERS_WHY = {
   balanced: '<b>Balanced:</b> uses a little battery on each straight and tops it up in the corners.',
   deploy: '<b>Deploy:</b> spends the battery for about 3% more speed on the straights and easier passes. A full battery lasts about half a minute of straights.',
 };
+// The handover between modes, said once and shown at once. Calls you queued (a call "in two laps",
+// a boost) belong to you, so they're dropped when the strategist takes over rather than firing later
+// and grabbing the car back; a box call already made stays, and you're told whose it is.
+const BY = { principal: 'your call', strategist: "the strategist's call", engineer: "the engineer's call", puncture: 'puncture' };
+function handover(c, took) {
+  const R = G.race;
+  if (c.auto) {
+    talk.plans = talk.plans.filter((p) => p.id !== c.id);
+    if (G.boost && G.boost.id === c.id) G.boost = null;
+    if (G.suggest && G.suggest.id === c.id) { $('#suggest').hidden = true; G.suggest = null; }
+    if (talk.offer && talk.offer.call.id === c.id) talk.offer = null;
+  }
+  const pend = c.pitReq && !c.pit ? ` Box this lap for ${COMPOUNDS[c.pitReq].name}s stays (${BY[c.pitBy] || 'already made'}).` : '';
+  const text = c.auto ? `${c.code}: Autonomous. The AI strategist runs the car now.${pend}`
+    : `${c.code}: Team Principal. ${took ? 'You took over the calls' : 'You run the car'}; the strategist has stopped.${pend}${pend && c.pitBy !== 'principal' ? ' Cancel it if you like.' : ''}`;
+  toast(text, true); addRadio({ from: 'race', text });
+  renderControls(true);
+}
 const ORDER_WHY = {
   free: '<b>Race freely:</b> your two drivers may fight each other for position.',
   hold: '<b>Hold positions:</b> your drivers won\'t attack each other, so neither loses time in a team fight.',
@@ -977,7 +1015,7 @@ function renderControls(force) {
   const R = G.race, el = $('#controls');
   if (G.attract || !R) { el.innerHTML = ''; return; }
   const id = G.mineSel || 'you-0', c = R.byId.get(id);
-  const sig = [id, boxPick(c), !!c.assist, c.pace, c.ersMode, c.battle, c.pitReq, c.auto, !!c.pit, c.finished, c.dnf, c.tyre.c, R.byId.get('you-0').pos, R.byId.get('you-1').pos, c.order, !!(c.letBy || R.mate(c).letBy), Math.abs(R.byId.get('you-0').pos - R.byId.get('you-1').pos) === 1].join('|');
+  const sig = [id, boxPick(c), !!c.assist, c.pace, c.ersMode, c.battle, c.pitReq, c.pitBy, c.auto, !!c.pit, c.finished, c.dnf, c.tyre.c, R.byId.get('you-0').pos, R.byId.get('you-1').pos, c.order, !!(c.letBy || R.mate(c).letBy), Math.abs(R.byId.get('you-0').pos - R.byId.get('you-1').pos) === 1].join('|');
   if (sig === ctlSig && !force) return; ctlSig = sig;
   const a = R.byId.get('you-0'), b = R.byId.get('you-1');
   const opt = (key, val, label) => `<button type="button" data-set="${key}" data-val="${val}" class="${c[key] === val ? 'on' : ''}">${label}</button>`;
@@ -987,7 +1025,7 @@ function renderControls(force) {
   if (c.finished) box = `<p class="ro">${c.pos <= 3 ? '🏆 ' : ''}Finished P${c.pos}.</p>`;
   else if (c.dnf) box = '<p class="ro">Out of the race.</p>';
   else if (c.pit) box = `<div class="boxing">In the pit lane…</div>`;
-  else if (c.pitReq) box = `<div class="boxing"><span>Boxing this lap: ${COMPOUNDS[c.pitReq].name}s</span>${c.auto ? '' : '<button type="button" data-act="cancel">Cancel</button>'}</div>`;
+  else if (c.pitReq) box = `<div class="boxing"><span>Boxing this lap: ${COMPOUNDS[c.pitReq].name}s${c.pitBy && c.pitBy !== 'principal' ? ` <small>(${BY[c.pitBy]})</small>` : ''}</span>${c.auto ? '' : '<button type="button" data-act="cancel">Cancel</button>'}</div>`;
   else {
     const pk = boxPick(c);
     box = `<div class="box-row">${Object.keys(COMPOUNDS).map((k) => `<button type="button" data-pick="${k}" class="${pk === k ? 'on' : ''}" ${dis ? 'disabled' : ''}>${tyreHTML(k)}${COMPOUNDS[k].name}</button>`).join('')}</div>
@@ -996,8 +1034,9 @@ function renderControls(force) {
   el.innerHTML = `
     <div class="card">
       <div class="mine-tabs">${[a, b].map((x) => `<button type="button" data-mine="${x.id}" class="${x.id === id ? 'on' : ''}${x.dnf ? ' out' : ''}"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${x.team.c1}"></span>${esc(x.code)} · ${x.dnf ? 'OUT' : 'P' + x.pos}</button>`).join('')}</div>
-      <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'Your AI makes every call.' : 'You make the calls. Your engineer advises.'}</p>
+      <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'The AI strategist runs this car and talks to your driver.' : c.assist ? 'You make the calls. The engineer only calls the stops.' : 'You alone make the calls. The engineer advises only when you ask.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
+      ${c.auto || c.dnf || c.finished ? '' : '<button type="button" class="ask" data-act="ask">🎧 Ask the engineer</button>'}
       ${c.auto ? '' : `<label class="assist"><input type="checkbox" data-act="assist" ${c.assist ? 'checked' : ''}><span><b>Engineer calls the stops</b> Beginner assist: your engineer boxes both cars at the right time. You keep pace, battery and battles.</span></label>`}
     </div>
     <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 10 seconds.' : 'Pick the tyres, then BOX: your driver pits next time round, about 10 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
@@ -1022,7 +1061,8 @@ $('#controls').addEventListener('click', (e) => {
   const t = e.target.closest('button'); if (!t || t.disabled) return;
   const R = G.race, id = G.mineSel || 'you-0';
   if (t.dataset.mine) { G.mineSel = t.dataset.mine; select(t.dataset.mine); return; }
-  if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); say([carTag(id), c.auto ? 'c_auto' : 'c_manual']); toast(c.auto ? `${c.code}: Autonomous. Your AI is in charge.` : `${c.code}: Team Principal. You're in charge.`); }
+  if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); say([carTag(id), c.auto ? 'c_auto' : 'c_manual']); handover(c); }
+  if (t.dataset.act === 'ask') askEngineer(R.byId.get(id));
   if (t.dataset.act === 'cancel') cmd({ box: null });
   if (t.dataset.pick) { (G.boxPicks ||= {})[id] = t.dataset.pick; }
   if (t.dataset.act === 'boxnow') cmd({ box: boxPick(R.byId.get(id)) });
@@ -1032,7 +1072,7 @@ $('#controls').addEventListener('click', (e) => {
 });
 function cmd(c, id = G.mineSel || 'you-0', o = {}) {
   const car = G.race.byId.get(id);
-  if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); toast(`${car.code}: you took over the calls.`); }
+  if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); handover(car, true); }
   G.race.command(id, c);
   lessonEvent({ type: 'cmd', id, c });
   { const k = Object.keys(c).find((x) => CALL_WORDS[x]); const w = c.box ? `Box this lap · ${COMPOUNDS[c.box].name}s` : 'box' in c ? 'Staying out' : k ? CALL_WORDS[k][c[k]] : null; if (w && !(k === 'ers' && G.boost)) ack(`${car.code}: ${w}`); }
@@ -1047,7 +1087,7 @@ function cmd(c, id = G.mineSel || 'you-0', o = {}) {
 }
 function teamOrder(o, spoken) {
   const id = G.mineSel || 'you-0', c = G.race.byId.get(id);
-  if (c.auto) G.race.command(id, { auto: false });
+  if (c.auto) { G.race.command(id, { auto: false }); handover(c, true); }
   G.race.command(id, { order: o });
   lessonEvent({ type: 'order', o });
   ack({ hold: 'Hold positions', free: 'Race freely', swap: 'Swap places' }[o]);
@@ -1104,10 +1144,11 @@ function drainEvents() {
     const e = R.events[G.evIdx++];
     const isMine = e.car && my.includes(e.car), car = e.car && R.byId.get(e.car);
     if (e.type === 'advice' && isMine) {
-      if (e.action?.box) say([carTag(e.car), whyClip(e.text), /Reminder/.test(e.text) ? 'reminder' : 'q_' + e.action.box].filter(Boolean), true);
-      else if (e.action?.ers) say([carTag(e.car), 'battery']);
-      addRadio({ from: 'engineer', text: `${car.code}: ${e.text}`, action: e.action, car: e.car });
-      suggest(car, e.text, e.action);
+      // Team Principal mode: the fact only, spoken only when the clip is a plain reading (no "box now")
+      const fact = e.fact || e.text, clip = /Reminder/.test(e.text) ? 'w_second' : whyClip(e.text);
+      if (FACT_CLIPS.includes(clip)) say([carTag(e.car), clip], true);
+      addRadio({ from: 'race', text: `${car.code}: ${fact}` });
+      suggest(car, fact, e.action);
     } else if ((e.type === 'radio' || e.type === 'pit') && isMine) {
       const bx = /Boxing this lap for (\w)/.exec(e.text);
       if (bx) { say([carTag(e.car), whyClip(e.text), 'bb_' + bx[1]].filter(Boolean)); reply(e.car, 'r_box'); }

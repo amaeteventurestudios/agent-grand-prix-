@@ -85,6 +85,20 @@ function carLap(e, T) {
 
 const CAR_W = 2.9, CAR_L = 7.6;   // a car's footprint on screen, in metres
 
+// what the engineer may show you unasked in Team Principal mode: the reading, never the order
+const FACTS = {
+  'The track is soaked. Full wets.': 'The track is soaked.',
+  'It\'s wet out here. Inters.': 'The track is wet now.',
+  'Too much standing water for inters.': 'Standing water on track.',
+  'Wets are overheating. Time to change.': 'The track is drying. Wets are overheating.',
+  'There\'s a dry line now. Slicks!': 'There\'s a dry line now.',
+  'Safety car! Cheap stop, box now.': 'Safety car out. A stop costs less now.',
+  'Virtual safety car. Box, box!': 'Virtual safety car. A stop costs less now.',
+  'These tyres are finished. Box!': 'Tyres are nearly finished.',
+  'We still need a second compound. Box now.': 'A second tyre compound is still needed.',
+  'Pit window is open.': 'Pit window is open.',
+};
+
 export class Race {
   // opts: track, venue, seed, laps, grid (entries in grid order), weather
   constructor(opts) {
@@ -160,20 +174,36 @@ export class Race {
     return { lap, next };
   }
 
-  command(id, cmd) {
-    const car = this.byId.get(id); if (!car || car.finished || car.dnf) return;
-    this.commands.push({ tick: this.tick, id, cmd });
+  // Who may command a car. Your cars in Team Principal mode answer to you alone: the engineer only
+  // makes pit calls when you switched on beginner assist. In Autonomous mode the strategist runs the
+  // car. Switching modes is always yours. Every caller (buttons, the radio, the strategist, a driver's
+  // own brain) comes through here, so the rule holds whatever asks.
+  may(car, from, cmd) {
+    if (!car.player || from === 'principal') return true;
+    if ('auto' in cmd || 'assist' in cmd || cmd.order) return false;
+    if (car.auto) return from === 'strategist';
+    return from === 'engineer' && car.assist && Object.keys(cmd).every((k) => k === 'box');
+  }
+  command(id, cmd, from = 'principal') {
+    const car = this.byId.get(id); if (!car || car.finished || car.dnf) return false;
+    if (!this.may(car, from, cmd)) return false;
+    this.commands.push(from === 'principal' ? { tick: this.tick, id, cmd } : { tick: this.tick, id, cmd, from });
     if (cmd.pace) car.pace = cmd.pace;
     if (cmd.ers) car.ersMode = cmd.ers;
     if (cmd.battle) car.battle = cmd.battle;
     if ('box' in cmd) {
-      if (cmd.box && !car.pit) { car.pitReq = cmd.box; this.emit('radio', `Copy, box this lap for ${COMPOUNDS[cmd.box].name}s.`, car, { from: 'driver' }); }
-      else if (!cmd.box && car.pitReq && !car.pit) { car.pitReq = null; this.emit('radio', 'Understood, staying out.', car, { from: 'driver' }); }
+      if (cmd.box && !car.pit) { car.pitReq = cmd.box; car.pitBy = from; this.emit('radio', `Copy, box this lap for ${COMPOUNDS[cmd.box].name}s.`, car, { from: 'driver' }); }
+      else if (!cmd.box && car.pitReq && !car.pit) { car.pitReq = null; car.pitBy = null; this.emit('radio', 'Understood, staying out.', car, { from: 'driver' }); }
     }
-    if ('auto' in cmd) car.auto = !!cmd.auto;
+    if ('auto' in cmd && car.auto !== !!cmd.auto) {
+      car.auto = !!cmd.auto;
+      // the handover, on the record; a box call already made stays as it is, whoever made it
+      this.emit('control', car.auto ? `${car.code}: Autonomous. The strategist runs the car.` : `${car.code}: Team Principal. You run the car.`, car, { auto: car.auto, pending: car.pitReq || null });
+    }
     // beginner assist: the engineer makes the pit calls, you keep pace, battery and battles
     if ('assist' in cmd) car.assist = !!cmd.assist;
     if (cmd.order) this.teamOrder(car, cmd.order);
+    return true;
   }
 
   mate(car) { return this.cars.find((o) => o !== car && o.team.id === car.team.id); }
@@ -711,7 +741,7 @@ export class Race {
     if (!car.puncture && car.tyre.wear > 0.98 && r() < 0.05 * dt * (1 + (car.tyre.wear - 0.98) * 40)) {
       car.puncture = true;
       const c = car.pitReq || (isDry(car.tyre.c) ? this.dryChoice(car, car.used.length === 1 ? car.tyre.c : null) : car.tyre.c);
-      car.pitReq = c;
+      car.pitReq = c; car.pitBy = 'puncture'; // not a call: the car has to come in
       this.emit('incident', `Puncture for ${car.code}! The tyres gave up. Limping back to the pits.`, car);
       // a bad one can spin the car into the gravel
       if (r() < 0.12) { car.lat = (r() < 0.5 ? -1 : 1) * (this.track.half + 6); this.retire(car, 'crash', `${car.code} spins on the shredded tyre and hits the wall! Out.`); }
@@ -888,15 +918,18 @@ export class Race {
         }
       }
     }
-    if (call && (!car.pitReq || car.pitReq !== call)) {
+    // a box call you made yourself is never replaced by the strategist's, even after a handover
+    if (call && (!car.pitReq || car.pitReq !== call) && !(car.pitReq && car.pitBy === 'principal')) {
       if (car.player && !car.auto && !car.assist) {
         const key = call + ':' + Math.floor(car.dist / this.track.L);
         if (!car.advised[key]) {
           car.advised[key] = true;
-          this.emit('advice', `${why} Box for ${COMPOUNDS[call].name}s?`, car, { from: 'engineer', action: { box: call } });
+          // in Team Principal mode the engineer never tells you what to do unasked: you get the fact
+          // (fact) and can ask for the engineer's view; the text is kept for the race log
+          this.emit('advice', `${why} Box for ${COMPOUNDS[call].name}s?`, car, { from: 'engineer', action: { box: call }, fact: FACTS[why] || 'Pit window is open.' });
         }
-      } else {
-        car.pitReq = call;
+      } else if (!car.player || this.may(car, car.auto ? 'strategist' : 'engineer', { box: call })) {
+        car.pitReq = call; car.pitBy = car.player ? (car.auto ? 'strategist' : 'engineer') : null;
         if (car.player) this.emit('radio', `${why} Boxing this lap for ${COMPOUNDS[call].name}s.`, car, { from: 'driver' });
       }
     }
@@ -922,7 +955,8 @@ export class Race {
     const close = car.ahead && car.dS < 40;
     // the strategist's team order: a teammate on much fresher tyres right behind gets waved through
     const m = this.mate(car), lapNow = this.lapOf(car);
-    if (m && !car.letBy && m.ahead === car && m.dS < 30 && m.tyre.wear + 0.3 < car.tyre.wear && lapNow - car.orderLap > 3 && this.lapsLeft(car) > 1 && !this.sc) {
+    // the strategist only swaps two cars it runs: your car in Team Principal mode is yours alone
+    if (m && (!m.player || m.auto) && !car.letBy && m.ahead === car && m.dS < 30 && m.tyre.wear + 0.3 < car.tyre.wear && lapNow - car.orderLap > 3 && this.lapsLeft(car) > 1 && !this.sc) {
       car.orderLap = lapNow; this.teamOrder(car, 'swap');
     }
     car.ersMode = car.ers < 0.2 ? 'harvest' : close && car.ers > 0.3 ? 'deploy' : car.ers > 0.85 ? 'deploy' : 'balanced';
@@ -935,7 +969,7 @@ export class Race {
     const left = this.lapsLeft(car);
     if (!this.ruleMet(car) && left === 2 && !car.pitReq) {
       this.emit('advice', 'Reminder: you must use a second dry compound. Box this lap or take a penalty.', car,
-        { from: 'engineer', action: { box: this.dryChoice(car, car.tyre.c) } });
+        { from: 'engineer', action: { box: this.dryChoice(car, car.tyre.c) }, fact: 'Rule check: a second dry compound is still needed, or a penalty. 2 laps left.' });
     }
   }
 
