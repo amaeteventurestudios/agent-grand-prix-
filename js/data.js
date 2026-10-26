@@ -24,10 +24,10 @@ const B = {
 // hills: none | low | hills | peaks | snow | alps
 // rain: chance of at least one shower during the race; storm: how heavy it can get
 export const CALENDAR = [
-  { id: 'abuja', city: 'Abuja', country: 'Nigeria', flag: '🇳🇬', region: 'West Africa',
-    circuit: 'Aso Rock Ring', biome: 'savanna', time: 'day', water: 'none', trees: 'tropical', treeDensity: .95,
-    city01: .9, hills: 'hills', landmark: 'asorock', temp: 33, rain: .4, storm: .8, wear: 1.15,
-    note: 'Season opener in the green capital, under the granite face of Aso Rock with the city skyline beyond. Hot track, sudden storms.' },
+  { id: 'abudhabi', city: 'Abu Dhabi', country: 'UAE', flag: '🇦🇪', region: 'Middle East',
+    circuit: 'Marina Twilight Circuit', biome: 'desert', time: 'dusk', water: 'harbour', trees: 'palm', treeDensity: .35,
+    city01: .6, hills: 'none', landmark: 'yachts', temp: 28, rain: .01, storm: .2, wear: 1,
+    note: 'The season opener. Starts at sunset, finishes under the lights.' },
   { id: 'kigali', city: 'Kigali', country: 'Rwanda', flag: '🇷🇼', region: 'East Africa',
     circuit: 'Thousand Hills Circuit', biome: 'lush', time: 'day', water: 'none', trees: 'round', treeDensity: .9,
     city01: .6, hills: 'hills', landmark: 'thousandhills', temp: 24, rain: .55, storm: .6, wear: 1, grip: .99,
@@ -120,10 +120,10 @@ export const CALENDAR = [
     circuit: 'Río de la Plata Circuit', biome: 'park', time: 'day', water: 'river', trees: 'round', treeDensity: .6,
     city01: .7, hills: 'none', temp: 22, rain: .3, storm: .7, wear: 1,
     note: 'Wide avenues by the great river, and a strong wind off the water.' },
-  { id: 'abudhabi', city: 'Abu Dhabi', country: 'UAE', flag: '🇦🇪', region: 'Middle East',
-    circuit: 'Marina Twilight Circuit', biome: 'desert', time: 'dusk', water: 'harbour', trees: 'palm', treeDensity: .35,
-    city01: .6, hills: 'none', landmark: 'yachts', temp: 28, rain: .01, storm: .2, wear: 1,
-    note: 'The season finale. Starts at sunset, finishes under the lights.' },
+  { id: 'abuja', city: 'Abuja', country: 'Nigeria', flag: '🇳🇬', region: 'West Africa',
+    circuit: 'Aso Rock Ring', biome: 'savanna', time: 'day', water: 'none', trees: 'tropical', treeDensity: .95,
+    city01: .9, hills: 'hills', landmark: 'asorock', temp: 33, rain: .4, storm: .8, wear: 1.15,
+    note: 'The season finale in the green capital, under the granite face of Aso Rock with the city skyline beyond. Hot track, sudden storms.' },
 ].map((v, i) => ({ ...v, round: i + 1, biomeColors: B[v.biome] }));
 
 // More circuits outside the 25-round season: raced in the Daily Grand Prix rotation and Quick Race.

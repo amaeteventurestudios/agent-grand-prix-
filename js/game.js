@@ -14,7 +14,16 @@ export function dayNumber(d = new Date()) {
   const t = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
   return Math.floor((t - EPOCH) / 86400000) + 1;
 }
-export function dailyVenue(n) { return VENUES[(((n - 1) % VENUES.length) + VENUES.length) % VENUES.length]; }
+// Dailies #1-3 were Abuja, Kigali and Abidjan; from #4 the rotation opens in Abu Dhabi and runs through
+// every venue, with those three last
+const DAILY_FIRST = ['abuja', 'kigali', 'abidjan'];
+let dailyOrder = null;
+export function dailyVenue(n) {
+  if (n >= 1 && n <= DAILY_FIRST.length) return VENUES.find((v) => v.id === DAILY_FIRST[n - 1]);
+  dailyOrder ||= [...VENUES.filter((v) => !DAILY_FIRST.includes(v.id)), ...DAILY_FIRST.slice(1).map((id) => VENUES.find((v) => v.id === id)), VENUES.find((v) => v.id === 'abuja')];
+  const k = n - DAILY_FIRST.length - 1, L = dailyOrder.length;
+  return dailyOrder[((k % L) + L) % L];
+}
 
 const trackCache = new Map();
 export function trackFor(venue) {
