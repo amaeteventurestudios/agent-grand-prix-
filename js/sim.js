@@ -16,6 +16,9 @@ const LOOP = 25; // timing loop spacing, m
 
 // Laps of life before a tyre is fully worn, at wear multiplier 1.
 export const LIFE = { S: 4.6, M: 7.6, H: 11.5, I: 8, W: 10 };
+// A full-distance Grand Prix runs on real-race tyres: a soft lasts about a third of the race, so one
+// or two stops win it, as on a real Sunday. Shorter races keep the quick tyres they were tuned with.
+export const tyreLife = (laps) => (laps > 36 ? (laps * 0.33) / LIFE.S : 1);
 
 export function tyreGrip(c, wear, w) {
   let g;
@@ -108,6 +111,7 @@ export class Race {
   // opts: track, venue, seed, laps, grid (entries in grid order), weather
   constructor(opts) {
     Object.assign(this, { track: opts.track, venue: opts.venue, seed: opts.seed, laps: opts.laps });
+    this.life = tyreLife(opts.laps);
     // stage (Racing Academy only): { calm: no failures, cues: [{ t, sc: 'SC' | 'VSC' }] }
     this.stage = opts.stage ? { ...opts.stage, cues: (opts.stage.cues || []).map((q) => ({ ...q })) } : null;
     this.r = rng(opts.seed);
@@ -172,12 +176,12 @@ export class Race {
   planStops(car) {
     const laps = this.laps, c = car.tyre.c, wm = this.venue.wear || 1, b = car.traits.brain;
     if (!isDry(c)) return { lap: null, next: null };
-    const life = LIFE[c] / wm;
+    const life = LIFE[c] * this.life / wm, k = this.life;
     let lap = Math.round(Math.min(life * (0.72 + 0.12 * b), laps * (c === 'S' ? 0.42 : c === 'M' ? 0.55 : 0.68)));
     lap = clamp(lap + this.r.int(-1, 1) * (b < 0.7 ? 1 : 0), 1, laps - 1);
     const rem = laps - lap;
-    let next = rem <= LIFE.S / wm * 0.85 ? 'S' : rem <= LIFE.M / wm * 0.85 ? 'M' : 'H';
-    if (next === c) next = c === 'S' ? 'M' : c === 'M' ? (rem <= LIFE.S / wm * 0.95 ? 'S' : 'H') : 'M';
+    let next = rem <= LIFE.S * k / wm * 0.85 ? 'S' : rem <= LIFE.M * k / wm * 0.85 ? 'M' : 'H';
+    if (next === c) next = c === 'S' ? 'M' : c === 'M' ? (rem <= LIFE.S * k / wm * 0.95 ? 'S' : 'H') : 'M';
     return { lap, next };
   }
 
@@ -424,7 +428,7 @@ export class Race {
       car.dist += car.v * dt;
       car.tyre.fresh += car.v * dt;
       // tyre wear
-      let wr = car.v * dt / (LIFE[car.tyre.c] * L) * this.wearMul;
+      let wr = car.v * dt / (LIFE[car.tyre.c] * this.life * L) * this.wearMul;
       if (car.pace === 'push') wr *= 1.5; else if (car.pace === 'save') wr *= 0.65;
       if (car.battle === 'attack') wr *= 1.1;
       wr *= 1.25 - 0.45 * car.traits.tyre;
@@ -765,7 +769,8 @@ export class Race {
     if (big) {
       car.mistakeT = 2.2; car.mistakeV = 9;
       car.offT = 1.8; car.offSide = Math.sign(this.track.k[i]) > 0 ? -1 : 1;
-      const out = isDry(car.tyre.c) && w > 0.5 && this.r() < 0.25;
+      // (over a full Grand Prix the drivers make many more mistakes, so fewer of them end in the wall)
+      const out = isDry(car.tyre.c) && w > 0.5 && this.r() < (this.life > 1 ? 0.25 * 0.35 : 0.25);
       if (out) {
         car.lat = car.offSide * (this.track.half + 6);
         this.retire(car, 'crash', `${car.name} (${car.code}) is in the barrier! Out of the race.`);
@@ -805,7 +810,8 @@ export class Race {
   contact(car, o) {
     const r = this.r;
     const victim = r() < 0.5 ? car : o, other = victim === car ? o : car;
-    if (r() < 0.35) {
+    // a full Grand Prix has many more fights, so fewer touches end in the wall (the same draw either way)
+    if (r() < (this.life > 1 ? 0.35 * 0.4 : 0.35)) {
       victim.lat = (victim.lat >= 0 ? 1 : -1) * (this.track.half + 6);
       this.retire(victim, 'crash', `Contact between ${car.code} and ${o.code}! ${victim.code} is in the wall. Out of the race.`);
       other.mistakeT = 1.5; other.mistakeV = other.v * 0.6;

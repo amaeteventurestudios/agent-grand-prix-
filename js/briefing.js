@@ -4,7 +4,7 @@
 // cars driven by their plans (and by the obvious calls: inters when it rains on slicks, slicks when it
 // dries, a stop when a tyre is finished), and reports where each plan finished.
 // Pure and DOM-free: runs in a Web Worker (briefing.worker.js), in Node tests, or on a server.
-import { Race, LIFE } from './sim.js';
+import { Race, LIFE, tyreLife } from './sim.js';
 import { COMPOUNDS } from './data.js';
 import { setupRace } from './game.js';
 import { hashString } from './rng.js';
@@ -14,7 +14,7 @@ const clampI = (x, a, b) => Math.max(a, Math.min(b, Math.round(x)));
 
 // two plans per car, A first: A is the engineer's choice for that car, B the honest alternative
 export function plans({ laps, wear = 1, wet0 = 0, showers = 0 }) {
-  const life = (c) => LIFE[c] / wear;
+  const life = (c) => LIFE[c] * tyreLife(laps) / wear;
   if (wet0 > 0.17) {
     const c = wet0 > 0.7 ? 'W' : 'I';
     const one = { start: c, stops: [], note: `Start on ${COMPOUNDS[c].name}s, box for slicks once the track dries` };
