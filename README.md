@@ -127,3 +127,19 @@ Ubuntu) on every push to main, or by hand from the Actions tab (Deploy to server
 itself once the `SITE_DOMAIN` variable names a domain pointed at the server, otherwise plain
 `http://<IP>`), and the agent runs as the `agent-grand-prix` service once its key is set. The secrets
 and the one Oracle console step (open ports 80 and 443) are listed at the top of the workflow.
+
+## Accounts (Novenique Core)
+
+The game works with no account: everything is saved in the browser. When the accounts service is
+running, the same save is also kept on the server under whoever you are, so signing in on another
+device brings your team with you.
+
+- `server/accounts.mjs` runs on 127.0.0.1:8141 behind Caddy at `/api/me/*` and
+  `/auth/novenique/*`. Everyone starts as a guest (no sign-up before a first race); signing in
+  attaches that guest to a Novenique account, or merges it into one that already exists.
+- It needs `NOVENIQUE_URL` (a repository variable in Actions > Variables) and the client id and
+  secret, which Novenique Core writes on the server at `/etc/novenique/clients/agp.env`. With
+  either missing the service still runs and answers `{ "accounts": false }`, and the game stays
+  on this-device saves. No key is ever sent from GitHub.
+- Saves live in `/var/lib/agp-accounts/<user id>.json`. Identity stays with Novenique; this
+  service only holds the game's own save.
