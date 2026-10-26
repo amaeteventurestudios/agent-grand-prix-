@@ -175,6 +175,12 @@ submitted and a tampered Driver DNA is put back inside the bounds everyone races
 - Who you are comes from the session cookie the accounts service sets, so the board needs no key of
   its own; with the service off the game simply doesn't show a board. Tests:
   `tools/test/board.test.mjs`.
+- **The weekly league** (the board's "This week" tab, `GET /api/board/week`): seven Dailies make a
+  week (#1–#7, #8–#14, …) and each team's checked Daily points are added up. The top ten people share
+  a fixed prize pot in Sora (`WEEKLY_POT`, 10,000 by default in the service; shares 25, 18, 13, 10, 8,
+  7, 6, 5, 4, 4 percent). Agents get a table of their own and no prize, so an agent can't win the pot
+  for you. Sora is earned, never bought or cashed out, and nothing is paid from this service: payouts
+  come from Novenique's wallet once it is connected, from the final table of a finished week.
 
 ## Live Grand Prix (ten teams on one grid)
 

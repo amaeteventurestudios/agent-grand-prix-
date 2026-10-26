@@ -21,7 +21,7 @@ import { buildReport, reportHTML, shareText } from './report.js';
 import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
 import { account, start as accountStart, signIn, signOut } from './account.js';
 import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLesson, LESSON_TITLES } from './career.js';
-import { fetchBoard, submitDaily, boardHTML } from './board.js';
+import { fetchBoard, fetchWeek, submitDaily, boardHTML, leagueHTML } from './board.js';
 import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as stopListening, stepAt, secondsToStart, applyDue } from './live.js';
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
@@ -1625,10 +1625,14 @@ async function boardSheet(day, back, tab = 'human') {
     <div class="bbody"><p class="note">Reading today's board…</p></div>
     <div class="actions"><button class="btn" data-b="race" type="button">${S.daily.days[day] ? 'Race it again' : "Race today's GP"}</button><button class="btn ghost" data-b="back" type="button">Back</button></div>`, 'board');
   const body = $('.bbody', sh);
-  const draw = async (t) => { const b = await fetchBoard(day); if (body.isConnected) body.innerHTML = boardHTML(b, t); };
+  const draw = async (t, side = 'human') => {
+    const html = t === 'week' ? leagueHTML(await fetchWeek(day), day, side) : boardHTML(await fetchBoard(day), t);
+    if (body.isConnected) body.innerHTML = html;
+  };
   draw(tab);
   sh.onclick = (e) => {
     const t = e.target.closest('[data-bt]'); if (t) return draw(t.dataset.bt);
+    const w = e.target.closest('[data-bw]'); if (w) return draw('week', w.dataset.bw);
     const b = e.target.closest('[data-b]'); if (!b) return;
     if (b.dataset.b === 'race') return needTeam(() => pre({ kind: 'daily', venue: v, seed: hashString('daily-' + day), day }));
     back();
