@@ -186,14 +186,14 @@ export function generateTrack(seed, venue = {}) {
   const nx0 = -tz[0], nz0 = tx[0];
   const side = ((x[0] + nx0 * 30 - cx) ** 2 + (z[0] + nz0 * 30 - cz) ** 2) > ((x[0] - nx0 * 30 - cx) ** 2 + (z[0] - nz0 * 30 - cz) ** 2) ? 1 : -1;
   const before = Math.round(straightLen * 0.62), after = straightLen - before;
-  const inS = -Math.round(before * 0.62), outS = Math.round(after * 0.62);
+  const inS = -Math.round(before * 0.42), outS = Math.round(after * 0.42);
   // the first box sits far enough down the lane for a car to slow from the entry and move across
   const boxSpacing = Math.min(16, Math.floor((outS - inS - 80) / 9));
   const boxStart = inS + 48;
   const box = []; for (let t = 0; t < 10; t++) box.push(boxStart + t * boxSpacing);
   // two lanes, as in a real pit lane: the fast lane by the pit wall, where cars drive at the limit,
   // and the working lane in front of the garages, where each car stops in its own box only
-  const pit = { side, inS, outS, box, lat: side * (half + 15), fast: side * (half + 8.6), speed: 30 };
+  const pit = { side, inS, outS, box, lat: side * (half + 15), fast: side * (half + 8.6), speed: 38 };
 
   // corners: the slowest point of each braking zone, numbered round the lap (Turn 1, Turn 2...)
   const apex = [];

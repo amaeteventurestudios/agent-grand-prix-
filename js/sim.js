@@ -348,6 +348,18 @@ export class Race {
         const beside = ahead.pass && ahead.pass.id === car.id && dS < CAR_L;
         if (!clear && !beside && (!lapped || dS < 9)) car._vt = Math.min(car._vt, Math.max(ahead.v * 0.85, ahead.v + (dS - (car.battle === 'attack' ? 8.5 : 10)) * 0.7));
       }
+      // never through a car: the nearest one on this line (not always the nearest ahead) is braked for
+      // in time, however fast we're closing, until we've pulled out alongside it
+      let line = null, dL = 1e9;
+      for (const o of onTrack) {
+        if (o === car || Math.abs(o.lat - car.lat) >= CAR_W) continue;
+        let d = ((o.dist % L) + L) % L - s; if (d < 0) d += L;
+        if (d < dL && d < 120) { dL = d; line = o; }
+      }
+      if (line && dL > CAR_L * 0.5 && car.v > line.v && !(line.pass && line.pass.id === car.id && dL < CAR_L)) {
+        const room = Math.max(0, dL - CAR_L - 1.5);
+        car._vt = Math.min(car._vt, line.v + Math.sqrt(2 * 30 * room));
+      }
     }
 
     // team orders: the car letting its teammate by eases off until the other is past (or the window closes)
@@ -367,7 +379,12 @@ export class Race {
       const o = this.byId.get(car.pass.id);
       if (!o) continue;
       if (o.hold && o.hold.by === car.id) o.hold.t = Math.max(o.hold.t, 0.5);   // it keeps its line until the move is done
-      if (car.pass.abort) { car._vt = Math.min(car._vt, o.v * 0.93); continue; }
+      if (car.pass.abort) {
+        // backing off to tuck in behind: once it's behind, the move is over (a car already ahead never slows for one behind)
+        let d = (o.dist - car.dist) % L; if (d > L / 2) d -= L; if (d < -L / 2) d += L;
+        if (d < 0) car.pass = null; else car._vt = Math.min(car._vt, o.v * 0.93);
+        continue;
+      }
       if (Math.abs(car.lat - o.lat) >= CAR_W * 0.92) {
         const str = T.straight[Math.floor(((car.dist % L) + L) % L)];
         car._vt *= 1 + (str ? 0.03 : 0.015) + (car.battle === 'attack' ? 0.01 : 0) + (car.ersMode === 'deploy' && car.ers > 0 ? 0.015 : 0);
@@ -449,7 +466,8 @@ export class Race {
       const rate = car.pit ? Math.min(Math.abs(latT - car.lat) > 7 ? 12 : 9, (car.pit.phase === 'out' ? 4 : 1.6) + car.v * 0.45) : car.offT > 0 || car.failing ? 6 : car.pass ? 3.6 : 2.6;
       const nl = car.lat + clamp(latT - car.lat, -rate * dt, rate * dt);
       // in the pit lane, never slide sideways into a car alongside: wait for it to pass
-      if (!car.pit) car.lat = nl;
+      // on track too: never slide sideways into a car alongside (a spinning or crashing car aside)
+      if (!car.pit) { if (car.offT > 0 || car.failing || !this.sideBlocked(car, nl)) car.lat = nl; }
       else if (this.pitBeside(car, nl)) car.pit.blk = (car.pit.blk || 0) + dt;
       else { car.lat = nl; car.pit.blk = 0; }
       // mistakes
@@ -602,6 +620,15 @@ export class Race {
   // a car within a car's length that a sideways move to lat would run into. After a second of
   // waiting only cars alongside or ahead count, so two cars side by side can never block each other
   // (the one further back gives way). A car just released has the fast lane: the crew checked it was clear
+  sideBlocked(car, lat) {
+    const L = this.track.L;
+    for (const o of this.cars) {
+      if (o === car || o.pit || o.dnf || o.finished || o.dist <= 0) continue;
+      let d = (o.dist - car.dist) % L; if (d > L / 2) d -= L; if (d < -L / 2) d += L;
+      if (Math.abs(d) < CAR_L + 0.5 && Math.abs(o.lat - lat) < CAR_W && Math.abs(o.lat - lat) < Math.abs(o.lat - car.lat)) return true;
+    }
+    return false;
+  }
   pitBeside(car, lat) {
     const L = this.track.L;
     for (const o of this.cars) {
@@ -864,7 +891,7 @@ export class Race {
         // in or next to the pit lane nobody is pushed sideways: the one behind waits
         const [back, front] = d < 0 ? [A, B] : [B, A];
         if (Math.abs(d) < CAR_L) { back.dist -= Math.min(0.15, CAR_L - Math.abs(d)); back.v = Math.min(back.v, front.v * 0.6); }
-      } else if (passing || Math.abs(d) < CAR_L * 0.6) {
+      } else if (Math.abs(d) < CAR_L * 0.6) {
         // alongside: ease apart sideways, the passing car doing most of the moving
         const push = Math.min(0.14, (CAR_W - Math.abs(dl)) * 0.5) * (dl >= 0 ? 1 : -1);
         const wa = A.pass && A.pass.id === B.id ? 0.8 : B.pass && B.pass.id === A.id ? 0.2 : 0.5;
