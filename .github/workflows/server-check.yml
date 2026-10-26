@@ -1,0 +1,29 @@
+# Health check for the server, run by hand from the Actions tab: is the WhatsApp agent running, does
+# WhatsApp accept its key, and what did it last log. Phone numbers are masked because this repo's logs are public.
+name: Server check
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask the server
+        env:
+          HOST: ${{ secrets.SERVER_HOST }}
+          USER: ${{ secrets.SERVER_USER }}
+          KEY: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          set -uo pipefail
+          HOST=$(printf '%s' "$HOST" | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}|[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+' | tail -1)
+          USER=$(printf '%s' "$USER" | grep -oE '[a-z_][a-z0-9_-]*' | tail -1); USER="${USER:-ubuntu}"
+          install -m 600 /dev/null key && printf '%s\n' "$KEY" | tr -d '\r' | sed -n '/-----BEGIN/,/-----END/p' > key
+          ssh -i key -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 "$USER@$HOST" 'bash -s' <<'REMOTE' | sed -E 's/[0-9]{8,}/<number>/g'
+          echo "== WhatsApp agent service"; systemctl is-active agent-grand-prix; systemctl show agent-grand-prix -p NRestarts -p ActiveEnterTimestamp
+          echo "== Key set: $(sudo grep -c '^WHATSAPP_AGENT_TOKEN=.\+' /etc/agent-grand-prix.env)"
+          TOKEN=$(sudo sed -n 's/^WHATSAPP_AGENT_TOKEN=//p' /etc/agent-grand-prix.env)
+          API=$(sudo sed -n 's/^WA_API=//p' /etc/agent-grand-prix.env); API="${API:-https://api.whatsapp.com/agent/v1}"
+          echo "== WhatsApp answers the key with HTTP $(curl -s -o /tmp/wa.json -w '%{http_code}' -m 30 -H "Authorization: Bearer $TOKEN" "$API/updates?limit=1&timeout=1")"
+          head -c 400 /tmp/wa.json | grep -oE '"(code|message|type)":[^,}]*' ; rm -f /tmp/wa.json
+          echo "== Last 60 log lines"; sudo journalctl -u agent-grand-prix -n 60 --no-pager -o short-iso
+          REMOTE
