@@ -235,7 +235,7 @@ $$('[data-speed]').forEach((b) => b.addEventListener('click', () => {
 }));
 // the Daily Grand Prix and the season are competitive: everyone races them at real speed (and a
 // lesson runs at real speed too, so the engineer and the race keep time)
-const fairRace = () => G.kind === 'daily' || G.kind === 'season' || G.kind === 'academy' || G.kind === 'live';
+const fairRace = () => G.kind === 'daily' || G.kind === 'dailyfull' || G.kind === 'season' || G.kind === 'academy' || G.kind === 'live';
 function speedUI() {
   if (fairRace()) G.speed = 1;
   $('.hud .speed').hidden = fairRace();
@@ -1465,7 +1465,7 @@ function home() {
     <div class="cards">
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
         <p>${done ? `${done.agent ? 'Your agent' : 'You'} finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
-        <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}<button class="btn ghost" data-go="board" type="button">Leaderboard</button></div></div>
+        <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}<button class="btn ghost" data-go="board" type="button">Leaderboard</button><button class="btn ghost" data-go="dailyfull" type="button">Full distance</button></div></div>
       <div class="hc"><span class="k">Live Grand Prix · up to 10 teams</span><h3>Race people</h3>
         <p>Ten teams on one grid, everyone on their own radio at the same time. A new race every five minutes.</p>
         <div class="row"><button class="btn" data-go="live" type="button">Find a race</button></div></div>
@@ -1712,10 +1712,11 @@ function liveCatchUp() {
 // Your scored run is sent as the race itself: the setup and every call. The server replays it with
 // the game's own engine and ranks what it finds, so nothing a browser claims about a result is read.
 function sendToBoard(day, rec, agent) {
-  if (!rec || rec.kind !== 'daily') return;
+  if (!rec || (rec.kind !== 'daily' && rec.kind !== 'dailyfull')) return;
   submitDaily({ day, team: team().name, agent, rec }).then((r) => {
     if (!r || !r.you) return;
-    G.boardLine = `<p class="lede">On today's leaderboard you are <b>P${r.you.place}</b> of ${r.you.agent ? r.agents : r.humans} ${r.you.agent ? 'agents' : 'teams'}. <button class="btn ghost small" data-r="board" type="button">Leaderboard</button></p>`;
+    G.boardLine = r.len === 'full' ? `<p class="lede">Your full-distance race is on today's full-distance board. <button class="btn ghost small" data-r="board" type="button">Leaderboard</button></p>`
+      : `<p class="lede">On today's leaderboard you are <b>P${r.you.place}</b> of ${r.you.agent ? r.agents : r.humans} ${r.you.agent ? 'agents' : 'teams'}. <button class="btn ghost small" data-r="board" type="button">Leaderboard</button></p>`;
     if (G.resFor === G.race && !$('#screen').hidden) resultsView();
   });
 }
@@ -1724,10 +1725,10 @@ async function boardSheet(day, back, tab = 'human') {
   const sh = show(`<div class="sub">Daily #${day} · ${v.flag} ${esc(v.city)}</div><h2>Leaderboard</h2>
     <p class="lede">Today's race is the same for everyone: the same circuit, grid and weather. Every result here was raced, not claimed: the server runs your race again from your own calls before it ranks you.</p>
     <div class="bbody"><p class="note">Reading today's board…</p></div>
-    <div class="actions"><button class="btn" data-b="race" type="button">${S.daily.days[day] ? 'Race it again' : "Race today's GP"}</button><button class="btn ghost" data-b="back" type="button">Back</button></div>`, 'board');
+    <div class="actions"><button class="btn" data-b="race" type="button">${S.daily.days[day] ? 'Race it again' : "Race today's GP"}</button><button class="btn ghost" data-b="full" type="button">Race the full distance</button><button class="btn ghost" data-b="back" type="button">Back</button></div>`, 'board');
   const body = $('.bbody', sh);
   const draw = async (t, side = 'human') => {
-    const html = t === 'week' ? leagueHTML(await fetchWeek(day), day, side) : boardHTML(await fetchBoard(day), t);
+    const html = t === 'week' ? leagueHTML(await fetchWeek(day), day, side) : boardHTML(await fetchBoard(day, t === 'full' ? 'full' : 'short'), t);
     if (body.isConnected) body.innerHTML = html;
   };
   draw(tab);
@@ -1736,6 +1737,7 @@ async function boardSheet(day, back, tab = 'human') {
     const w = e.target.closest('[data-bw]'); if (w) return draw('week', w.dataset.bw);
     const b = e.target.closest('[data-b]'); if (!b) return;
     if (b.dataset.b === 'race') return needTeam(() => pre({ kind: 'daily', venue: v, seed: hashString('daily-' + day), day }));
+    if (b.dataset.b === 'full') return needTeam(() => pre({ kind: 'dailyfull', venue: v, seed: hashString('daily-' + day), day }));
     back();
   };
 }
@@ -1800,6 +1802,7 @@ function homeClick(e) {
   if (go === 'glance') { G.homeFull = false; return home(); }
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
   if (go === 'daily') needTeam(() => pre({ kind: 'daily', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
+  if (go === 'dailyfull') needTeam(() => pre({ kind: 'dailyfull', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
   if (go === 'season') {
     if (S.season.round > CALENDAR.length) return standings(true);
     const v = CALENDAR[S.season.round - 1];
@@ -2404,7 +2407,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   const steps = [...(o.kind === 'quick' ? ['circuit'] : []), 'car', ...(o.first ? [] : ['quali']), 'tyres', 'settings'];
   const i = steps.indexOf(step), go = (k) => pre(o, steps[i + k]);
   const back = () => (i ? go(-1) : home());
-  const label = o.first ? 'Your first race' : o.kind === 'daily' ? `Daily Grand Prix #${o.day}` : o.kind === 'season' ? `Season ${S.season.no} · Round ${o.round}` : 'Quick race';
+  const label = o.first ? 'Your first race' : o.kind === 'daily' ? `Daily Grand Prix #${o.day}` : o.kind === 'dailyfull' ? `Daily #${o.day} · Full distance` : o.kind === 'season' ? `Season ${S.season.no} · Round ${o.round}` : 'Quick race';
   const head = (title) => `<header class="wiz-head">${dots(i, steps.length)}<div class="sub">${label}</div>${o.venue && step !== 'circuit' ? `<h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>` : ''}${title}</header><div class="wiz-body">`;
 
   if (step === 'circuit') {
@@ -2429,7 +2432,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
     return;
   }
   Object.assign(G, { kind: o.kind, venue: o.venue, seed: o.seed, round: o.round || null, day: o.day || null });
-  const length = o.kind === 'daily' ? 'short' : o.length || S.settings.length || 'short';
+  const length = o.kind === 'daily' ? 'short' : o.kind === 'dailyfull' ? 'full' : o.length || S.settings.length || 'short';
   G.laps = raceLaps(trackFor(o.venue), length);
 
   if (step === 'car') {
@@ -2472,7 +2475,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
         <div><small>Weather · simulated</small><b>${tempTxt(o.venue.temp)} · ${rainTxt}</b></div>
         <div><small>Tyre wear</small><b>${o.venue.wear >= 1.15 ? 'High' : o.venue.wear <= 0.85 ? 'Low' : 'Medium'}</b></div>
       </div>
-      ${o.kind === 'daily' || o.first ? '' : `<div class="sub">Race length</div>
+      ${o.kind === 'daily' || o.kind === 'dailyfull' || o.first ? '' : `<div class="sub">Race length</div>
       <div class="vpick lengths">${LENGTHS.map((l) => `<button type="button" data-len="${l.id}" class="${length === l.id ? 'on' : ''}"><b>${l.name}</b><span>${raceLaps(T, l.id)} laps · ${l.note}</span></button>`).join('')}</div>`}
       <div class="sub">Pre-race briefing</div>
       <p class="note">Your engineer's two plans for each driver. The race engine runs this race ${BRIEF_N() * 2} times in the background, with the same grid and forecast, to see where each plan finishes.</p>
@@ -2893,6 +2896,12 @@ function results() {
     if (S.season.round > CALENDAR.length && tp === 1) give('champion');
   }
   let dailyLine = '', share = '';
+  if (G.kind === 'dailyfull') {
+    // the full-distance Daily: a board of its own, one scored run a day there; no streak, no week
+    const n = G.day, F = (S.dailyFull ||= { days: {} });
+    if (!F.days[n]) { F.days[n] = { best, pts }; dailyLine = 'Your full-distance result is saved and goes on today\'s full-distance board.'; sendToBoard(n, ran, false); }
+    else dailyLine = `Replay only: your scored full-distance run today was P${F.days[n].best}.`;
+  }
   if (G.kind === 'daily') {
     const n = G.day, rec = S.daily.days[n];
     const lines = [
@@ -2930,7 +2939,7 @@ function results() {
   G.props = strategistAfterRace(R);
   if (G.props.length) say(['d_notes']);
   store.save();
-  const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : G.kind === 'live' ? 'Live Grand Prix' : 'Quick race';
+  const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'dailyfull' ? 'Daily #' + G.day + ' · Full distance' : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : G.kind === 'live' ? 'Live Grand Prix' : 'Quick race';
   G.report = buildReport(R, { venue: G.venue, label, mine: ['you-0', 'you-1'] });
   if (G.kind !== 'academy') { S.lastReport = G.report; store.save(); }
   G.resShare = share || shareText(G.report, location.origin + location.pathname);
@@ -3013,10 +3022,10 @@ function resultsView() {
     const r = b.dataset.r;
     if (r === 'next') { const v = CALENDAR[S.season.round - 1]; pre({ kind: 'season', venue: v, seed: hashString(`season-${S.season.no}-${S.season.round}`), round: S.season.round }); }
     if (r === 'share') shareSheet(share, results);
-    if (r === 'again') pre({ kind: G.kind === 'season' ? 'quick' : G.kind, venue: G.venue, seed: G.kind === 'daily' ? G.seed : hashString('quick-' + Date.now()), day: G.day }, 'tyres');
+    if (r === 'again') pre({ kind: G.kind === 'season' ? 'quick' : G.kind, venue: G.venue, seed: G.kind === 'daily' || G.kind === 'dailyfull' ? G.seed : hashString('quick-' + Date.now()), day: G.day }, 'tyres');
     if (r === 'standings') standings();
     if (r.startsWith('dp:')) driverSheet(r.slice(3), resultsView);
-    if (r === 'board') boardSheet(G.day || dayNumber(), resultsView);
+    if (r === 'board') boardSheet(G.day || dayNumber(), resultsView, G.kind === 'dailyfull' ? 'full' : 'human');
     if (r === 'home') attract();
   };
 }
