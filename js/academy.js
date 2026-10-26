@@ -19,7 +19,7 @@ export const LESSONS = [
       { id: 'hello', say: ['a1_hello'], act: 'Next', until: (e) => e.type === 'next',
         text: 'Welcome to the pit wall. I\'m your race engineer. Your two AI drivers drive the cars. <b>You are the team principal: you make the calls.</b>' },
       { id: 'two', say: ['a1_two'], hl: '[data-mine="you-1"]', go: 'tab:wall', until: (e) => e.type === 'select' && e.id === 'you-1',
-        text: 'You run <b>two cars</b>: {A} and {B}. Tap <b>{B}</b> on the pit wall to follow your second car.' },
+        text: 'You run <b>two cars</b>: {A} and {B}. Tap <b>{B}</b> to follow your second car.' },
       { id: 'each', say: ['a1_each'], act: 'Lights out', until: (e) => e.type === 'next',
         text: 'Each car takes its own calls: whichever car you follow is the one you\'re talking to. Ready to race?' },
       { id: 'push', go: 'lights', say: ['a1_push'], hl: '[data-set="pace"][data-val="push"]', until: isCmd('pace', 'push'),

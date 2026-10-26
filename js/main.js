@@ -322,6 +322,12 @@ function tick() {
   renderControls();
   drainEvents();
   forecast();
+  // the car you follow retired and has been taken away: follow your other car, or the leader
+  const out = R.byId.get(G.sel);
+  if (out && out.dnf && out.cleared && !G.attract) {
+    const next = mine().map((id) => R.byId.get(id)).find((c) => !c.dnf && !c.finished) || R.order.find((c) => !c.dnf);
+    if (next) { toast(`${out.code} is out of the race. Now following ${next.code}.`); return select(next.id); }
+  }
   const f = R.byId.get(G.sel);
   const fl = $('#follow');
   if (f && cams.mode !== 'overview') {
@@ -607,7 +613,9 @@ function radioCalls(calls) {
   const R = G.race, now = R.t;
   for (const call of calls) {
     const c = R.byId.get(call.id);
-    if (!c || c.dnf || c.finished) continue;
+    if (!c) continue;
+    // a retired car takes no more calls: the engineer says so instead of the radio going quiet
+    if (c.dnf || c.finished) { if (!calls.some((x, i) => x.id === c.id && i < calls.indexOf(call))) { say([carTag(c.id), c.dnf ? 'out' : 'flag']); addRadio({ from: 'engineer', text: c.dnf ? `${c.code} is out of the race. That car can't take calls any more.` : `${c.code} has finished the race.` }); } continue; }
     if (call.after) { talk.plans.push({ id: c.id, call: { ...call, after: null }, lap: R.lapOf(c) + call.after.laps }); continue; }
     const key = c.id + ':' + call.k + (call.tyre || '');
     if (performance.now() - (talk.last[key] || -1e9) < 2000) continue;
@@ -909,7 +917,7 @@ function renderControls(force) {
   }
   el.innerHTML = `
     <div class="card">
-      <div class="mine-tabs">${[a, b].map((x) => `<button type="button" data-mine="${x.id}" class="${x.id === id ? 'on' : ''}"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${x.team.c1}"></span>${esc(x.code)} · P${x.pos}</button>`).join('')}</div>
+      <div class="mine-tabs">${[a, b].map((x) => `<button type="button" data-mine="${x.id}" class="${x.id === id ? 'on' : ''}${x.dnf ? ' out' : ''}"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${x.team.c1}"></span>${esc(x.code)} · ${x.dnf ? 'OUT' : 'P' + x.pos}</button>`).join('')}</div>
       <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'Your AI makes every call.' : 'You make the calls. Your engineer advises.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
       ${c.auto ? '' : `<label class="assist"><input type="checkbox" data-act="assist" ${c.assist ? 'checked' : ''}><span><b>Engineer calls the stops</b> Beginner assist: your engineer boxes both cars at the right time. You keep pace, battery and battles.</span></label>`}

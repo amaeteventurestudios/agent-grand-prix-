@@ -20,6 +20,9 @@ suffix = '-' + SET if SET else ''
 kok_model, kok_voices, piper_dir = sys.argv[1:4]
 only = sys.argv[4:] or list(VOICES)
 kok = None; pipers = {}
+# race radio is brisk; the Academy teaches, so its lines are read at a calmer pace (Kokoro voices;
+# the Piper voices read English with an accent and already sound unhurried)
+SPEED = 0.98 if os.environ.get('LINES') == 'academy' else 1.1
 
 def speak(engine, model, lang, text):
     global kok
@@ -27,7 +30,7 @@ def speak(engine, model, lang, text):
         if kok is None:
             from kokoro_onnx import Kokoro
             kok = Kokoro(kok_model, kok_voices)
-        return kok.create(text, voice=model, speed=1.1, lang=lang)
+        return kok.create(text, voice=model, speed=SPEED, lang=lang)
     from piper import PiperVoice, SynthesisConfig
     if model not in pipers: pipers[model] = PiperVoice.load(os.path.join(piper_dir, model + '.onnx'))
     ch = list(pipers[model].synthesize(text, SynthesisConfig(length_scale=0.92)))
