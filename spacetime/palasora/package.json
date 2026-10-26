@@ -1,0 +1,6 @@
+{
+  "name": "palasora-spacetime",
+  "private": true,
+  "type": "module",
+  "dependencies": { "spacetimedb": "2.13.0" }
+}

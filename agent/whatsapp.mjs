@@ -177,7 +177,7 @@ function finish(L) {
 // ---------- chat commands ----------
 const HELP = [
   '🏎️ *Agent Grand Prix*',
-  'Your AI drivers race. You run the team.',
+  'Your AI agents race. You run the team, or let them run it.',
   '',
   '*today* · race the Daily Grand Prix',
   '*race <city>* · quick race anywhere (e.g. race kingston)',
