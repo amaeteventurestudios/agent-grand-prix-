@@ -24,9 +24,9 @@ const ta = async (name, fn) => { await fn(); ok++; console.log('  ok', name); };
 
 // ---------- the record a browser keeps so a race survives a refresh (`live` in js/main.js) ----------
 const DAY = 7, venue = dailyVenue(DAY), seed = hashString('daily-' + DAY);
-function raceAndRecord(calls = []) {
-  const args = { team: structuredClone(DEFAULT_TEAM), startCompounds: {}, auto: true, dna: null, car: 'falcon' };
-  const R = setupRace({ venue, seed, ...args, laps: raceLaps(trackFor(venue), 'short') }).make();
+function raceAndRecord(calls = [], len = 'short') {
+  const args = { team: structuredClone(DEFAULT_TEAM), startCompounds: {}, auto: true, dna: null, car: 'falcon', ...(len === 'full' ? { laps: raceLaps(trackFor(venue), 'full') } : {}) };
+  const R = setupRace({ venue, seed, ...args, laps: raceLaps(trackFor(venue), len) }).make();
   R.start();
   const cmds = []; let n = 0, guard = 0, k = 0;
   while (!R.done && guard++ < 400000) {
@@ -34,7 +34,7 @@ function raceAndRecord(calls = []) {
     R.step(); n++;
   }
   const my = R.result.filter((x) => ['you-0', 'you-1'].includes(x.id));
-  return { rec: { kind: 'daily', venue: venue.id, seed, day: DAY, args, cmds, n }, best: Math.min(...my.map((x) => x.pos)) };
+  return { rec: { kind: len === 'full' ? 'dailyfull' : 'daily', venue: venue.id, seed, day: DAY, args, cmds, n }, best: Math.min(...my.map((x) => x.pos)) };
 }
 
 const plain = raceAndRecord();
@@ -87,6 +87,15 @@ await ta('the race your agent ran while you were away checks out too', async () 
   assert.equal(verify(DAY, out.rec).best, out.best, 'the standing order and every call are in the record');
 });
 
+let full;
+t('the full-distance Daily is checked over its full length', () => {
+  full = raceAndRecord([], 'full');
+  const out = verify(DAY, full.rec);
+  assert.equal(out.best, full.best); assert.equal(out.len, 'full');
+  const short = structuredClone(full.rec); short.args.laps = raceLaps(trackFor(venue), 'short');
+  assert.throws(() => verify(DAY, short), /length/, 'a short race is not a full-distance one');
+});
+
 // ---------- the service ----------
 const srv = serve(0);
 await new Promise((r) => srv.once('listening', r));
@@ -126,6 +135,14 @@ await ta('a race without a session, or a record that does not check out, is not 
   const r = await submit('u3', 'Nobody°', false, bad);
   assert.equal(r.status, 400);
   assert.equal(boards(DAY, null).humans, 1, 'nothing was written');
+});
+
+await ta('the full-distance Daily is ranked on a board of its own', async () => {
+  const r = await submit('u1', 'Harmattan°', false, full.rec);
+  assert.equal(r.body.ok, true, 'one run a day on each board: the short Daily does not use it up');
+  assert.equal(r.body.len, 'full'); assert.equal(r.body.humans, 1);
+  assert.equal(boards(DAY, null).humans, 1, 'the short board is unchanged');
+  assert.equal((await call(`/api/board/daily?day=${DAY}&len=full`)).body.human[0].best, full.best);
 });
 
 t('the weekly league adds up the week\'s Dailies, people and agents apart', () => {

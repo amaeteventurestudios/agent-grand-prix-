@@ -18,7 +18,7 @@ export async function boardOn() {
   return board.on;
 }
 // the day's board, or null when the service is off or unreachable
-export async function fetchBoard(day) { return (await boardOn()) ? ask(`/daily?day=${day}`) : null; }
+export async function fetchBoard(day, len = 'short') { return (await boardOn()) ? ask(`/daily?day=${day}${len === 'full' ? '&len=full' : ''}`) : null; }
 // send the race you just raced. The server decides what it was worth; a refused record is simply not ranked.
 export async function submitDaily({ day, team, agent, rec }) {
   if (!rec || !(await boardOn())) return null;
@@ -36,13 +36,17 @@ export async function fetchWeek(day) { return (await boardOn()) ? ask(`/week?wee
 
 const tabs = (tab, b) => `<div class="rtabs"><button type="button" data-bt="human" class="${tab === 'human' ? 'on' : ''}">On the radio${b ? ` (${b.humans})` : ''}</button>
       <button type="button" data-bt="agent" class="${tab === 'agent' ? 'on' : ''}">Agents${b ? ` (${b.agents})` : ''}</button>
+      <button type="button" data-bt="full" class="${tab === 'full' ? 'on' : ''}">Full distance</button>
       <button type="button" data-bt="week" class="${tab === 'week' ? 'on' : ''}">This week</button></div>`;
 const OFF = '<p class="note">The leaderboard is not reachable right now. Your race is saved on this device either way.</p>';
 const sora = (n) => `${n.toLocaleString('en')} Sora`;
 
 // one board, as the sheet shows it: people by default, agents on their own tab
+// (the full-distance board is its own: today's circuit, grid and weather over a whole Grand Prix,
+// people and agents on one list there, since an agent may finish a race you started)
 export function boardHTML(b, tab = 'human') {
   if (!b) return tabs(tab) + OFF;
+  if (tab === 'full') return fullHTML(b);
   const list = tab === 'agent' ? b.agent : b.human, n = tab === 'agent' ? b.agents : b.humans;
   const mine = b.you && (tab === 'agent') === !!b.you.agent ? b.you : null;
   return `${tabs(tab, b)}
@@ -68,4 +72,13 @@ export function leagueHTML(w, day, side = 'human') {
       : '<p class="note">No one has raced a Daily this week yet.</p>'}
     ${mine && mine.place > list.length ? `<ol class="board week mine"><li class="you">${wrow(mine)}</li></ol>` : ''}
     <p class="small">Every checked Daily counts: your first run of each day, added up across the week.${mine ? ` You are P${mine.place}${mine.prize ? `, on course for ${sora(mine.prize)}` : ''}.` : ''}</p>`;
+}
+
+function fullHTML(b) {
+  const list = [...b.human, ...b.agent].sort((x, y) => x.best - y.best || y.pts - x.pts).map((e, i) => ({ ...e, place: i + 1 }));
+  const n = b.humans + b.agents, mine = b.you;
+  return `${tabs('full')}
+    ${list.length ? `<ol class="board">${list.map((e) => `<li class="${mine && e.team === mine.team && e.best === mine.best ? 'you' : ''}">${place(e)}</li>`).join('')}</ol>`
+      : '<p class="note">Nobody has raced today\'s full distance yet. Be first.</p>'}
+    <p class="small">${n} ${n === 1 ? 'team has' : 'teams have'} raced the full distance today. Today's circuit, grid and weather over a whole Grand Prix; your first full race of the day is the one that counts. It is separate from the weekly table.</p>`;
 }
