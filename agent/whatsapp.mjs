@@ -13,6 +13,7 @@ import { CALENDAR, VENUES, COMPOUNDS } from '../js/data.js';
 import { hashString } from '../js/rng.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM } from '../js/game.js';
 import { DT, fmtTime } from '../js/sim.js';
+import * as Chat from './chat.mjs';
 
 const TOKEN = process.env.WHATSAPP_AGENT_TOKEN;
 const API = (process.env.WA_API || 'https://api.whatsapp.com/agent/v1').replace(/\/$/, '');
@@ -97,13 +98,19 @@ function startRace(to, p, kind, venue) {
   const grid = mine.map((id) => R.byId.get(id));
   const W = setup.weather;
   send(to, [
-    `🏁 *${v.flag} ${v.city} Grand Prix*${kind === 'daily' ? ` · Daily #${n}` : ''}`,
-    `${v.circuit}, ${v.country} · ${setup.laps} laps · ${tempTxt(v.temp)}${W.wet0 > 0.17 ? ' · wet track' : W.showers.length ? ' · rain likely' : ''}`,
+    `🏁 *${v.flag} ${v.city.toUpperCase()} GRAND PRIX*`,
+    kind === 'daily' ? `_Daily Grand Prix #${n}_` : '_Quick race_',
     '',
-    ...grid.map((c) => `${c.code} starts P${c.grid} on ${tyre(c.tyre.c)}`),
+    `📍 ${v.circuit}, ${v.country}`,
+    `🔁 ${setup.laps} laps`,
+    `🌡️ ${tempTxt(v.temp)}${W.wet0 > 0.17 ? ' · 🌧️ wet track' : W.showers.length ? ' · 🌦️ rain likely' : ''}`,
     '',
-    p.auto ? 'Autonomous: your AI makes the calls. Say *take over* any time.' : 'You make the calls. Reply *box softs*, *boost*, *push*, *save*, *attack*, *defend*, or *status*.',
-    'Lights out in 5 seconds…',
+    '*Your grid*',
+    ...grid.map((c) => `• *${c.code}* starts P${c.grid} on ${tyre(c.tyre.c)}`),
+    '',
+    p.auto ? '🤖 Your AI makes the calls. Reply *take over* any time.' : '🎧 You make the calls. Reply *help* for the race commands.',
+    '',
+    '🚦 _Lights out in 5 seconds…_',
   ].join('\n'));
   setTimeout(() => { if (races.get(to) === live) { R.start(); live.t0 = Date.now(); } }, 5000);
 }
@@ -148,9 +155,9 @@ function summary(L, head) {
   const R = L.R, lead = R.order[0];
   const lines = L.mine.map((id) => {
     const c = R.byId.get(id);
-    if (c.dnf) return `${c.code}: out`;
+    if (c.dnf) return `• *${c.code}* out`;
     const life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
-    return `${c.code} P${c.pos} · ${c.pos === 1 ? 'leading' : '+' + c.gap.toFixed(1) + 's'} · ${COMPOUNDS[c.tyre.c].name} ${life}% · ⚡${Math.round(c.ers * 100)}%${c.pit ? ' · in the pits' : ''}`;
+    return `• *${c.code}* P${c.pos} · ${c.pos === 1 ? 'leading' : '+' + c.gap.toFixed(1) + 's'} · ${COMPOUNDS[c.tyre.c].name} ${life}% · ⚡${Math.round(c.ers * 100)}%${c.pit ? ' · in the pits' : ''}`;
   });
   return [head + (lead && !L.mine.includes(lead.id) ? ` · ${lead.code} leads` : ''), ...lines].join('\n');
 }
@@ -165,31 +172,74 @@ function finish(L) {
   p.results = p.results.slice(-50);
   save();
   send(L.to, [
-    `🏁 *Chequered flag in ${L.venue.city}!*`,
-    ...top, '',
-    ...my.map((x) => `${x.car.code}: ${x.dnf ? 'DNF' : 'P' + x.pos}${x.penalty ? ' (+20s penalty)' : ''} · ${x.stops} stop${x.stops === 1 ? '' : 's'}`),
-    `+${pts} points`,
+    `🏁 *CHEQUERED FLAG · ${L.venue.flag} ${L.venue.city.toUpperCase()}*`,
     '',
-    L.kind === 'daily' ? `Daily Grand Prix #${L.day} done. Race it in 3D: ${SITE || 'the web game'}` : 'Reply *race* for another.',
+    '*Podium*',
+    ...top,
+    '',
+    '*Your team*',
+    ...my.map((x) => `• *${x.car.code}* ${x.dnf ? 'DNF' : 'P' + x.pos}${x.penalty ? ' (+20s penalty)' : ''} · ${x.stops} stop${x.stops === 1 ? '' : 's'}`),
+    `🏆 +${pts} points`,
+    '',
+    L.kind === 'daily' ? `Daily Grand Prix #${L.day} done.${SITE ? `\nRace it in 3D: ${SITE}` : ''}` : 'Reply *today* or *race <city>* for another.',
   ].join('\n'));
 }
 
 // ---------- chat commands ----------
+// the welcome card: who we are, today's race, how to start
+function welcome(p) {
+  const n = dayNumber(), v = dailyVenue(n);
+  return [
+    '🏎️ *AGENT GRAND PRIX*',
+    '_Your AI agents race, and run the team when you are away._',
+    '',
+    "*Today's race*",
+    `${v.flag} *${v.city}* · Daily #${n}`,
+    `📍 ${v.circuit}, ${v.country}`,
+    '',
+    '👉 Reply *today* to race it',
+    '',
+    `${p.auto ? '🤖 Your AI is making the calls' : '🎧 You are making the calls'}${p.team ? ` for *${p.team.name}*` : ''}.`,
+    'Reply *help* for every command.',
+  ].join('\n');
+}
+
 const HELP = [
-  '🏎️ *Agent Grand Prix*',
-  'Your AI agents race. You run the team, or let them run it.',
+  '🏎️ *AGENT GRAND PRIX · COMMANDS*',
   '',
-  '*today* · race the Daily Grand Prix',
-  '*race <city>* · quick race anywhere (e.g. race kingston)',
-  '*auto* / *take over* · let your AI make the calls, or make them yourself',
-  '*team <name>* · name your team',
-  '*results* · your last races',
-  '*circuits* · all 40 venues',
+  '🏁 *Start a race*',
+  '• *today* · the Daily Grand Prix',
+  '• *race kingston* · race any city',
+  `• *circuits* · all ${VENUES.length} venues`,
   '',
-  'During a race: *box softs* (or mediums, hards, inters, wets), *stay out*, *boost*, *push*, *save*, *normal*, *attack*, *defend*, *status*, *stop*.',
+  '👥 *Your team*',
+  '• *team Lagos Lions* · name your team',
+  '• *auto* · your AI makes the calls',
+  '• *take over* · you make the calls',
+  '• *results* · your last races',
+  '',
+  '📻 *During a race*',
+  '• *box softs* · pit (or mediums, hards, inters, wets)',
+  '• *stay out* · cancel the stop',
+  '• *push*, *save*, *normal* · pace',
+  '• *attack*, *defend* · in a fight',
+  '• *boost* · use the battery',
+  '• *car 2* · call for your other car',
+  '• *status* · gaps and tyres',
+  '• *stop* · end the race',
 ].join('\n');
 
-function handle(from, text, name) {
+const RACE_HELP = [
+  '📻 *Race commands*',
+  '• *box softs* (or mediums, hards, inters, wets)',
+  '• *stay out*',
+  '• *push*, *save*, *normal*',
+  '• *attack*, *defend*',
+  '• *boost*',
+  '• *status*, *stop*',
+].join('\n');
+
+function handle(from, text, name, { noChat = false } = {}) {
   const p = player(from, name);
   const t = text.trim().toLowerCase().replace(/[!.?]+$/, '');
   const L = races.get(from);
@@ -219,9 +269,13 @@ function handle(from, text, name) {
   }
   if (/^(results|history)$/.test(t)) {
     const r = p.results.slice(-5).reverse();
-    return send(from, r.length ? '*Your last races*\n' + r.map((x) => `${VENUES.find((v) => v.id === x.venue)?.city}: ${x.pos.map((q) => (q === 'DNF' ? 'DNF' : 'P' + q)).join(', ')} · +${x.pts}`).join('\n') : 'No races yet. Reply *today*.');
+    return send(from, r.length ? '🏆 *Your last races*\n\n' + r.map((x) => { const v = VENUES.find((q) => q.id === x.venue); return `• ${v?.flag || ''} *${v?.city}*${x.day ? ` (Daily #${x.day})` : ''}\n   ${x.pos.map((q) => (q === 'DNF' ? 'DNF' : 'P' + q)).join(' and ')} · +${x.pts} pts`; }).join('\n') : 'No races yet. Reply *today* to start one.');
   }
-  if (/^(circuits|venues|calendar)$/.test(t)) return send(from, '*Circuits*\n' + VENUES.map((v) => `${v.flag} ${v.city}`).join(' · ') + '\n\nReply *race <city>*.');
+  if (/^(circuits|venues|calendar)$/.test(t)) {
+    const g = {}; for (const v of VENUES) (g[v.region] ||= []).push(`${v.flag} ${v.city}`);
+    return send(from, [`🗺️ *${VENUES.length} CIRCUITS*`, '', ...Object.entries(g).map(([r, c]) => `*${r}*\n${c.join(' · ')}`).join('\n\n').split('\n'), '', '👉 Reply *race* and a city, e.g. *race lagos*'].join('\n'));
+  }
+  if (/^(help|commands|menu|\?)$/.test(t)) return send(from, L ? RACE_HELP : HELP);
   if (/^(today|daily|race today)$/.test(t) || (/^(race|go|start)$/.test(t))) {
     if (L) return send(from, 'You are already racing. Reply *stop* to end it.');
     return startRace(from, p, 'daily');
@@ -233,9 +287,49 @@ function handle(from, text, name) {
     if (!v) return send(from, `I don't know a circuit called "${m[1]}". Reply *circuits* for the list.`);
     return startRace(from, p, 'quick', v);
   }
-  if (L) return send(from, 'During the race: *box softs*, *boost*, *push*, *save*, *attack*, *defend*, *status* or *stop*.');
+  if (/^(hi+|hello|hey|hey there|hiya|yo|good (morning|afternoon|evening)|start|menu)$/.test(t)) return send(from, welcome(p));
+  if (!noChat && (Chat.enabled() || chatModel)) return converse(from, p, text);
+  if (L) return send(from, RACE_HELP);
+  return send(from, welcome(p));
+}
+
+// ---------- free conversation (agent/chat.mjs) ----------
+let chatModel = null; // tests hand in a fake model
+export function setChatModel(f) { chatModel = f; }
+const chatHits = new Map(); // player -> times: 20 a 10 minutes, 150 a day
+function chatLimited(from) {
+  const now = Date.now(), h = (chatHits.get(from) || []).filter((x) => now - x < 864e5);
+  h.push(now); chatHits.set(from, h);
+  return h.filter((x) => now - x < 6e5).length > 20 || h.length > 150;
+}
+function facts(p, L) {
   const n = dayNumber(), v = dailyVenue(n);
-  return send(from, `${HELP}\n\nToday: ${v.flag} *${v.city}* (Daily #${n}). Reply *today* to race it.`);
+  const f = {
+    you: { team: p.team?.name || DEFAULT_TEAM.name, aiMakesTheCalls: !!p.auto },
+    today: { daily: n, city: v.city, country: v.country, circuit: v.circuit, tempC: v.temp, about: v.note },
+    lastRaces: p.results.slice(-5).reverse().map((x) => ({ city: VENUES.find((q) => q.id === x.venue)?.city, daily: x.day, finished: x.pos.map((q) => (q === 'DNF' ? 'DNF' : 'P' + q)), points: x.pts })),
+    circuits: VENUES.length, web: SITE || null,
+  };
+  if (L) {
+    const R = L.R, lead = R.order[0];
+    f.liveRace = {
+      city: L.venue.city, kind: L.kind, lap: R.leaderLap(), laps: R.laps, started: !!R.started, leader: lead && lead.code,
+      yourCars: L.mine.map((id, k) => { const c = R.byId.get(id); return { car: k + 1, code: c.code, name: c.name, out: !!c.dnf, position: c.pos, gapToLeaderS: +c.gap.toFixed(1), tyre: COMPOUNDS[c.tyre.c].name, tyreLeftPct: Math.round((1 - Math.min(1, c.tyre.wear)) * 100), batteryPct: Math.round(c.ers * 100), inPits: !!c.pit, aiDriving: !!c.auto }; }),
+    };
+  }
+  return f;
+}
+async function converse(from, p, text) {
+  if (chatLimited(from)) return send(from, "Let's take a breather, I need a few minutes. Commands still work: reply *help*.");
+  const L = races.get(from);
+  const hist = (p.chat ||= []);
+  let r = null;
+  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES }); } catch (e) { log('chat failed', e.message); }
+  if (!r) return send(from, L ? RACE_HELP : welcome(p));
+  hist.push({ player: text.slice(0, 300) }, { you: r.say.slice(0, 300) });
+  p.chat = hist.slice(-12); save();
+  send(from, r.say);
+  if (r.command) handle(from, r.command, null, { noChat: true });
 }
 
 function pickCar(L, w) {
@@ -258,7 +352,10 @@ async function poll() {
       for (const msg of val.messages || []) {
         if (state.seen.includes(msg.id)) continue;
         state.seen.push(msg.id);
-        if (msg.type === 'text') { try { handle(msg.from, msg.text.body, names[msg.from]); } catch (e) { log('handle failed', e); send(msg.from, 'Sorry, something went wrong there. Try again?'); } }
+        if (msg.type === 'text') {
+          const oops = (e) => { log('handle failed', e); send(msg.from, 'Sorry, something went wrong there. Try again?'); };
+          try { Promise.resolve(handle(msg.from, msg.text.body, names[msg.from])).catch(oops); } catch (e) { oops(e); }
+        }
         else if (msg.type !== 'reaction') send(msg.from, 'I only read text for now. Reply *help*.');
       }
       if (up.next_offset != null) state.offset = up.next_offset;

@@ -129,6 +129,12 @@ Commands: `today`, `race <city>`, `auto`, `take over`, `team <name>`, `results`,
 race `box softs` (mediums, hards, inters, wets), `stay out`, `boost`, `harvest`, `push`, `save`,
 `normal`, `attack`, `defend`, `car 2`, `status`, `stop`.
 
+Anything else is free conversation (`agent/chat.mjs`): with `ANTHROPIC_API_KEY` set (the same key
+as the drivers' brain), a small model answers as the team's agent (`AGENT_NAME`, default Teague)
+from the game's own facts (your team, your last races, today's race, the race you're in), and when
+you clearly ask for something ("let's race in Lagos", "pit Nova for mediums") it runs that command
+for you. Each player gets 20 messages in 10 minutes and 150 a day. Without a key, the menu answers.
+
 Limits from the platform: 12 outbound messages a minute (the agent keeps to 10 and merges lines),
 15 polls a minute, text up to 4096 characters. Only the agent's creator can chat with it.
 
