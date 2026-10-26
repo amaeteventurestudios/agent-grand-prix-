@@ -20,6 +20,7 @@ import { openShowroom } from './showroom.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 import { parseCall, radioSupported, listen } from './teamradio.js';
+import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -364,6 +365,7 @@ function tick() {
   talkBtn(R);
   if (!G.suggest) coach(R);
   suggestCheck(R);
+  driverNudges(R);
   engineer(R);
   live.save();
 }
@@ -389,7 +391,7 @@ function garageFeed(R) {
 // tyres, battery, pace or laps to go. Mid-lap, a car in a fight hears the gap again. Rivals boxing
 // right ahead or behind get a call. These only play when the radio is quiet, so they never push out
 // a real call, and each car keeps only its newest update.
-const gapClip = (g) => (g < 3.05 ? 'n' + String(clamp(Math.round(g * 10), 1, 30)).padStart(2, '0') : g < 15.5 ? 's' + Math.round(g) : 's_big');
+const gapClip = (g) => (g < 3.5 ? 'n' + String(clamp(Math.round(g * 10), 1, 30)).padStart(2, '0') : g < 15.5 ? 's' + Math.round(g) : 's_big');
 const engState = () => (G.eng ||= { lap: new Map(), mid: new Map(), pend: new Map(), ia: new Map(), ib: new Map(), topic: 0, pits: new WeakSet(), inPit: new Set() });
 function engineer(R) {
   if (G.attract || G.ended || !R || !R.started || R.done || G.paused) return;
@@ -591,8 +593,21 @@ function talkStop() {
 }
 function understand(text, alts = []) {
   const cars = myCars().map((c) => ({ id: c.id, name: c.name, code: c.code }));
+  // a question for a driver ("Nova, can you pass him?", "how are the tyres?") goes to that driver's
+  // brain; a remark ("good job") too, unless it also carries a call
+  const k = brainIntent(text), q = isQuestion(text);
+  // "can you save the tyres?" is a call said politely, not a question about the tyres
+  const ask = q && !(/^\s*(\w+,?\s+)?(can|could|would|will) you\b/i.test(text) && k !== 'pass' && parseCall(text, cars, G.mineSel || 'you-0')?.calls);
+  if (k && (ask || k === 'orders' || k === 'opinion') && !/strategist|engineer/i.test(text)) return { brain: k, id: addressed(text, cars) };
   for (const t of [text, ...alts]) { const r = parseCall(t, cars, G.mineSel || 'you-0'); if (r) return r; }
+  if (k) return { brain: k, id: addressed(text, cars) };
   return null;
+}
+const isQuestion = (t) => /\?\s*$/.test(t) || /^\s*(what|whats|what's|why|how|how's|hows|where|where's|wheres|who|whos|who's|is|are|any|can|could|do|does|should|will|tell me|talk to me)\b/i.test(t);
+function addressed(text, cars) {
+  const t = ' ' + text.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ') + ' ';
+  const hit = cars.find((c) => [String(c.name || '').toLowerCase().split(/\s+/)[0], String(c.code || '').toLowerCase()].some((w) => w && w.length > 1 && t.includes(' ' + w + ' ')));
+  return hit ? hit.id : G.mineSel || 'you-0';
 }
 // the optional interpreter for what the matcher can't place (off unless our server has a key)
 async function interpret(heard) {
@@ -616,11 +631,12 @@ function radioDo(r, text) {
   addRadio({ from: 'you', text: text.trim().replace(/^./, (x) => x.toUpperCase()) });
   talkSaid('“' + text.trim() + '”', 'ok');
   if (r.clarify) { reply(G.mineSel || 'you-0', 'r_sayagain'); addRadio({ from: 'driver', code: R.byId.get(G.mineSel || 'you-0').code, text: `Say again: ${r.clarify}` }); return radioDone(); }
-  if (r.ask === 'why') { driverStatus(R.byId.get(r.id)); return radioDone(); }
-  if (r.ask === 'best') { strategist(R.byId.get(r.id)); return radioDone(); }
+  if (r.brain) { driverAsk(R.byId.get(r.id), r.brain); return radioDone(); }
+  if (r.ask === 'why') { driverAsk(R.byId.get(r.id), brainIntent(text) || 'why'); return radioDone(); }
+  if (r.ask === 'best') { if (/strategist|engineer/i.test(text)) strategist(R.byId.get(r.id)); else driverAsk(R.byId.get(r.id), brainIntent(text) || 'opinion'); return radioDone(); }
   if (r.confirm) {
     const o = talk.offer;
-    if (o && R.t - o.t < 30) { talk.offer = null; radioCalls([o.call]); } else reply(G.mineSel || 'you-0', 'r_sayagain');
+    if (o && R.t - o.t < 30) { talk.offer = null; radioCalls([].concat(o.call)); } else reply(G.mineSel || 'you-0', 'r_sayagain');
     return radioDone();
   }
   radioCalls(r.calls);
@@ -687,19 +703,58 @@ function radioPlans(R) {
   radioCalls(due.map((p) => p.call));
 }
 const cap1 = (k) => k[0].toUpperCase() + k.slice(1);
-// "Nova, why are you losing time?": the driver answers from the car's real state
-function driverStatus(c) {
-  const R = G.race, ahead = R.order[c.pos - 2];
-  const [clip, line] =
-    c.pit ? ['x_cold', 'In the pits now.'] :
-    c.stops && c.tyre.laps < 1 ? ['x_cold', 'Tyres are still cold after the stop.'] :
-    R.wet > 0.25 && 'SMH'.includes(c.tyre.c) ? ['x_wet', `It's really slippery out here on ${COMPOUNDS[c.tyre.c].name.toLowerCase()}s.`] :
-    c.tyre.wear > 0.6 ? ['x_tyres', `My tyres are going off. ${Math.round((1 - c.tyre.wear) * 100)}% left, I'm losing grip.`] :
-    c.pace === 'save' ? ['x_saving', 'I\'m saving the tyres, like you asked.'] :
-    c.ers < 0.15 || c.ersMode === 'harvest' ? ['x_battery', `Battery's at ${Math.round(c.ers * 100)}%, so I'm harvesting.`] :
-    ahead && c.interval > 0 && c.interval < 1.2 ? ['x_traffic', `I'm stuck in dirty air behind ${ahead.code}.`] :
-    ['x_fine', `Pace feels good, boss. P${c.pos}, tyres ${Math.round((1 - c.tyre.wear) * 100)}%.`];
-  reply(c.id, clip); addRadio({ from: 'driver', code: c.code, text: line });
+// ---------- your drivers' brains (js/brain.js) ----------
+// A driver speaks in its own voice: 'br_*' clips from its brain pack, the rest from its main pack.
+function driverSay(c, res) {
+  if (!res) return;
+  const v = driverVoice(c.id);
+  if (S.settings.replies !== false && res.clips?.length) say(res.clips.map((k) => '@' + v + (k.startsWith('br_') ? '-brain/' : '/') + k));
+  addRadio({ from: 'driver', code: c.code, text: res.text });
+}
+// you asked a driver something (radio or the Talk buttons): the answer, and its call as an offer
+function driverAsk(c, kind, asked) {
+  const R = G.race, b = G.brains?.[c?.id]; if (!R || !c || !b) return;
+  if (asked) addRadio({ from: 'you', text: asked });
+  if (c.dnf || c.finished) { say([carTag(c.id), c.dnf ? 'out' : 'flag']); addRadio({ from: 'engineer', text: c.dnf ? `${c.code} is out of the race. That car can't take calls any more.` : `${c.code} has finished the race.` }); return; }
+  b.remember({ t: Date.now(), from: 'you', kind });
+  const mate = R.mate(c), res = b.answer(kind, brainRead(R, c), mate ? brainRead(R, mate) : null);
+  if (!res) { reply(c.id, 'r_sayagain'); return; }
+  driverSay(c, res);
+  if (res.call) { talk.offer = { call: res.call, t: R.t, from: c.id }; driverCard(c, res); }
+  G.assisted = true;
+}
+// a driver's suggestion on screen, with its call on a button (still your call, through your path)
+function driverCard(c, res) {
+  if (G.lesson && !G.lesson.done) return;
+  const el = $('#suggest'), calls = [].concat(res.call);
+  const k = calls[calls.length - 1].k;
+  const label = k === 'boxnow' ? `Box for ${COMPOUNDS[calls[0].tyre].name}s` : { attack: 'Attack', boost: 'Attack + boost', defend: 'Defend', harvest: 'Harvest', push: 'Push', save: 'Save tyres', swap: 'Swap places' }[k] || 'Do it';
+  coachHide();
+  const at = performance.now(); G.suggest = { id: c.id, at, action: k === 'boxnow' ? { box: calls[0].tyre } : {} };
+  el.innerHTML = `<div class="ch"><span>🎙️ ${esc(c.code)} · ${esc(c.name.split(' ')[0])}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(res.text.replace(/ Say do it, and I'll go\.$/, ''))}</p>
+    <div class="acts"><button type="button" class="go">${label}</button><button type="button" class="no">Not now</button></div>`;
+  el.hidden = false;
+  const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
+  el.querySelector('.x').onclick = el.querySelector('.no').onclick = close;
+  el.querySelector('.go').onclick = () => { close(); talk.offer = null; radioCalls(calls); renderControls(true); tick(); };
+  setTimeout(close, 20000);
+}
+// a call reached the car: the brain remembers it, and says so if it reads the race differently
+const CALL_OF = (c) => (c.pace ? { k: c.pace } : c.ers ? { k: c.ers } : c.battle ? { k: c.battle } : c.box ? { k: 'box', tyre: c.box } : c.order ? { k: c.order } : null);
+function heardBy(car, c) {
+  const R = G.race, b = G.brains?.[car.id]; if (!b || car.dnf || car.finished) return;
+  b.heard(c, R.lapOf(car), R.t);
+  const call = CALL_OF(c); if (!call || (G.lesson && !G.lesson.done)) return;
+  const mate = R.mate(car), w = b.react(call, brainRead(R, car), mate ? brainRead(R, mate) : null);
+  if (w) setTimeout(() => driverSay(car, w), 600);
+}
+// the driver calls you when something needs your decision; it never acts on its own
+let nudgeAt = 0;
+function driverNudges(R) {
+  const now = performance.now();
+  if (now - nudgeAt < 1000 || !G.brains || G.attract || G.ended || (G.lesson && !G.lesson.done) || R.t < 20) return;
+  nudgeAt = now;
+  for (const c of myCars()) { const n = G.brains[c.id].nudge(brainRead(R, c), now); if (n) { driverSay(c, n); break; } }
 }
 // "Strategist, what's our best option?": the same reading of the race the coach uses, with a call you
 // can accept by saying "do it"
@@ -985,6 +1040,8 @@ const ERS_WHY = {
 // The handover between modes, said once and shown at once. Calls you queued (a call "in two laps",
 // a boost) belong to you, so they're dropped when the strategist takes over rather than firing later
 // and grabbing the car back; a box call already made stays, and you're told whose it is.
+// the Talk buttons: the same questions you can ask on the radio
+const TALK = [['feel', "How's the car?"], ['tyres', 'Tyres?'], ['gaps', 'Gaps?'], ['pass', 'Can you pass?'], ['opinion', 'What do you think?'], ['orders', 'Your orders?']];
 const BY = { principal: 'your call', strategist: "the strategist's call", engineer: "the engineer's call", puncture: 'puncture' };
 function handover(c, took) {
   const R = G.race;
@@ -1037,6 +1094,7 @@ function renderControls(force) {
       <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'The AI strategist runs this car and talks to your driver.' : c.assist ? 'You make the calls. The engineer only calls the stops.' : 'You alone make the calls. The engineer advises only when you ask.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
       ${c.auto || c.dnf || c.finished ? '' : '<button type="button" class="ask" data-act="ask">🎧 Ask the engineer</button>'}
+      ${c.dnf || c.finished ? '' : `<div class="talkto"><p>🎙️ Talk to ${esc(c.name.split(' ')[0])}</p><div class="chips">${TALK.map(([k, l]) => `<button type="button" data-talk="${k}">${l}</button>`).join('')}</div></div>`}
       ${c.auto ? '' : `<label class="assist"><input type="checkbox" data-act="assist" ${c.assist ? 'checked' : ''}><span><b>Engineer calls the stops</b> Beginner assist: your engineer boxes both cars at the right time. You keep pace, battery and battles.</span></label>`}
     </div>
     <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 10 seconds.' : 'Pick the tyres, then BOX: your driver pits next time round, about 10 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
@@ -1063,6 +1121,7 @@ $('#controls').addEventListener('click', (e) => {
   if (t.dataset.mine) { G.mineSel = t.dataset.mine; select(t.dataset.mine); return; }
   if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); say([carTag(id), c.auto ? 'c_auto' : 'c_manual']); handover(c); }
   if (t.dataset.act === 'ask') askEngineer(R.byId.get(id));
+  if (t.dataset.talk) driverAsk(R.byId.get(id), t.dataset.talk, TALK.find(([k]) => k === t.dataset.talk)[1]);
   if (t.dataset.act === 'cancel') cmd({ box: null });
   if (t.dataset.pick) { (G.boxPicks ||= {})[id] = t.dataset.pick; }
   if (t.dataset.act === 'boxnow') cmd({ box: boxPick(R.byId.get(id)) });
@@ -1073,7 +1132,7 @@ $('#controls').addEventListener('click', (e) => {
 function cmd(c, id = G.mineSel || 'you-0', o = {}) {
   const car = G.race.byId.get(id);
   if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); handover(car, true); }
-  G.race.command(id, c);
+  if (G.race.command(id, c)) heardBy(car, c);
   lessonEvent({ type: 'cmd', id, c });
   { const k = Object.keys(c).find((x) => CALL_WORDS[x]); const w = c.box ? `Box this lap · ${COMPOUNDS[c.box].name}s` : 'box' in c ? 'Staying out' : k ? CALL_WORDS[k][c[k]] : null; if (w && !(k === 'ers' && G.boost)) ack(`${car.code}: ${w}`); }
   // a call you spoke on the radio needs no echo from the engineer, only the driver's answer
@@ -1089,6 +1148,7 @@ function teamOrder(o, spoken) {
   const id = G.mineSel || 'you-0', c = G.race.byId.get(id);
   if (c.auto) { G.race.command(id, { auto: false }); handover(c, true); }
   G.race.command(id, { order: o });
+  for (const m of myCars()) heardBy(m, { order: o }, o);
   lessonEvent({ type: 'order', o });
   ack({ hold: 'Hold positions', free: 'Race freely', swap: 'Swap places' }[o]);
   if (spoken) reply(id, 'r_copy'); else say([o === 'swap' ? 'o_swap' : o === 'hold' ? 'o_hold' : 'o_free']);
@@ -1876,6 +1936,8 @@ function startRace(picks, auto, saved = null) {
   const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
   const setup = setupRace({ venue: G.venue, seed: G.seed, ...args });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
+  // each driver's own brain, its manner from the Driver DNA it races with
+  G.brains = { 'you-0': new Brain('you-0', args.dna?.car1?.params), 'you-1': new Brain('you-1', args.dna?.car2?.params) };
   live.track(G.race, args, saved);
   if (!saved && !auto && S.settings.assist && G.kind !== 'academy') ['you-0', 'you-1'].forEach((id) => G.race.command(id, { assist: true }));
   world.setCars(G.race.cars);
@@ -1886,10 +1948,12 @@ function startRace(picks, auto, saved = null) {
   setCam('live');
   if (S.settings.sound !== false) sound.start(lite);
   voice.use(voiceId(), sound.ctx);
+  // your drivers' own lines (js/brain.js), fetched now so the first answer isn't waiting on a download
+  if (S.settings.replies !== false && voiceId()) mine().forEach((id) => voice.pack(driverVoice(id) + '-brain'));
   addRadio({ from: 'engineer', text: auto ? 'Autonomous mode. I\'ll make the calls; take over whenever you like.' : `Radio check. You have the calls. ${G.setup.weather.showers.length || G.setup.weather.wet0 ? 'Keep an eye on the sky today.' : 'It looks dry: we need one stop for a second compound.'}` });
   if (!auto) for (const id of ['you-0', 'you-1']) {
     const c = G.race.byId.get(id);
-    if (c.plan.lap) addRadio({ from: 'engineer', text: `${c.code} plan: one stop around lap ${c.plan.lap + 1}, then ${COMPOUNDS[c.plan.next].name}s. I'll call it when the window opens.` });
+    if (c.plan.lap) addRadio({ from: 'engineer', text: `${c.code} plan: one stop around lap ${c.plan.lap + 1}, then ${COMPOUNDS[c.plan.next].name}s. The pit wall will show you when the window opens.` });
   }
   if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
   tick();
