@@ -28,7 +28,9 @@ t('tyre care wears tyres more slowly than using them up', () => {
   const hi = run({ tyre_care: 100 }).m('wearPerLap').b, lo = run({ tyre_care: 0 }).m('wearPerLap').b;
   assert.ok(hi < lo * 0.8, `${hi} vs ${lo}`);
 });
-t('overtaking eagerness tries more passes', () => { const r = run({ pass_eagerness: 100, gap_acceptance: 100 }); assert.ok(r.m('attempts').b > r.m('attempts').a * 1.3); });
+// about +20% over 60 seeds since qualifying became a session: a spoiled push lap now and then starts
+// a quick car out of place, so everyone makes more passes and the gap between the two is smaller
+t('overtaking eagerness tries more passes', () => { const r = run({ pass_eagerness: 100, gap_acceptance: 100 }); assert.ok(r.m('attempts').b > r.m('attempts').a * 1.15, JSON.stringify(r.m('attempts'))); });
 t('consistency cuts mistakes', () => { const r = run({ consistency: 100 }), q = run({ consistency: 0 }); assert.ok(r.m('mistakes').b <= q.m('mistakes').b); });
 t('maxing every setting is not a free win', () => { const r = run(Object.fromEntries(KEYS.map((k) => [k, 100]))); assert.ok(r.m('pos').b >= r.m('pos').a - 0.5, JSON.stringify(r.m('pos'))); assert.ok(r.m('lockups').b > 1); });
 console.log(`dna effects: ${n} checks passed`);

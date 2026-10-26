@@ -60,9 +60,14 @@ export function rainAt(W, t) {
 }
 
 export function qualify(entries, venue, seed, track) {
+  const q = qualiScores(entries, venue, seed, track);
+  return entries.map((e, i) => ({ e, q: q[i] })).sort((a, b) => b.q - a.q).map((x) => x.e);
+}
+// each car's one-lap quality before the session's own choices (tyre, timing, push): the driver's
+// pace, a little luck, the Driver DNA's appetite for risk and how the car suits this circuit
+export function qualiScores(entries, venue, seed, track) {
   const r = rng(seed ^ 0x51ed);
-  return entries.map((e, i) => ({ e, q: e.traits.pace * (venue.grip ? 1 : 1) + r.range(-0.07, 0.07) + (e.dna ? oneLap(e.dna, seed, i) : 0) + carLap(e, track) }))
-    .sort((a, b) => b.q - a.q).map((x) => x.e);
+  return entries.map((e, i) => e.traits.pace + r.range(-0.07, 0.07) + (e.dna ? oneLap(e.dna, seed, i) : 0) + carLap(e, track));
 }
 // Driver DNA over one qualifying lap: leaning harder on brakes, entry and grip finds time on fresh
 // tyres, but the chance of spoiling the lap grows with the square of it, so the expected gain peaks

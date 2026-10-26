@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
 import { DT, LIFE, fmtLap, fmtTime } from './sim.js';
+import { QualiSession, Q_LEN, fmtQ } from './quali.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
 import { World } from './world.js';
 import { MODELS } from './cars.js';
@@ -155,6 +156,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   cheerBurst *= Math.exp(-dt * 0.5);
+  if (G.qs && world) { qualiFrame(dt); return; }
   const R = G.race;
   if (R && R.started && !R.done && G.room && !G.attract) liveCatchUp();
   else if (R && R.started && !G.paused && !R.done) {
@@ -2248,7 +2250,7 @@ let briefWorker = null;
 function briefRun(o, key) {
   try { briefWorker?.terminate(); } catch { /* gone */ }
   briefWorker = null;
-  const args = { venueId: o.venue.id, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps };
+  const args = { venueId: o.venue.id, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, ...(G.quali ? { quali: G.quali } : {}) };
   const done = (r) => {
     if (P.briefKey !== key) return;
     if (r.done) { P.projDone = true; recommend(); } else { P.proj = r.out; P.projI = r.i; P.projN = r.n; }
@@ -2394,8 +2396,8 @@ function tyreGuide(v) {
 // race setup, one screen at a time: circuit (Quick race only), car, tyres, then race settings
 let P = null;
 function pre(o, step = o.venue ? 'car' : 'circuit') {
-  if (!P || P.o !== o) { P = { o, picks: null, auto: !!S.settings.auto, coachOn: coachDefault(o.kind) }; live.clear(); }
-  const steps = o.kind === 'quick' ? ['circuit', 'car', 'tyres', 'settings'] : ['car', 'tyres', 'settings'];
+  if (!P || P.o !== o) { P = { o, picks: null, auto: !!S.settings.auto, coachOn: coachDefault(o.kind) }; live.clear(); G.quali = null; }
+  const steps = [...(o.kind === 'quick' ? ['circuit'] : []), 'car', ...(o.first ? [] : ['quali']), 'tyres', 'settings'];
   const i = steps.indexOf(step), go = (k) => pre(o, steps[i + k]);
   const back = () => (i ? go(-1) : home());
   const label = o.first ? 'Your first race' : o.kind === 'daily' ? `Daily Grand Prix #${o.day}` : o.kind === 'season' ? `Season ${S.season.no} · Round ${o.round}` : 'Quick race';
@@ -2433,13 +2435,25 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
     wizWire(sh, () => go(1), back);
     return;
   }
+  if (step === 'quali') {
+    const res = P.qres;
+    const sh = show(`${head('<p class="lede">Before the race, qualifying: every driver gets one flying lap, and the fastest lap starts at the front. You choose when your drivers go out, on which tyre, and how hard they push.</p>')}
+      ${res ? `<div class="sub">Your grid</div>${qualiTable(res, true)}` : `<div class="qintro"><div><b>⏱️ One lap each</b><span>Fastest lap is pole position</span></div><div><b>🛞 Your tyre</b><span>Softs are quickest over one lap</span></div><div><b>🚦 Your timing</b><span>The track gets faster, but don't miss the flag</span></div></div>`}
+      </div><div class="actions wiz-foot">${res ? '<button class="btn" data-wiz="next" type="button">Next: race briefing</button><button class="btn ghost" id="qWatch" type="button">Run it again</button>' : '<button class="btn" id="qWatch" type="button">Watch qualifying</button><button class="btn ghost" id="qAgents" type="button">Let my agents qualify</button>'}<button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
+    if (res) $('[data-wiz="next"]', sh).addEventListener('click', () => go(1));
+    $('[data-wiz="back"]', sh).addEventListener('click', back);
+    $('#qWatch', sh).addEventListener('click', () => qualiWatch(o, () => pre(o, 'quali')));
+    const ag = $('#qAgents', sh);
+    if (ag) ag.addEventListener('click', () => { const Q = qualiSession(o, {}); while (!Q.done) Q.step(DT); qualiKeep(Q); pre(o, 'quali'); });
+    return;
+  }
   if (step === 'tyres') {
     // the pre-race briefing: Plan A and Plan B per driver, priced by the real engine in the background
-    const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps });
+    const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, quali: G.quali });
     const T = probe.track, W = probe.weather, wetStart = W.wet0 > 0.17;
     const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
     const rainTxt = wetStart ? 'Wet track at the start' : W.showers.length ? `${Math.round(clamp(o.venue.rain + 0.25, 0.3, 0.9) * 100)}% chance of rain` : o.venue.rain > 0.2 ? `${Math.round(o.venue.rain * 60)}% chance of rain` : 'Dry';
-    const key = [o.seed, G.laps, carModel(), JSON.stringify(raceDNA(S, dnaOn) && Object.values(raceDNA(S, dnaOn)).map((p) => p.hash))].join('|');
+    const key = [o.seed, G.laps, carModel(), JSON.stringify(raceDNA(S, dnaOn) && Object.values(raceDNA(S, dnaOn)).map((p) => p.hash)), JSON.stringify(G.quali || {})].join('|');
     if (P.briefKey !== key) {
       P.briefKey = key; P.proj = null; P.projDone = false; P.touched = false;
       P.plans = briefPlans({ laps: probe.laps, wear: o.venue.wear || 1, wet0: W.wet0, showers: W.showers.length });
@@ -2553,6 +2567,104 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   });
 }
 
+// ---------- qualifying (js/quali.js) ----------
+function qualiSession(o, choices) {
+  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps });
+  return new QualiSession({ entries: probe.entries, venue: o.venue, seed: o.seed, track: probe.track, weather: probe.weather, choices, mine: ['you-0', 'you-1'] });
+}
+// the session's result becomes the grid: its calls go on the race's record so a leaderboard rebuilds it
+function qualiKeep(Q) {
+  G.quali = Q.result().choices;
+  P.qres = Q.order.map((c) => ({ id: c.id, code: c.code, name: c.name, c1: c.team.c1, best: c.best, mine: c.id.startsWith('you-'), tyre: Q.plan.runs.get(c.id).tyre }));
+}
+function qualiTable(rows, short) {
+  const pole = rows[0] && rows[0].best;
+  const list = short ? rows.filter((r, k) => k < 5 || r.mine) : rows;
+  return `<ol class="qtab">${list.map((r) => { const k = rows.indexOf(r); return `<li class="${r.mine ? 'mine' : ''}"><span class="p">P${k + 1}</span><i style="background:${r.c1}"></i><b>${esc(r.code)}</b><span class="n">${esc(r.name)}</span>${tyreHTML(r.tyre)}<span class="t">${k === 0 || !Number.isFinite(r.best) ? fmtQ(r.best) : '+' + (r.best - pole).toFixed(3)}</span></li>`; }).join('')}</ol>`;
+}
+function qualiWatch(o, done) {
+  hide(); loadVenue(o.venue);
+  const Q = G.qs = qualiSession(o, {});
+  Q.acc = 0; G.qsSpeed = reduce ? 1 : 4; G.qsDone = done; G.qsFollow = null; G.qsCard = 'you-0';
+  world.setCars(Q.cars);
+  setCam('live'); $('#hud').hidden = true;
+  const el = $('#qpanel') || app.appendChild(Object.assign(document.createElement('div'), { id: 'qpanel', className: 'qpanel' }));
+  el.hidden = false; el.innerHTML = '';
+  el.onclick = (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const id = b.dataset.car;
+    if (b.dataset.go) Q.call(id, { go: true });
+    else if (b.dataset.tyre) Q.call(id, { tyre: b.dataset.tyre });
+    else if (b.dataset.push) Q.call(id, { push: b.dataset.push });
+    else if (b.dataset.qspeed) G.qsSpeed = +b.dataset.qspeed;
+    else if (b.dataset.follow) G.qsFollow = b.dataset.follow;
+    else if (b.dataset.show) G.qsCard = G.qsFollow = b.dataset.show;
+    else if (b.id === 'qSkip') { while (!Q.done) Q.step(DT); }
+    else if (b.id === 'qDone') { qualiEnd(); return; }
+    qualiUI(true);
+  };
+  qualiUI(true);
+}
+function qualiEnd() {
+  const Q = G.qs; if (!Q) return;
+  qualiKeep(Q); G.qs = null;
+  $('#qpanel').hidden = true;
+  const done = G.qsDone; G.qsDone = null;
+  // the home race comes back behind the menus; the grid is kept for the briefing
+  if (G.race && G.race.venue && G.race.venue.id === world.venue.id) { world.setCars(G.race.cars); setCam('live'); } else attract();
+  done && done();
+}
+function qualiFrame(dt) {
+  const Q = G.qs;
+  if (!Q.done) { Q.acc += dt * G.qsSpeed; let n = 0; while (Q.acc >= DT && n < 400) { Q.step(DT); Q.acc -= DT; n++; } }
+  // the camera: the car you picked, else yours when it is out, else whoever is on a flying lap
+  const out = (c) => c && !c.dnf;
+  let sel = out(Q.byId.get(G.qsFollow)) ? G.qsFollow : null;
+  sel ||= ['you-0', 'you-1'].find((id) => Q.byId.get(id).status === 'flying') || ['you-0', 'you-1'].find((id) => out(Q.byId.get(id)));
+  sel ||= (Q.cars.filter((c) => c.status === 'flying').sort((a, b) => b.dist - a.dist)[0] || Q.cars.find(out) || {}).id;
+  if (sel && sel !== G.sel) { G.sel = sel; }
+  world.update(Q, Q.done ? 1 : clamp(Q.acc / DT, 0, 1), dt, camera, G.sel, ['you-0', 'you-1'], true, { speed: G.qsSpeed, focus: cams.look, showRing: !!G.sel });
+  cams.update(dt, G.sel);
+  renderer.render(world.scene, camera);
+  G.qsUI = (G.qsUI || 0) + dt; if (G.qsUI > 0.2) { G.qsUI = 0; qualiUI(); }
+}
+const Q_STATUS = { garage: 'In the garage', out: 'Out lap', flying: 'Flying lap', in: 'In lap', done: 'Lap done' };
+function qualiUI(force) {
+  const Q = G.qs, el = $('#qpanel'); if (!Q || !el) return;
+  const left = Math.max(0, Q_LEN - Q.t), pole = Q.order[0] && Q.order[0].best;
+  const clock = Q.done ? 'Session over' : left > 0 ? `${Math.floor(left / 60)}:${String(Math.floor(left % 60)).padStart(2, '0')} left` : 'Chequered flag';
+  const rows = Q.order.map((c, k) => `<li class="${c.player ? 'mine' : ''}${c.status === 'flying' ? ' fly' : ''}"><span class="p">${k + 1}</span><i style="background:${c.team.c1}"></i><b>${esc(c.code)}</b><span class="t">${Number.isFinite(c.best) ? (k === 0 ? fmtQ(c.best) : '+' + (c.best - pole).toFixed(3)) : c.status === 'garage' ? '' : Q_STATUS[c.status]}</span></li>`).join('');
+  const noteOf = (c, run) => c.status === 'garage' ? (Q.t < Q_LEN ? `Goes out in ${Math.max(0, Math.ceil(run.go - Q.t))} s, or send ${c.code} now` : 'Stayed in the garage') :
+    c.status === 'out' ? 'Out lap: warming the tyres' : c.status === 'flying' ? `Flying lap${c.sectors.length ? ` · sector ${c.sectors.length} done` : ''}` :
+    Number.isFinite(c.best) ? `P${c.pos} · ${fmtQ(c.best)}${run.spoiled ? ' · locked up' : ''}` : run.noTime ? 'No time: the flag fell first' : Q_STATUS[c.status];
+  // the buttons are only rebuilt when what they can do changes, so a tap never lands on a button
+  // that is being replaced; the clock, the timing tower and the notes update in place
+  const mineCard = (id) => {
+    const c = Q.byId.get(id), run = Q.plan.runs.get(id), inG = c.status === 'garage', canPush = inG || c.status === 'out';
+    const tyres = Q.plan.wet ? ['I', 'W', 'S'] : ['S', 'M', 'H'];
+    return `<div class="qcar" data-id="${id}"><div class="qwho"><i style="background:${c.team.c1}"></i><b>${esc(c.name)}</b><button type="button" class="link" data-follow="${id}">Watch</button></div>
+      <div class="qnote" data-note="${id}"></div>
+      <div class="qrow"><span>Tyre</span>${tyres.map((t) => `<button type="button" data-car="${id}" data-tyre="${t}" class="${run.tyre === t ? 'on' : ''}" ${inG ? '' : 'disabled'}>${tyreHTML(t)}${COMPOUNDS[t].name}</button>`).join('')}</div>
+      <div class="qrow"><span>Lap</span>${[['push', 'Push'], ['normal', 'Normal'], ['steady', 'Steady']].map(([k, n]) => `<button type="button" data-car="${id}" data-push="${k}" class="${run.push === k ? 'on' : ''}" ${canPush ? '' : 'disabled'}>${n}</button>`).join('')}</div>
+      ${inG && Q.t < Q_LEN ? `<button type="button" class="btn small" data-car="${id}" data-go="1">Send ${esc(c.code)} out now</button>` : ''}</div>`;
+  };
+  const key = JSON.stringify([Q.done, G.qsSpeed, G.qsCard, ...['you-0', 'you-1'].map((id) => { const c = Q.byId.get(id), r = Q.plan.runs.get(id); return [c.status, r.tyre, r.push, Q.t < Q_LEN]; })]);
+  if (force || el.dataset.k !== key) {
+    el.dataset.k = key;
+    el.innerHTML = `<header><b>Qualifying</b><span class="qclock"></span></header>
+    <ol class="qtower"></ol><ul class="qfeed"></ul>
+    <div class="qpick">${['you-0', 'you-1'].map((id) => `<button type="button" data-show="${id}" class="${G.qsCard === id ? 'on' : ''}">${esc(Q.byId.get(id).name)}</button>`).join('')}</div>
+    <div class="qmine" data-show="${G.qsCard}">${mineCard('you-0')}${mineCard('you-1')}</div>
+    <p class="qhelp">Push finds time but can lock up the lap. Later laps are quicker, but start your lap before the flag.</p>
+    <div class="qfoot">${Q.done ? '<button type="button" class="btn" id="qDone">See the grid</button>' : `<span class="qspd">${[1, 4, 10].map((x) => `<button type="button" data-qspeed="${x}" class="${G.qsSpeed === x ? 'on' : ''}">${x}×</button>`).join('')}</span><button type="button" class="btn ghost small" id="qSkip">Skip to the result</button>`}</div>`;
+  }
+  $('.qclock', el).textContent = clock;
+  const tw = $('.qtower', el); if (tw.dataset.h !== rows) { tw.dataset.h = rows; tw.innerHTML = rows; }
+  const feed = Q.events.slice(-3).reverse().map((e) => `<li class="${e.mine ? 'mine' : ''}">${esc(e.text)}</li>`).join('');
+  const fd = $('.qfeed', el); if (fd.dataset.h !== feed) { fd.dataset.h = feed; fd.innerHTML = feed; }
+  for (const id of ['you-0', 'you-1']) { const n = $(`[data-note="${id}"]`, el); if (n) n.textContent = noteOf(Q.byId.get(id), Q.plan.runs.get(id)); }
+}
+
 function startRace(picks, auto, saved = null) {
   hide();
   if (!(saved && saved.live)) { G.room = null; stopListening(); }
@@ -2564,9 +2676,9 @@ function startRace(picks, auto, saved = null) {
   app.classList.remove('attract');
   loadVenue(G.venue);
   // everything the race is built from is kept, so a refresh can build the same race again
-  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.stops && !G.lesson ? { stops: G.stops } : {}), ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
+  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.quali && !G.lesson ? { quali: G.quali } : {}), ...(G.stops && !G.lesson ? { stops: G.stops } : {}), ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
   // a briefing plan belongs to the race it was made for: used once, then gone
-  G.stops = null; try { briefWorker?.terminate(); } catch { /* gone */ } briefWorker = null;
+  G.stops = null; G.quali = null; try { briefWorker?.terminate(); } catch { /* gone */ } briefWorker = null;
   const setup = setupRace({ venue: G.venue, seed: G.seed, ...args });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
   // each driver's own brain, its manner from the Driver DNA it races with

@@ -54,7 +54,8 @@ export function verify(day, rec) {
   if (a.laps && a.laps !== laps) throw new Error('wrong race length');
   // the Driver DNA is put through the same bounds the game races under, whatever was sent
   const R = setupRace({ venue, seed: rec.seed, team: a.team, startCompounds: a.startCompounds || {}, auto: !!a.auto,
-    dna: a.dna ? lockForRace(a.dna) : null, car: a.car, laps, ...(a.stops ? { stops: a.stops } : {}) }).make();
+    dna: a.dna ? lockForRace(a.dna) : null, car: a.car, laps, ...(a.stops ? { stops: a.stops } : {}),
+    ...(a.quali && typeof a.quali === 'object' ? { quali: a.quali } : {}) }).make();
   // a standing team order set before the start (an agent's playbook rule, js/agent.js) is part of the setup
   if (a.orders === 'hold') for (const id of ids) { const c = R.byId.get(id); if (c) c.order = 'hold'; }
   R.start();
