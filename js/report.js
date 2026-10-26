@@ -100,12 +100,12 @@ export function buildReport(R, m) {
 // a small chart of your two cars' places lap by lap (P1 at the top)
 function traceSVG(rep) {
   const ids = rep.mine.filter((id) => rep.trace[id] && rep.trace[id].length > 1); if (!ids.length) return '';
-  const n = rep.rows.length, W = 600, H = 150, px = (l) => 24 + (l - 1) / Math.max(1, rep.laps - 1) * (W - 34), py = (p) => 10 + (p - 1) / Math.max(1, n - 1) * (H - 26);
+  const n = rep.rows.length, W = 600, H = 170, px = (l) => 40 + (l - 1) / Math.max(1, rep.laps - 1) * (W - 50), py = (p) => 10 + (p - 1) / Math.max(1, n - 1) * (H - 26);
   const lines = ids.map((id, k) => {
     const row = rep.rows.find((r) => r.id === id), pts = [[0, row.grid], ...rep.trace[id]].map(([l, p]) => `${px(Math.max(1, l)).toFixed(1)},${py(p).toFixed(1)}`).join(' ');
     return `<polyline points="${pts}" fill="none" stroke="${ink(row.tm.c1)}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" class="tl${k}"/>`;
   }).join('');
-  const grid = [1, 5, 10, 15, 20].filter((p) => p <= n).map((p) => `<line x1="24" x2="${W - 10}" y1="${py(p)}" y2="${py(p)}" class="gl"/><text x="2" y="${py(p) + 4}" class="gt">P${p}</text>`).join('');
+  const grid = [1, 5, 10, 15, 20].filter((p) => p <= n).map((p) => `<line x1="40" x2="${W - 10}" y1="${py(p)}" y2="${py(p)}" class="gl"/><text x="2" y="${py(p) + 4}" class="gt">P${p}</text>`).join('');
   return `<svg class="trace" viewBox="0 0 ${W} ${H}" role="img" aria-label="Your cars' places lap by lap">${grid}${lines}</svg>`;
 }
 

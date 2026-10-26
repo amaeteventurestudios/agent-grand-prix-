@@ -889,7 +889,7 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
 .rtabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
 .trace { width: 100%; height: auto; display: block; background: var(--panel2); border-radius: 10px; }
 .trace .gl { stroke: var(--line); stroke-width: 1; }
-.trace .gt { fill: var(--mute); font: 600 10px var(--f-ui); }
+.trace .gt { fill: var(--mute); font: 600 15px var(--f-ui); }
 .trace .tl1 { stroke-dasharray: 7 5; }
 .legend { display: flex; gap: 14px; font-size: 13px; color: var(--mute); margin: 6px 0; }
 .legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid currentColor; margin-right: 6px; vertical-align: middle; }
