@@ -160,7 +160,9 @@ export const exportProfile = (p) => JSON.stringify({ v: p.v, name: p.name, param
 // simInputs turns a profile into bounded modifiers for one driver controller. Every modifier is 1
 // (or 0 for additive ones) at 50, so a Balanced driver drives exactly as the engine did before.
 // Each is a trade-off: whatever a setting gains it pays for somewhere else (see PARAMS[].cost).
-const u = (v) => (v - 50) / 50;   // -1 .. 1
+// -1 .. 1. A slider outside 0..100 (an old save, a hand-edited one, a record sent to the leaderboard)
+// races at the nearest bound, and anything that isn't a number races at the middle.
+const u = (v) => { const n = Number.isFinite(+v) ? Math.max(0, Math.min(100, +v)) : 50; return (n - 50) / 50; };
 export function simInputs(profile) {
   const x = profile ? profile.params : P({});
   const s = Object.fromEntries(KEYS.map((k) => [k, u(x[k])]));

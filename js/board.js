@@ -22,7 +22,9 @@ export async function fetchBoard(day) { return (await boardOn()) ? ask(`/daily?d
 // send the race you just raced. The server decides what it was worth; a refused record is simply not ranked.
 export async function submitDaily({ day, team, agent, rec }) {
   if (!rec || !(await boardOn())) return null;
-  return ask('/daily', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ day, team, agent: !!agent, rec }) }, 30000);   // the server runs the whole race again
+  const send = () => ask('/daily', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ day, team, agent: !!agent, rec }) }, 30000);   // the server runs the whole race again
+  // no session yet (the account check timed out on a slow start): ask for one, then once more
+  return (await send()) || (await fetch('/api/me', { credentials: 'same-origin' }).catch(() => null), send());
 }
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

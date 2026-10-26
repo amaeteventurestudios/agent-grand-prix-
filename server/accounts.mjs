@@ -26,10 +26,17 @@ const SITE = (process.env.SITE_URL || '').replace(/\/$/, '');
 const DIR = process.env.SAVE_DIR || '/var/lib/agp-accounts';
 const MAX = 256 * 1024;            // a save is a few KB; this is a generous ceiling
 export const on = () => !!(CORE && SECRET && SITE);
+// The session cookie is signed with this server's own key (made once by install.sh), so the
+// leaderboard and live races know who you are even before Novenique Core is connected. Until then a
+// player is a guest of this game alone: same save on the server, nothing to sign in to.
+const KEY = process.env.SESSION_SECRET || '';
+export const sessions = () => !!(KEY || SECRET);
 
 const basic = 'Basic ' + Buffer.from(`${ID}:${SECRET}`).toString('base64');
+// on the same server Core is reached directly; the public address is only for the browser's redirects
+const CORE_IN = (process.env.NOVENIQUE_INTERNAL_URL || '').replace(/\/$/, '') || CORE;
 async function core(route, body, method = 'POST') {
-  const r = await fetch(CORE + route, { method, headers: { authorization: basic, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+  const r = await fetch(CORE_IN + route, { method, headers: { authorization: basic, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
   const text = await r.text();
   let j = null; try { j = text ? JSON.parse(text) : null; } catch {}
   if (!r.ok) throw new Error(`core ${route} ${r.status} ${text.slice(0, 120)}`);
@@ -66,7 +73,7 @@ export function mergeSaves(into, from) {
 }
 
 // ---------- sessions: a signed cookie holding the guest token or the account's user id ----------
-const SIGN = crypto.createHash('sha256').update(SECRET || 'dev').digest();
+const SIGN = crypto.createHash('sha256').update(KEY || SECRET || 'dev').digest();
 export const seal = (o) => { const b = Buffer.from(JSON.stringify(o)).toString('base64url'); return b + '.' + crypto.createHmac('sha256', SIGN).update(b).digest('base64url'); };
 export function open(c) {
   const [b, sig] = String(c || '').split('.');
@@ -85,6 +92,12 @@ const S256 = (v) => crypto.createHash('sha256').update(v).digest('base64url');
 async function whoever(req) {
   const s = open(cookies(req)['agp.sid']);
   if (s && s.uid) return { sess: s, fresh: false };
+  // no Core yet: a guest of this game only, kept by the signed cookie alone
+  if (!on()) {
+    if (s && s.local) return { sess: s, fresh: false };
+    const id = 'l' + crypto.randomBytes(12).toString('base64url').replace(/[^A-Za-z0-9]/g, '');
+    return { sess: { local: id, user: { id } }, fresh: true };
+  }
   if (s && s.guest) {
     try { const r = await core('/v1/guests/resume', { guest_token: s.guest }); return { sess: { ...s, uid: null, user: r.user }, fresh: false }; } catch {}
   }
@@ -96,8 +109,8 @@ const me = (s) => ({ id: (s.user && (s.user.id || s.user.user_id)) || s.uid, nam
 export function serve(port = PORT) {
   return http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
-    if (u.pathname === '/api/me/health') return send(res, 200, { accounts: on() });
-    if (!on()) return send(res, 503, { error: 'off' });
+    if (u.pathname === '/api/me/health') return send(res, 200, { accounts: on(), sessions: sessions() });
+    if (!on() && !(sessions() && (u.pathname === '/api/me' || u.pathname === '/api/me/save'))) return send(res, 503, { error: 'off' });
     try {
       if (u.pathname === '/api/me' && req.method === 'GET') {
         const { sess, fresh } = await whoever(req), who = me(sess);

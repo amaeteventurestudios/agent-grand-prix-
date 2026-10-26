@@ -11,14 +11,14 @@ async function ask(route, opts) {
   catch { return null; } finally { clearTimeout(t); }
 }
 
-export const account = { on: false, me: null };
+export const account = { on: false, me: null, signin: false };   // signin: Novenique Core is connected
 
 // Called once at startup. Answers with the server's save when it is further along than this
 // device's, so a new phone picks up where you left off; otherwise this device's save is sent up.
 export async function start(local) {
-  const h = await ask('/health'); if (!h || !h.accounts) return null;
+  const h = await ask('/health'); if (!h || !(h.accounts || h.sessions)) return null;
   const r = await ask(''); if (!r) return null;
-  account.on = true; account.me = r.me;
+  account.on = true; account.me = r.me; account.signin = !!h.accounts;
   const mine = (x) => (x && x.stats && x.stats.starts) || 0;
   if (r.save && mine(r.save) > mine(local)) return r.save;
   if (mine(local)) push(local);

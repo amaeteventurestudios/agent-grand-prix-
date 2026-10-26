@@ -175,3 +175,28 @@ submitted and a tampered Driver DNA is put back inside the bounds everyone races
 - Who you are comes from the session cookie the accounts service sets, so the board needs no key of
   its own; with the service off the game simply doesn't show a board. Tests:
   `tools/test/board.test.mjs`.
+
+## Live Grand Prix (ten teams on one grid)
+
+A race starts every five minutes for up to ten teams of people. Every browser runs the whole race
+itself, with the same engine, circuit, seed and the same twenty cars; the room service only agrees on
+who is in the race and which engine step each call lands on.
+
+- `server/live.mjs` runs on 127.0.0.1:8143 behind Caddy at `/api/live/*`. A person takes a seat with
+  their team, car and Driver DNA; seat k races in team slot k (the nine series teams, then the tenth
+  box), so every browser builds the same grid (`seatRoster()` in `js/game.js`). Empty seats keep their
+  series team, raced by the engine, and every person's cars race with the same driver traits.
+- Your calls go to the room, which gives each one a step one second ahead of its clock and sends it to
+  everyone, you included (`js/live.js`, `liveCatchUp()` in `js/main.js`). The race runs on the room's
+  clock and catches up after a slow frame; a call that arrives late makes the browser build the race
+  again from the start with every call, in a blink. Your seat's cars are `you-0` and `you-1` in your
+  browser only, after qualifying, so the rest of the page works as it does for any race.
+- Rooms live in memory: a room is one race, kept half an hour for a refresh. Tests:
+  `tools/test/live.test.mjs` (every browser runs the identical race whichever seat is "you").
+
+**Sessions before Novenique Core is connected.** The session cookie is signed with this server's own
+key (`/etc/agp-session.env`, made once by `server/install.sh`), so the leaderboard and live races know
+who a player is even with Core off: a player is then a guest of this game alone, with the save still
+kept on the server, and there is nothing to sign in to. Core is reached at `127.0.0.1:8200` on the
+same server; its public address (`NOVENIQUE_URL`, default `https://accounts.129-146-26-28.sslip.io`)
+is only for the browser's sign-in redirects. Tests: `tools/test/sessions.test.mjs`.
