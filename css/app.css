@@ -912,3 +912,21 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
 .rv li.good::before { content: '▲'; color: #1a9c4f; font-size: 11px; top: 9px; }
 .rv li.bad::before { content: '▼'; color: #d6332a; font-size: 11px; top: 9px; }
 .rv li.note::before { content: '•'; color: var(--mute); }
+
+/* your agent */
+.hc.away { margin: 0 0 12px; border: 2px solid var(--accent); }
+.away-list { list-style: none; padding: 0; margin: 4px 0; display: grid; gap: 6px; }
+.away-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 10px; align-items: center; background: var(--panel2); border-radius: 10px; padding: 6px 6px 6px 12px; font-size: 14px; }
+.away-list li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.away-list li em { font-style: normal; color: var(--mute); font-size: 13px; }
+.away-list li .btn { min-height: 36px; padding: 0 12px; }
+@media (max-width: 520px) { .away-list li { grid-template-columns: minmax(0, 1fr) auto; } .away-list li em { display: none; } }
+.switch-row { display: flex; gap: 12px; align-items: flex-start; background: var(--panel2); border-radius: 12px; padding: 12px; margin: 10px 0 14px; cursor: pointer; }
+.switch-row input { width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--accent); flex: none; }
+.switch-row span { display: grid; gap: 2px; }
+.switch-row small { color: var(--mute); font-size: 13px; }
+.vpick.pb { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.vpick.pb button { text-align: left; padding: 8px 10px; }
+.vpick.pb span { font-size: 12px; }
+.vpick.pbt { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 420px) { .vpick.pbt { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

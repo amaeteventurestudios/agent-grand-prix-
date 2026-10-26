@@ -18,6 +18,8 @@ import { PARAMS, PRESETS, SLOTS, fromPreset } from './dna.js';
 import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
 import { buildReport, reportHTML, shareText } from './report.js';
+import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
+import { account, start as accountStart, signIn, signOut } from './account.js';
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
@@ -1357,7 +1359,7 @@ function home() {
   const cards = `
     <div class="cards">
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
-        <p>${done ? `You finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
+        <p>${done ? `${done.agent ? 'Your agent' : 'You'} finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
         <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}</div></div>
       <div class="hc"><span class="k">Championship · season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
         <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
@@ -1391,9 +1393,9 @@ function home() {
   const sh = show(`
     <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
     <p class="tag">${newcomer ? 'Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
-    ${newcomer ? choice : first ? welcome + cards : hero + teamStrip() + cards}
+    ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <a href="credits.html">Credits</a></span></div>`, 'home');
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button>${first ? '' : ' <button data-go="agent" type="button">My agent</button>'}${account.on ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
   sh.onclick = homeClick;
 }
 // your team on the home page: both drivers' faces, and the last race with its report
@@ -1435,6 +1437,82 @@ function reportSheet(rep, back, tab = 'result') {
     if (b.dataset.x === 'back') back();
   };
 }
+// ---------- your agent while you're away (js/agent.js) ----------
+// On opening the game, any Daily you missed (past your cover time, up to a week back) is raced by
+// your agent in a Web Worker, with your team, car and Driver DNA. Its results keep your streak and
+// are marked as the agent's. Only after you have a team, and never for days before the agent started.
+let agentWorker = null;
+function agentCatchUp() {
+  if (firstVisit()) return;
+  const today = dayNumber();
+  S.agent ||= { since: today, playbook: {}, reports: [], unseen: [] };
+  const due = dueDailies(S, today);
+  if (!due.length || G.agentBusy) return;
+  G.agentBusy = true;
+  agentWorker ||= new Worker(new URL('./agent.worker.js', import.meta.url), { type: 'module' });
+  const next = () => {
+    const n = due.shift(); if (n == null) { G.agentBusy = false; if (G.attract && !$('#screen').hidden && $('#sheet .brand')) home(); return; }
+    const v = dailyVenue(n);
+    agentWorker.onmessage = (e) => {
+      const { out } = e.data;
+      if (out && !S.daily.days[n]) {
+        S.daily.days[n] = { best: out.best, pts: out.pts, agent: true, share: shareText(out.report, location.origin + location.pathname) + '\n🤖 raced by my agent' };
+        S.daily.streak = S.daily.last === n - 1 ? S.daily.streak + 1 : 1; S.daily.last = Math.max(S.daily.last || 0, n);
+        S.agent.reports = [{ n, at: Date.now(), report: out.report, places: out.places, pts: out.pts }, ...S.agent.reports.filter((x) => x.n !== n)].slice(0, 7);
+        S.agent.unseen = [...new Set([...(S.agent.unseen || []), n])];
+        store.save();
+      }
+      next();
+    };
+    agentWorker.postMessage({ id: n, args: { venueId: v.id, seed: hashString('daily-' + n), team: structuredClone(team()), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: raceLaps(trackFor(v), 'short'), playbook: playbookOf(S), label: `Daily #${n} · raced by your agent` } });
+  };
+  next();
+}
+// on the home page: what your agent did while you were away
+function awayCard() {
+  const A = S.agent; if (!A || !A.unseen || !A.unseen.length) return '';
+  const list = A.reports.filter((r) => A.unseen.includes(r.n)).sort((a, b) => a.n - b.n);
+  if (!list.length) return '';
+  const t = team();
+  return `<div class="hc away"><span class="k">🤖 While you were away</span><h3>Your agent raced ${list.length === 1 ? "the Daily" : list.length + ' Dailies'}</h3>
+    <ul class="away-list">${list.map((r) => `<li><span>${r.report.venue.flag} ${esc(r.report.venue.city)} · Daily #${r.n}</span><b>${t.drivers.map((d, k) => `${esc(d.code || d.name)} ${r.places[k] ? 'P' + r.places[k] : 'DNF'}`).join(' · ')}</b><em>+${r.pts} pts</em><button class="btn ghost" data-go="ar:${r.n}" type="button">Report</button></li>`).join('')}</ul>
+    <div class="row"><button class="btn" data-go="awayok" type="button">Got it</button><button class="btn ghost" data-go="agent" type="button">Agent settings</button></div></div>`;
+}
+// My agent: the playbook your agent follows, and its recent races
+function agentSheet(back) {
+  S.agent ||= { since: dayNumber(), playbook: {}, reports: [], unseen: [] };
+  const pb = playbookOf(S), n = dayNumber(), nv = dailyVenue(S.daily.days[n] ? n + 1 : n);
+  const row = (key, title) => `<div class="sub">${title}</div><div class="vpick pb">${PLAYBOOK_CHOICES[key].map(([v, name, note]) => `<button type="button" data-pb="${key}" data-v="${v}" class="${pb[key] === v ? 'on' : ''}"><b>${name}</b><span>${note}</span></button>`).join('')}</div>`;
+  const sh = show(`<h2>My agent</h2>
+    <p class="lede">Busy? If you haven't raced the Daily Grand Prix by your cover time, your agent races it for you on Autonomous, with your team, car and Driver DNA, and writes the report. It keeps your streak; its results are marked as the agent's. It can't change your Driver DNA or enter other races.</p>
+    <label class="switch-row"><input type="checkbox" id="pbOn" ${pb.on ? 'checked' : ''}><span><b>Race my missed Dailies</b><small>Next: ${nv.flag} ${esc(nv.city)}, at ${pb.cover}:00 your time if you haven't raced it.</small></span></label>
+    <div class="sub">Cover time</div><div class="vpick pbt">${[18, 19, 20, 21, 22, 23].map((h) => `<button type="button" data-pb="cover" data-v="${h}" class="${pb.cover === h ? 'on' : ''}"><b>${h}:00</b></button>`).join('')}</div>
+    ${row('pit', 'Pit stops')}${row('rain', 'When it rains')}${row('orders', 'Team orders')}${row('risk', 'Risk')}
+    ${S.agent.reports.length ? `<div class="sub">Recent agent races</div><ul class="away-list">${S.agent.reports.map((r) => `<li><span>${r.report.venue.flag} ${esc(r.report.venue.city)} · Daily #${r.n}</span><b>${r.places.map((p) => (p ? 'P' + p : 'DNF')).join(' · ')}</b><em>+${r.pts} pts</em><button class="btn ghost" data-ar="${r.n}" type="button">Report</button></li>`).join('')}</ul>` : ''}
+    <div class="actions"><button class="btn" id="pbDone" type="button">Done</button></div>`);
+  const set = (k, v) => { S.agent.playbook = { ...S.agent.playbook, [k]: v }; store.save(); };
+  $('#pbOn').addEventListener('change', (e) => set('on', e.target.checked));
+  sh.onclick = (e) => {
+    const b = e.target.closest('[data-pb]');
+    if (b) { const k = b.dataset.pb; set(k, k === 'cover' ? +b.dataset.v : b.dataset.v); $$(`[data-pb="${k}"]`, sh).forEach((x) => x.classList.toggle('on', x === b)); return; }
+    const a = e.target.closest('[data-ar]'); if (a) { const r = S.agent.reports.find((x) => String(x.n) === a.dataset.ar); if (r) reportSheet(r.report, () => agentSheet(back)); }
+    if (e.target.closest('#pbDone')) { back(); agentCatchUp(); }
+  };
+}
+// Sign in, so your team follows you to another device. Identity lives on Novenique, the account
+// shared across Novenique's games; the game only keeps your save under it.
+function accountSheet(back) {
+  const me = account.me || {}, named = !me.guest;
+  const sh = show(`<h2>${named ? 'Your account' : 'Sign in'}</h2>
+    <p class="lede">${named ? `Signed in as <b>${esc(me.name || 'your Novenique account')}</b>. Your team, season, Academy progress and agent settings are kept with your account, so they follow you to any device.`
+      : 'Right now your progress is saved on this device only. Sign in with your Novenique account and it follows you to any device, and keeps the same team you have built here.'}</p>
+    ${named ? '' : '<p class="note">Novenique is the account shared across Novenique\'s games. Nothing you have built here is lost: this device\'s progress is attached to the account you sign in to.</p>'}
+    <div class="actions">${named ? '<button class="btn ghost" id="acOut" type="button">Sign out of this device</button>' : '<button class="btn" id="acIn" type="button">Continue with Novenique</button>'}
+      <button class="btn ghost" id="acBack" type="button">Back</button></div>`);
+  const i = $('#acIn'); if (i) i.addEventListener('click', async () => { i.disabled = true; i.textContent = 'Opening…'; if (!(await signIn())) { i.disabled = false; i.textContent = 'Continue with Novenique'; toast('Could not reach the account service. Your progress is safe on this device.'); } });
+  const o = $('#acOut'); if (o) o.addEventListener('click', async () => { await signOut(); toast('Signed out on this device. Your progress stays with your account.'); back(); });
+  $('#acBack').addEventListener('click', back);
+}
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
   const go = b.dataset.go, n = dayNumber();
@@ -1446,6 +1524,10 @@ function homeClick(e) {
   }
   if (go === 'standings') standings();
   if (go === 'watch') watchRace();
+  if (go === 'agent') agentSheet(home);
+  if (go === 'account') accountSheet(home);
+  if (go === 'awayok') { S.agent.unseen = []; store.save(); home(); }
+  if (go.startsWith('ar:')) { const a = S.agent.reports.find((x) => String(x.n) === go.slice(3)); if (a) reportSheet(a.report, home); }
   if (go === 'report' && S.lastReport) reportSheet(S.lastReport, home);
   if (go === 'quick') quickPick();
   if (go === 'team') { if (firstVisit()) onboard('team', null); else teamSheet(home); }
@@ -2355,9 +2437,10 @@ function results() {
       S.daily.streak = S.daily.last === n - 1 ? S.daily.streak + 1 : 1;
       S.daily.last = n;
       if (S.daily.streak >= 3) give('streak3');
-      dailyLine = `Today's result is saved. ${S.daily.streak > 1 ? `🔥 ${S.daily.streak}-day streak.` : 'Come back tomorrow for a new venue.'}`;
+      const nv = dailyVenue(n + 1), pb = playbookOf(S);
+      dailyLine = `Today's result is saved. ${S.daily.streak > 1 ? `🔥 ${S.daily.streak}-day streak.` : ''} Tomorrow's Daily is ${nv.flag} ${esc(nv.city)}.${pb.on ? ` If you're busy, your agent races it at ${pb.cover}:00 and tells you how it went.` : ''}`;
     } else {
-      dailyLine = `Replay only: your scored run today was P${rec.best}.`;
+      dailyLine = rec.agent ? `Replay only: your agent already raced today's Daily (P${rec.best}).` : `Replay only: your scored run today was P${rec.best}.`;
       if (best < rec.best) { rec.best = best; rec.pts = pts; rec.share = share; dailyLine = `New best today: P${best}.`; }
     }
   }
@@ -2490,5 +2573,11 @@ window.__agp = {
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,
 };
 
-{ const saved = live.load(); if (!(saved && resumeRace(saved))) attract(); }
+{ const saved = live.load(); if (!(saved && resumeRace(saved))) attract(); agentCatchUp(); }
+// an account, when the service is running: a guest at first, so nothing is asked of a new player
+accountStart(S).then((fromServer) => {
+  if (fromServer) { store.adopt(fromServer); if (G.attract && !$('#screen').hidden) home(); }
+  else if (account.on && G.attract && !$('#screen').hidden) home();
+  if (new URLSearchParams(location.search).get('signedin')) { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); history.replaceState(null, '', location.pathname); }
+});
 requestAnimationFrame(frame);

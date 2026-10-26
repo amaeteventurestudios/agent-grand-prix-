@@ -26,6 +26,8 @@ read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
 GAME='root * '"$WEB"'
 	encode zstd gzip
 	reverse_proxy /api/radio/* 127.0.0.1:8140
+	reverse_proxy /api/me/* 127.0.0.1:8141
+	reverse_proxy /auth/novenique/* 127.0.0.1:8141
 	file_server
 	header /assets/* Cache-Control "public, max-age=604800"
 	header /vendor/* Cache-Control "public, max-age=604800"
@@ -105,6 +107,31 @@ StateDirectory=agp-radio
 [Install]
 WantedBy=multi-user.target
 UNIT
+# ---- accounts (always runs; waits for the Novenique client secret) ----
+# the service reads the account service's own secret from Novenique Core's client file, so no key
+# is ever sent from GitHub; the game's save files live in its own state directory.
+if [ -r /etc/novenique/clients/agp.env ]; then sudo chmod 0640 /etc/novenique/clients/agp.env 2>/dev/null || true; fi
+sudo tee /etc/systemd/system/agp-accounts.service >/dev/null <<UNIT
+[Unit]
+Description=Agent Grand Prix accounts (Novenique Core)
+After=network-online.target
+Wants=network-online.target
+[Service]
+EnvironmentFile=/etc/agent-grand-prix.env
+# Novenique Core puts this game's client id and secret here when Core is installed on this server
+# (core/deploy/install.sh); until then the service runs and answers { accounts: false }.
+EnvironmentFile=-/etc/novenique/clients/agp.env
+ExecStart=$NODE_DIR/bin/node $APP/server/accounts.mjs
+WorkingDirectory=$APP
+Environment=SAVE_DIR=/var/lib/agp-accounts
+Restart=always
+RestartSec=5
+DynamicUser=yes
+StateDirectory=agp-accounts
+[Install]
+WantedBy=multi-user.target
+UNIT
+
 if sudo grep -q '^WHATSAPP_AGENT_TOKEN=.\+' /etc/agent-grand-prix.env; then
   sudo tee /etc/systemd/system/agent-grand-prix.service >/dev/null <<UNIT
 [Unit]
@@ -134,6 +161,8 @@ if [ -f /etc/systemd/system/agent-grand-prix.service ]; then
 fi
 sleep 3
 sudo systemctl is-active caddy
+sudo systemctl enable agp-accounts >/dev/null && sudo systemctl restart agp-accounts
+sleep 1; curl -fsS http://127.0.0.1:8141/api/me/health && echo ' <- accounts (false until the Novenique secret is set)' || echo 'Accounts service not answering yet'
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
 curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio (interpreter = Jev, brain = drivers AI)' || echo 'Team radio interpreter not answering yet'
