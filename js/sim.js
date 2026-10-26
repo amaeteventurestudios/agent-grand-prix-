@@ -566,7 +566,7 @@ export class Race {
     let rel = s; if (rel > L / 2) rel -= L; // pit zone straddles the line
     if (car.pit.phase === 'in') {
       // brake smoothly down to the limit through the entry, so a car close behind can follow
-      vt = Math.min(vt, rel > P.inS + 35 ? P.speed : Math.sqrt(P.speed * P.speed + 2 * 20 * (P.inS + 35 - rel)));
+      vt = Math.min(vt, rel > P.inS + 35 ? P.speed : Math.sqrt(P.speed * P.speed + 2 * 30 * (P.inS + 35 - rel)));
       // a double stack: with the teammate still ahead in or at the box, pull into the working lane
       // just behind it and wait there; move up once the teammate has pulled away
       const box = P.box[car.team.box], spacing = P.box[1] - P.box[0];
@@ -594,19 +594,19 @@ export class Race {
         return this.pitFollow(car, vt, rel);
       }
       // brake into the box on a steady curve, and stop there once across in the lane
-      vt = Math.min(vt, Math.sqrt(2 * 26 * Math.max(0, teamBox - rel)) + 1.5);
+      vt = Math.min(vt, Math.sqrt(2 * 34 * Math.max(0, teamBox - rel)) + 1.5);
       if (rel >= teamBox - 0.6 && rel < teamBox + 20 && Math.abs(car.lat - P.lat) > 1.5) vt = Math.min(vt, Math.max(0, (teamBox + 0.5 - rel) * 2)); // still crossing: wait at the box
       else if (rel >= teamBox - 0.6 && rel < teamBox + 20) {
         car.pit.phase = 'stop';
         if (Math.abs(teamBox - rel) < 8) car.dist += teamBox - rel;
         car.lat = car.pitLat; car.prevLat = car.lat;
-        let stop = 2.2 + this.r.range(0, 0.7);
+        let stop = 1.9 + this.r.range(0, 0.6);
         if (this.r() < 0.04) { stop += this.r.range(2, 4); this.slowStop = car.id; }
         car.stopT = stop; car.stopLen = stop;
         car.v = 0;
         return 0;
       }
-      if (rel > teamBox - 25) vt = Math.min(vt, Math.max(2, (teamBox - rel) * 2.2));
+      if (rel > teamBox - 25) vt = Math.min(vt, Math.max(3, (teamBox - rel) * 3.2));
     } else if (car.pit.phase === 'out') {
       vt = Math.min(vt, P.speed);
       car.pitLat = P.fast;
