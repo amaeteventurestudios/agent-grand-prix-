@@ -862,3 +862,53 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
 .hm-vis button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 3px; width: 36px; height: 30px; }
 .hm-vis i { display: block; width: 100%; height: 100%; border-radius: 5px; }
 @media (max-width: 420px) { .hm-vis button { width: 31px; } }
+
+/* home: the hero, your team, the championship at a glance */
+.hero-acts { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 6px; }
+.btn.big { min-height: 52px; padding: 0 22px; font-size: 17px; }
+.screen.home .hero-acts .btn.ghost { background: rgba(255, 255, 255, .92); color: #16181d; border-color: transparent; }
+.hero-next { color: #fff; margin: 0 0 14px; font-size: 14px; text-shadow: 0 1px 8px rgba(0, 0, 0, .5); }
+.tstrip { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--panel); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px; }
+.ts-team { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1 1 260px; }
+.ts-team .portrait { border-radius: 10px; }
+.ts-team div, .ts-last { display: grid; min-width: 0; }
+.ts-team div { margin-left: 6px; }
+.ts-team b, .ts-last b { font: 700 16px var(--f-ui); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ts-team span, .ts-last span { color: var(--mute); font-size: 13px; }
+.ts-last { flex: 1 1 200px; }
+.peek { display: flex; gap: 6px; flex-wrap: wrap; }
+.peek span { display: inline-flex; align-items: center; gap: 4px; background: var(--panel2); border-radius: 999px; padding: 2px 10px 2px 2px; font: 600 13px var(--f-ui); }
+.peek span.mine { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.peek em { font-style: normal; color: var(--mute); }
+.peek .portrait { border-radius: 50%; background: rgba(127, 127, 127, .14); }
+.watch-back { position: absolute; left: 12px; top: 12px; z-index: 30; }
+.watch-back[hidden] { display: none; }
+/* the Race Intelligence Report */
+.rtabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 12px 0 10px; overflow-x: auto; }
+.rtabs button { border: 0; background: none; color: var(--mute); font: 700 15px var(--f-ui); padding: 10px 12px; border-bottom: 3px solid transparent; white-space: nowrap; }
+.rtabs button.on { color: var(--ink); border-bottom-color: var(--accent); }
+.trace { width: 100%; height: auto; display: block; background: var(--panel2); border-radius: 10px; }
+.trace .gl { stroke: var(--line); stroke-width: 1; }
+.trace .gt { fill: var(--mute); font: 600 10px var(--f-ui); }
+.trace .tl1 { stroke-dasharray: 7 5; }
+.legend { display: flex; gap: 14px; font-size: 13px; color: var(--mute); margin: 6px 0; }
+.legend i { display: inline-block; width: 22px; height: 0; border-top: 3px solid currentColor; margin-right: 6px; vertical-align: middle; }
+.legend i.k1 { border-top-style: dashed; }
+.tline { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
+.tline li { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 7px 10px; border-radius: 8px; background: var(--panel2); font-size: 14px; }
+.tline li.ev { background: none; color: var(--mute); font-size: 13px; padding: 4px 10px; }
+.tline li.ev.sc, .tline li.ev.weather { color: var(--ink); }
+.tline li.other { opacity: .8; }
+.tline .lp { font: 700 12px var(--f-ui); color: var(--mute); }
+.tline em { color: var(--mute); font-style: normal; font-size: 12px; }
+.mv { font: 700 12px var(--f-ui); white-space: nowrap; }
+.mv.up { color: #1a9c4f; } .mv.dn { color: #d6332a; } .mv.eq { color: var(--mute); }
+.rv { margin: 10px 0; }
+.rv-h { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.rv-h .portrait { border-radius: 8px; }
+.rv ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.rv li { padding: 7px 10px 7px 30px; border-radius: 8px; background: var(--panel2); font-size: 14px; position: relative; }
+.rv li::before { position: absolute; left: 10px; top: 7px; font-weight: 800; }
+.rv li.good::before { content: '▲'; color: #1a9c4f; font-size: 11px; top: 9px; }
+.rv li.bad::before { content: '▼'; color: #d6332a; font-size: 11px; top: 9px; }
+.rv li.note::before { content: '•'; color: var(--mute); }

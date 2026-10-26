@@ -132,7 +132,7 @@ export class Race {
         pitReq: null, pit: null, stopT: 0,
         pass: null, yieldT: 0, mistakeT: 0,
         finished: false, dnf: false, pos: i + 1,
-        lapStart: 0, lastLap: 0, best: Infinity, lapsDone: 0,
+        lapStart: 0, lastLap: 0, best: Infinity, lapsDone: 0, trace: [],
         gap: 0, interval: 0, loop: Math.floor((-10 - i * 9) / LOOP),
         react: 0.15 + (1 - traits.pace) * 0.4 + this.r.range(0, 0.25),
         mismatch: 0, plan: null, think: this.r.range(0, 1), advised: {},
@@ -522,6 +522,8 @@ export class Race {
       const lapT = this.t - car.lapStart;
       car.lapStart = this.t;
       car.lapsDone = ln;
+      // a lap-by-lap record for the race report (read only; nothing in the race depends on it)
+      car.trace.push({ lap: ln, at: this.t, pos: car.pos, tyre: car.tyre.c, wear: car.tyre.wear });
       car.tyre.laps++;
       if (ln >= 2 || true) {
         car.lastLap = lapT;

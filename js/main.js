@@ -17,6 +17,7 @@ import { carMetrics } from './proving.js';
 import { PARAMS, PRESETS, SLOTS, fromPreset } from './dna.js';
 import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
+import { buildReport, reportHTML, shareText } from './report.js';
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
@@ -148,7 +149,8 @@ function frame(now) {
   cheerBurst *= Math.exp(-dt * 0.5);
   const R = G.race;
   if (R && R.started && !G.paused && !R.done) {
-    G.acc += dt * (G.attract ? 1 : G.speed);
+    // reduced motion: the race behind the home page holds still, a picture rather than a film
+    G.acc += dt * (G.attract ? (reduce ? 0 : 1) : G.speed);
     let n = 0;
     while (G.acc >= DT && n < 60) { R.step(); G.acc -= DT; n++; }
     if (n === 60) G.acc = 0;
@@ -156,7 +158,7 @@ function frame(now) {
   }
   if (G.attract && R) { // home screen: cut between TV and chase shots of the leading cars
     G.attractT += dt;
-    if (G.attractT > 9) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(cams.mode === 'live' ? 'tv' : 'live'); }
+    if (G.attractT > 9 && !reduce) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(cams.mode === 'live' ? 'tv' : 'live'); }
   }
   if (R && world) {
     // behind the home screen and menus the race is scenery: no tags or rings over the titles
@@ -1352,21 +1354,18 @@ function home() {
   const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
   const lr = S.lastRace && venueById(S.lastRace.venue), first = firstVisit();
   const nAc = doneCount(S);
-  const academyCard = `<div class="hc"><span class="k">Racing Academy · ${nAc} of ${LESSONS.length}</span><h3>${nAc >= LESSONS.length ? '🎓 Graduate' : 'Learn the pit wall'}</h3>
-      <p>${nAc ? `Next: ${esc((LESSONS.find((l) => !progress(S).lessons[l.id]?.done) || LESSONS[0]).title)}.` : 'Five short lessons on a real race: your team, your drivers, the circuit, strategy, your first Grand Prix.'}</p>
-      <div class="row"><button class="btn${nAc ? ' ghost' : ''}" data-go="academy" type="button">${nAc ? 'Open the Academy' : 'Start lesson 1'}</button><button class="btn ghost" data-go="practice" type="button">Free practice</button></div></div>`;
   const cards = `
     <div class="cards">
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
         <p>${done ? `You finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
         <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}</div></div>
-      <div class="hc"><span class="k">Season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
+      <div class="hc"><span class="k">Championship · season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
         <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
+        ${standingsPeek()}
         <div class="row"><button class="btn" data-go="season" type="button">${seasonOver ? 'Standings' : S.season.round > 1 ? 'Next round' : 'Start the season'}</button><button class="btn ghost" data-go="standings" type="button">Standings</button></div></div>
-      ${academyCard}
       <div class="hc"><span class="k">Quick race</span><h3>Pick any circuit</h3>
         <p>${lr ? `Last time: ${lr.flag} ${esc(lr.city)}. Race again with the same tyres and calls, or pick another.` : `All ${VENUES.length} circuits, any time. No points, just racing.`}</p>
-        <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button></div></div>
+        <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button><button class="btn ghost" data-go="practice" type="button">Free practice</button></div></div>
     </div>`;
   // a first visit offers three ways in; nothing is forced, and anyone who has raced skips it
   const choice = `
@@ -1383,13 +1382,58 @@ function home() {
       <p>Build your team in about a minute: name it, pick your car and colours, name your drivers.</p>
       <div class="row"><button class="btn" data-go="build" type="button">Build my team</button><button class="btn ghost" data-go="just" type="button">Just race</button></div></div></div>`;
   const newcomer = first && !S.stats.starts && !nAc;
+  // Start racing goes to the race that matters next: today's Daily, then the Championship, then a quick race
+  const start = !done ? { go: 'daily', line: `Today's Daily Grand Prix: ${dv.flag} ${esc(dv.city)}` } : !seasonOver ? { go: 'season', line: `Championship round ${S.season.round}: ${sv.flag} ${esc(sv.city)}` } : { go: lr ? 'again' : 'quick', line: lr ? `Race again at ${lr.flag} ${esc(lr.city)}` : 'Pick any circuit' };
+  const hero = `<div class="hero-acts"><button class="btn big" data-go="${start.go}" type="button">Start racing</button>
+      <button class="btn ghost big" data-go="academy" type="button">🎓 Racing Academy${nAc ? ` · ${nAc}/${LESSONS.length}` : ''}</button>
+      <button class="btn ghost big" data-go="watch" type="button">▶ Watch a race</button></div>
+    <p class="hero-next">${start.line}</p>`;
   const sh = show(`
     <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
-    <p class="tag">Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.</p>
-    ${newcomer ? choice : first ? welcome + cards : cards}
+    <p class="tag">${newcomer ? 'Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
+    ${newcomer ? choice : first ? welcome + cards : hero + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
       <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <a href="credits.html">Credits</a></span></div>`, 'home');
   sh.onclick = homeClick;
+}
+// your team on the home page: both drivers' faces, and the last race with its report
+function teamStrip() {
+  const t = team(), r = S.lastReport, ago = r ? Math.round((Date.now() - r.at) / 864e5) : 0;
+  const my = r ? r.rows.filter((x) => r.mine.includes(x.id)) : [];
+  return `<div class="tstrip"><div class="ts-team">${t.drivers.map((d) => portraitSVG(d, t, { size: 48 })).join('')}<div><b>${esc(t.name)}</b><span>${t.drivers.map((d) => esc(d.name)).join(' and ')}</span></div></div>
+    ${r ? `<div class="ts-last"><span>Last race${ago ? ` · ${ago === 1 ? 'yesterday' : ago + ' days ago'}` : ''}</span><b>${r.venue.flag} ${esc(r.venue.city)} · ${my.map((x) => `${esc(x.d.code)} ${x.dnf ? 'DNF' : 'P' + x.pos}`).join(' · ')}</b></div>
+      <button class="btn ghost" data-go="report" type="button">Race report</button>` : '<div class="ts-last"><span>No races yet</span><b>Your first result will show here.</b></div>'}
+    <button class="btn ghost" data-go="team" type="button">Edit team</button></div>`;
+}
+// the championship at a glance: the top three drivers, and where your team stands
+function standingsPeek() {
+  const done = S.season.round - 1; if (!done) return '';
+  const all = [];
+  TEAMS.forEach((t, ti) => t.drivers.forEach((d, i) => all.push({ id: `${t.id}-${i}`, d: { ...d, num: TAKEN_NUMS[ti * 2 + i] }, tm: t })));
+  team().drivers.forEach((d, i) => all.push({ id: `you-${i}`, d, tm: team(), you: true }));
+  all.forEach((x) => (x.pts = S.season.pts[x.id] || 0)); all.sort((a, b) => b.pts - a.pts);
+  const teams = Object.entries(S.season.teamPts).sort((a, b) => b[1] - a[1]), tp = teams.findIndex(([k]) => k === 'you') + 1;
+  return `<div class="peek">${all.slice(0, 3).map((x, i) => `<span class="${x.you ? 'mine' : ''}">${portraitSVG(x.d, x.tm, { size: 26, bg: false })}<b>${i + 1}</b> ${esc(x.d.code)} <em>${x.pts}</em></span>`).join('')}</div>
+    <p class="small">Your team: P${tp || teams.length + 1} of ${TEAMS.length + 1} teams after ${done} round${done > 1 ? 's' : ''}.</p>`;
+}
+// Watch a race: the menu steps aside and the live race behind it fills the screen
+function watchRace() {
+  hide();
+  let b = $('#watchBack');
+  if (!b) { b = document.createElement('button'); b.id = 'watchBack'; b.type = 'button'; b.className = 'chip watch-back'; b.textContent = '← Menu'; b.addEventListener('click', () => { b.hidden = true; home(); }); app.appendChild(b); }
+  b.hidden = false;
+}
+// the last race's report, from the home page
+function reportSheet(rep, back, tab = 'result') {
+  const r = reportHTML(rep, tab);
+  const sh = show(`<div class="sub">${r.title}</div><h2>Race report</h2><p class="lede">${r.mine}</p>${r.tabs}<div class="rbody">${r.body}</div>
+    <div class="actions"><button class="btn" data-x="share" type="button">Share result</button><button class="btn ghost" data-x="back" type="button">Back</button></div>`, 'report');
+  sh.onclick = (e) => {
+    const t = e.target.closest('[data-rt]'); if (t) return reportSheet(rep, back, t.dataset.rt);
+    const b = e.target.closest('[data-x]'); if (!b) return;
+    if (b.dataset.x === 'share') shareSheet(shareText(rep, location.origin + location.pathname), () => reportSheet(rep, back, tab));
+    if (b.dataset.x === 'back') back();
+  };
 }
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
@@ -1401,6 +1445,8 @@ function homeClick(e) {
     needTeam(() => pre({ kind: 'season', venue: v, seed: hashString(`season-${S.season.no}-${S.season.round}`), round: S.season.round }));
   }
   if (go === 'standings') standings();
+  if (go === 'watch') watchRace();
+  if (go === 'report' && S.lastReport) reportSheet(S.lastReport, home);
   if (go === 'quick') quickPick();
   if (go === 'team') { if (firstVisit()) onboard('team', null); else teamSheet(home); }
   if (go === 'build') onboard('team', null);
@@ -2318,20 +2364,21 @@ function results() {
   G.props = strategistAfterRace(R);
   if (G.props.length) say(['d_notes']);
   store.save();
-  const top = res.slice(0, 3);
-  const pod = (x, cls) => `<div class="${cls}" style="background:${x.car.team.c1};color:${readable(x.car.team.c1)}">${portraitSVG(x.car, x.car.team, { size: 56 })}<b>${x.pos}</b>${esc(x.car.code)}<br><small>${esc(x.car.team.short)}</small></div>`;
-  G.resShare = share;
-  G.resHTML = `
-    <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : 'Quick race'}</div>
+  const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : 'Quick race';
+  G.report = buildReport(R, { venue: G.venue, label, mine: ['you-0', 'you-1'] });
+  if (G.kind !== 'academy') { S.lastReport = G.report; store.save(); }
+  G.resShare = share || shareText(G.report, location.origin + location.pathname);
+  G.resTab = 'result';
+  G.resHead = `
+    <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${label}</div>
     <h2>${best === 1 ? 'You won!' : best <= 3 ? 'Podium!' : best <= 10 ? 'In the points' : 'Tough day'}</h2>
-    <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? 'retired' : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>
-    <div class="podium">${pod(top[1], 'p2')}${pod(top[0], 'p1')}${pod(top[2], 'p3')}</div>
-    ${earned.length ? `<div class="tro">${earned.map((t) => `<span>${t}</span>`).join('')}</div>` : ''}
-    ${seasonLine || dailyLine ? `<p class="lede">${seasonLine} ${dailyLine}</p>` : ''}
-    <table class="res"><tbody>${res.map((x) => `<tr class="${x.car.team.you ? 'mine' : ''}"><td>${x.pos}</td><td class="pn">${portraitSVG(x.car, x.car.team, { size: 26, bg: false })}${esc(x.car.name)}</td><td class="m">${esc(x.car.team.short)}</td><td class="m">${x.used.join('›')}${x.fastest ? ' ⏱' : ''}</td><td class="r">${x.gapText}</td><td class="r">${x.points || ''}</td></tr>`).join('')}</tbody></table>
+    <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? 'retired' : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>`;
+  G.resMore = `${earned.length ? `<div class="tro">${earned.map((t) => `<span>${t}</span>`).join('')}</div>` : ''}
+    ${seasonLine || dailyLine ? `<p class="lede">${seasonLine} ${dailyLine}</p>` : ''}`;
+  G.resActs = `
     <div class="actions">
       ${G.kind === 'season' && S.season.round <= CALENDAR.length ? '<button class="btn" data-r="next" type="button">Next round</button>' : ''}
-      ${G.kind === 'daily' ? '<button class="btn" data-r="share" type="button">Share result</button>' : ''}
+      <button class="btn${G.kind === 'season' && S.season.round <= CALENDAR.length ? ' ghost' : ''}" data-r="share" type="button">Share result</button>
       <button class="btn ghost" data-r="again" type="button">Race again</button>
       ${G.kind === 'season' ? '<button class="btn ghost" data-r="standings" type="button">Standings</button>' : ''}
       <button class="btn ghost" data-r="home" type="button">Home</button>
@@ -2370,10 +2417,11 @@ function stratClick(e) {
 }
 
 function resultsView() {
-  const share = G.resShare;
-  const sh = show(G.resHTML.replace('<div class="actions">', strategistHTML() + '<div class="actions">'));
+  const share = G.resShare, r = reportHTML(G.report, G.resTab, G.resMore);
+  const sh = show(`${G.resHead}${r.tabs}<div class="rbody">${r.body}${G.resTab === 'review' ? strategistHTML() : ''}</div>${G.resActs}`, 'report');
   sh.onclick = (e) => {
     stratClick(e);
+    const t = e.target.closest('[data-rt]'); if (t) { G.resTab = t.dataset.rt; resultsView(); return; }
     const b = e.target.closest('[data-r]'); if (!b) return;
     const r = b.dataset.r;
     if (r === 'next') { const v = CALENDAR[S.season.round - 1]; pre({ kind: 'season', venue: v, seed: hashString(`season-${S.season.no}-${S.season.round}`), round: S.season.round }); }
