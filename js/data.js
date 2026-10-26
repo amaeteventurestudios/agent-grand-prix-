@@ -252,17 +252,32 @@ export const TEAMS = [
               { name: 'Orion', code: 'ORI', pace: .76, tyre: .6, wet: .6, aggro: .5, brain: .5 }] },
 ];
 
-// Liveries the player can pick for their own team.
+// Liveries the player can pick for their own team: main, accent, lights and paint finish.
 export const LIVERIES = [
-  { c1: '#0f8a4a', c2: '#ffffff', name: 'Green & white' },
-  { c1: '#1267f4', c2: '#ffffff', name: 'Racing blue' },
-  { c1: '#e2252b', c2: '#ffffff', name: 'Red' },
-  { c1: '#111318', c2: '#f5c518', name: 'Black & gold' },
-  { c1: '#ff6a00', c2: '#14213d', name: 'Papaya' },
-  { c1: '#00a6a6', c2: '#ffd23f', name: 'Teal & sun' },
-  { c1: '#7b2cbf', c2: '#ffffff', name: 'Purple' },
-  { c1: '#f4f4f4', c2: '#d7263d', name: 'White & red' },
+  { c1: '#0f8a4a', c2: '#ffffff', glow: '#b8ffd8', finish: 'gloss', name: 'Green & white' },
+  { c1: '#1267f4', c2: '#ffffff', glow: '#cfe3ff', finish: 'gloss', name: 'Racing blue' },
+  { c1: '#e2252b', c2: '#ffffff', glow: '#ffd0d0', finish: 'gloss', name: 'Red' },
+  { c1: '#111318', c2: '#f5c518', glow: '#ffe17a', finish: 'gloss', name: 'Black & gold' },
+  { c1: '#ff6a00', c2: '#14213d', glow: '#ffc38a', finish: 'gloss', name: 'Papaya' },
+  { c1: '#00a6a6', c2: '#ffd23f', glow: '#bff7f2', finish: 'gloss', name: 'Teal & sun' },
+  { c1: '#7b2cbf', c2: '#ffffff', glow: '#e3c8ff', finish: 'gloss', name: 'Purple' },
+  { c1: '#f4f4f4', c2: '#d7263d', glow: '#ffd6dc', finish: 'gloss', name: 'White & red' },
+  { c1: '#1d1f24', c2: '#3a3e46', glow: '#7cf3ff', finish: 'matte', name: 'Stealth' },
+  { c1: '#b8bec7', c2: '#0f1217', glow: '#9fd2ff', finish: 'metallic', name: 'Silver arrow' },
+  { c1: '#0b2545', c2: '#c9a227', glow: '#ffe7a3', finish: 'satin', name: 'Midnight & brass' },
+  { c1: '#d9b26f', c2: '#3b2416', glow: '#fff1c9', finish: 'metallic', name: 'Sahara gold' },
+  { c1: '#008751', c2: '#f7f7f7', glow: '#a8ffcf', finish: 'satin', name: 'Eagle green' },
+  { c1: '#ff2e88', c2: '#1a1a2e', glow: '#ff9ccc', finish: 'gloss', name: 'Neon night' },
+  { c1: '#5a6b3c', c2: '#e7dcc0', glow: '#e8ffb0', finish: 'matte', name: 'Savanna' },
+  { c1: '#c1121f', c2: '#fdf0d5', glow: '#ffcfa8', finish: 'metallic', name: 'Ruby' },
 ];
+// Paint finishes: how rough and how metallic the painted panels are.
+export const FINISHES = {
+  gloss: { name: 'Gloss', r: 0.16, m: 0.0 },
+  satin: { name: 'Satin', r: 0.42, m: 0.05 },
+  matte: { name: 'Matte', r: 0.82, m: 0.0 },
+  metallic: { name: 'Metallic', r: 0.26, m: 0.7 },
+};
 
 // Points for P1..P10, plus 1 for the fastest lap if the driver finishes in the top 10.
 export const POINTS = [20, 16, 13, 11, 9, 7, 5, 3, 2, 1];

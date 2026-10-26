@@ -746,8 +746,10 @@ async function aiTalk(heard) {
     // the free words are read in the driver's own voice by our server (Kokoro), a sentence at a time;
     // without it the driver's recorded "copy" plays and the words show on the radio
     if (G.aiVoice && S.settings.replies !== false && S.settings.sound !== false && voiceId()) {
-      const v = driverVoice(c.id), parts = r.text.match(/[^.!?]+[.!?]*/g).map((x) => x.trim()).filter(Boolean).slice(0, 4);
-      voice.sayLive(parts.map((t) => fetch('/api/radio/voice', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, voice: v }), signal: AbortSignal.timeout(8000) })
+      // short pieces (a sentence, or its clauses when it runs long) so the first is heard quickly
+      const v = driverVoice(c.id), parts = r.text.match(/[^.!?]+[.!?]*/g).map((x) => x.trim()).filter(Boolean)
+        .flatMap((x) => (x.split(' ').length > 9 ? x.split(/(?<=,)\s+/) : [x])).slice(0, 6);
+      voice.sayLive(parts.map((t) => fetch('/api/radio/voice', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, voice: v }), signal: AbortSignal.timeout(20000) })
         .then((x) => (x.ok ? x.arrayBuffer() : null)).catch(() => null)));
     } else reply(c.id, 'r_copy');
     addRadio({ from: 'driver', code: c.code, text: r.text });
@@ -1422,6 +1424,14 @@ function needTeam(next) { if (firstVisit()) onboard('team', next); else next(); 
 // driver codes and numbers: three letters from the name; numbers 1-99 that no AI driver uses
 const codeOf = (s) => s.replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase().padEnd(3, 'X');
 function driverCodes(a, b) { let c1 = codeOf(a), c2 = codeOf(b); if (c1 === c2) c2 = c2.slice(0, 2) + '2'; return [c1, c2]; }
+// callsigns you type yourself: three letters, different from each other and from every rival driver's
+const TAKEN_CODES = TEAMS.flatMap((t) => t.drivers.map((d) => d.code));
+function codeProblem(c, other) {
+  if (!/^[A-Z]{3}$/.test(c)) return 'A callsign is three letters, like NOV.';
+  if (TAKEN_CODES.includes(c)) return `${c} belongs to another team's driver.`;
+  if (c === other) return 'Your two drivers need different callsigns.';
+  return '';
+}
 function numProblem(n, other) {
   if (!Number.isInteger(n) || n < 1 || n > 99) return 'Pick a number from 1 to 99.';
   if (TAKEN_NUMS.includes(n)) return `Number ${n} belongs to another team's driver.`;
@@ -1446,20 +1456,30 @@ function teamSheet(next) {
       <label class="field"><span>Team name</span><input id="tName" maxlength="22" value="${esc(t.name)}"></label>
       <label class="field"><span>Short code</span><input id="tShort" maxlength="3" value="${esc(t.short)}"></label>
       ${t.drivers.map((d, i) => `<label class="field"><span>Driver ${i + 1}</span><input id="d${i + 1}" maxlength="14" value="${esc(d.name)}"></label>
-      <label class="field"><span>Number</span><input id="n${i + 1}" type="number" inputmode="numeric" min="1" max="99" value="${nums[i]}"></label>`).join('')}
+      <div class="grid2 tight"><label class="field"><span>Callsign</span><input id="k${i + 1}" maxlength="3" value="${esc(d.code || '')}" autocomplete="off" autocapitalize="characters" spellcheck="false"></label>
+      <label class="field"><span>Race number</span><input id="n${i + 1}" type="number" inputmode="numeric" min="1" max="99" value="${nums[i]}"></label></div>`).join('')}
     </div>
+    <p class="note">The callsign is the three letters on the timing tower. The race number is painted on the car.</p>
     <p class="err" id="tErr" hidden></p>
     <div class="sub" style="margin-top:14px">Colours</div>
-    <div class="swatches">${LIVERIES.map((l, i) => `<button type="button" data-l="${i}" class="${i === liv ? 'on' : ''}" aria-label="${l.name}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
+    <div class="swatches">${LIVERIES.map((l, i) => `<button type="button" data-l="${i}" class="${i === liv ? 'on' : ''}" aria-label="${l.name}" title="${l.name}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
+    <p class="note"><button type="button" class="link" id="tPaint">Mix your own colours and finish in the showroom</button></p>
     <div class="actions"><button class="btn" id="tSave" type="button">Save</button><button class="btn ghost" id="tSkip" type="button">Cancel</button></div>`);
-  $$('[data-l]', sh).forEach((b) => b.addEventListener('click', () => { liv = +b.dataset.l; $$('[data-l]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
+  let picked = false;
+  $$('[data-l]', sh).forEach((b) => b.addEventListener('click', () => { liv = +b.dataset.l; picked = true; $$('[data-l]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
+  $('#tPaint').addEventListener('click', () => openShowroom({ S, show, save: store.save, team }, { id: carModel() || 'falcon', lite, back: () => teamSheet(next), pick: (id) => { S.settings.car = id; store.save(); } }));
+  // a callsign follows the name until you type one yourself
+  [1, 2].forEach((i) => { const k = $('#k' + i), d = $('#d' + i); let own = false; k.addEventListener('input', () => { own = true; k.value = k.value.toUpperCase().replace(/[^A-Z]/g, ''); }); d.addEventListener('input', () => { if (!own) k.value = codeOf(d.value); }); });
   $('#tSave').addEventListener('click', () => {
     const d1 = $('#d1').value.trim() || t.drivers[0].name, d2 = $('#d2').value.trim() || t.drivers[1].name;
     const n1 = +$('#n1').value, n2 = +$('#n2').value, bad = numProblem(n1, n2) || numProblem(n2, n1);
     if (bad) { $('#tErr').textContent = bad; $('#tErr').hidden = false; return; }
-    const [c1, c2] = driverCodes(d1, d2);
-    S.team = { name: $('#tName').value.trim() || t.name, short: codeOf($('#tShort').value || $('#tName').value), c1: LIVERIES[liv].c1, c2: LIVERIES[liv].c2, glow: t.glow,
-      drivers: [{ name: d1, code: c1, num: n1 }, { name: d2, code: c2, num: n2 }] };
+    const auto = driverCodes(d1, d2), k1 = $('#k1').value.trim().toUpperCase() || auto[0], k2 = $('#k2').value.trim().toUpperCase() || auto[1];
+    const badK = codeProblem(k1, k2) || codeProblem(k2, k1);
+    if (badK) { $('#tErr').textContent = badK; $('#tErr').hidden = false; return; }
+    const L = LIVERIES[liv], paint = picked ? { c1: L.c1, c2: L.c2, glow: L.glow, finish: L.finish } : { c1: S.team.c1, c2: S.team.c2, glow: S.team.glow, finish: S.team.finish };
+    S.team = { name: $('#tName').value.trim() || t.name, short: codeOf($('#tShort').value || $('#tName').value), ...paint,
+      drivers: [{ name: d1, code: k1, num: n1 }, { name: d2, code: k2, num: n2 }] };
     store.save(); next();
   });
   $('#tSkip').addEventListener('click', next);

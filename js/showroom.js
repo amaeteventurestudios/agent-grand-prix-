@@ -4,9 +4,9 @@
 // closes, so the race behind it is untouched.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { loadCar, liveryMaterial } from './cars.js';
+import { loadCar, liveryMaterial, finishOf, liveryGlow } from './cars.js';
 import { CARS, carById, strengthBars } from './carspec.js';
-import { LIVERIES } from './data.js';
+import { LIVERIES, FINISHES } from './data.js';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Blender's car frame (X forward, Y left, Z up) to the scene's (glTF: Y up)
@@ -88,9 +88,16 @@ export function openShowroom(ctx, opts = {}) {
   const lite = !!opts.lite;
   const team = () => S.team || ctx.team();
   // your colours: the team's, or the car's own until you change them
-  const cols = () => ({ c1: team().c1, c2: team().c2, glow: team().glow || carById(id).glow });
+  const cols = () => ({ c1: team().c1, c2: team().c2, glow: team().glow || carById(id).glow, finish: team().finish || 'gloss' });
   // before a team is built, colours picked here wait in a draft for the onboarding
   const setCols = (c) => { S.team = { ...structuredClone(team()), ...c, ...(S.team ? {} : { draft: true, fresh: true }) }; save(); };
+  // every change can be undone; a colour dragged across the wheel counts as one change
+  const undo = []; let lastPush = 0;
+  const change = (c, drag) => {
+    const now = performance.now();
+    if (!drag || now - lastPush > 700) { undo.push(cols()); if (undo.length > 40) undo.shift(); }
+    lastPush = now; setCols(c);
+  };
 
   // opts.wizard: the onboarding's colour step, the car turning while you paint it (no car switching or Cutaway)
   const W = opts.wizard;
@@ -109,11 +116,11 @@ export function openShowroom(ctx, opts = {}) {
       <p class="note">Every car has the same overall pace: what one gains on the straights it gives back in the corners or under braking.</p>
       <div class="sub">Your colours</div>
       <div class="sr-cols">
-        <label><input type="color" id="srC1"><span>Main</span></label>
-        <label><input type="color" id="srC2"><span>Accent</span></label>
-        <label><input type="color" id="srG"><span>Lights</span></label>
+        ${[['srC1', 'srH1', 'Main'], ['srC2', 'srH2', 'Accent'], ['srG', 'srHG', 'Lights']].map(([c, h, n]) => `<div class="sr-col"><label><input type="color" id="${c}"><span>${n}</span></label><input class="hex" id="${h}" maxlength="7" spellcheck="false" autocomplete="off" inputmode="text" aria-label="${n} colour code, like #1267F4"></div>`).join('')}
       </div>
-      <div class="swatches sr-sw"><button type="button" data-sr="own" class="own" aria-label="This car's own colours"><i id="srOwn1"></i><i id="srOwn2"></i></button>${LIVERIES.map((l, i) => `<button type="button" data-liv="${i}" aria-label="${esc(l.name)}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
+      <div class="sr-fin" role="radiogroup" aria-label="Paint finish">${Object.entries(FINISHES).map(([k, f]) => `<button type="button" role="radio" data-fin="${k}">${f.name}</button>`).join('')}</div>
+      <div class="swatches sr-sw"><button type="button" data-sr="own" class="own" aria-label="This car's own colours" title="This car's own colours"><i id="srOwn1"></i><i id="srOwn2"></i></button>${LIVERIES.map((l, i) => `<button type="button" data-liv="${i}" aria-label="${esc(l.name)}" title="${esc(l.name)}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
+      <div class="sr-tools"><button type="button" class="chip" data-sr="rand">🎲 Randomize</button><button type="button" class="chip" data-sr="undo" disabled>↶ Undo</button><button type="button" class="chip" data-sr="reset">Reset</button><button type="button" class="chip" data-sr="light" aria-pressed="false">🌙 Night</button></div>
       ${W ? `<div class="actions"><button class="btn" data-sr="wnext" type="button">${W.nextLabel || 'Next'}</button><button class="btn ghost" data-sr="back" type="button">Back</button></div>`
     : '<div class="actions"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">Back</button></div>'}
     </div>`, W ? 'showroom wizcol' : 'showroom');
@@ -140,7 +147,8 @@ export function openShowroom(ctx, opts = {}) {
   sun.shadow.mapSize.set(lite ? 1024 : 2048, lite ? 1024 : 2048);
   Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 20 });
   sun.shadow.bias = -0.0004; sun.shadow.radius = 4;
-  scene.add(sun, new THREE.HemisphereLight('#ffffff', '#55585e', 0.6));
+  const hemi = new THREE.HemisphereLight('#ffffff', '#55585e', 0.6);
+  scene.add(sun, hemi);
   const ground = new THREE.Mesh(new THREE.CircleGeometry(7, 64).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ opacity: 0.32 }));
   ground.receiveShadow = true; scene.add(ground);
   const ring = new THREE.Mesh(new THREE.RingGeometry(3.9, 4.0, 96).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9aa3ad', transparent: true, opacity: 0.16 }));
@@ -158,8 +166,10 @@ export function openShowroom(ctx, opts = {}) {
   function paint() {
     if (!car) return;
     const c = cols();
-    for (const im of car.userData.ims) for (const [k, v] of [['iC1', c.c1], ['iC2', c.c2], ['iC3', c.glow]]) {
-      C.set(v); im.geometry.attributes[k].setXYZ(0, C.r, C.g, C.b); im.geometry.attributes[k].needsUpdate = true;
+    const f = finishOf(c.finish);
+    for (const im of car.userData.ims) {
+      for (const [k, v] of [['iC1', c.c1], ['iC2', c.c2], ['iC3', c.glow]]) { C.set(v); im.geometry.attributes[k].setXYZ(0, C.r, C.g, C.b); im.geometry.attributes[k].needsUpdate = true; }
+      im.geometry.attributes.iF.setXY(0, f.r, f.m); im.geometry.attributes.iF.needsUpdate = true;
     }
   }
   async function load() {
@@ -171,6 +181,7 @@ export function openShowroom(ctx, opts = {}) {
     for (const p of m.lods[lite ? 1 : 0]) {
       const geo = p.geo.clone();
       for (const k of ['iC1', 'iC2', 'iC3']) geo.setAttribute(k, new THREE.InstancedBufferAttribute(new Float32Array(3), 3));
+      geo.setAttribute('iF', new THREE.InstancedBufferAttribute(new Float32Array(2), 2));
       const im = new THREE.InstancedMesh(geo, p.glass ? glass : mat, 1);
       im.setMatrixAt(0, p.local); im.castShadow = !p.glass; im.frustumCulled = false;
       car.add(im); car.userData.ims.push(im);
@@ -243,16 +254,39 @@ export function openShowroom(ctx, opts = {}) {
     const pick = sh.querySelector('#srPick'); if (pick) { pick.textContent = mine ? 'Racing this car' : `Race the ${c.name}`; pick.disabled = mine; }
     syncCols();
   }
-  function syncCols() {
+  function syncCols(skip) {
     const c = cols();
     sh.querySelector('#srC1').value = c.c1; sh.querySelector('#srC2').value = c.c2; sh.querySelector('#srG').value = c.glow;
+    for (const [h, v] of [['#srH1', c.c1], ['#srH2', c.c2], ['#srHG', c.glow]]) { const el = sh.querySelector(h); if (el !== skip) { el.value = v.toUpperCase(); el.classList.remove('bad'); } }
+    sh.querySelectorAll('[data-fin]').forEach((b) => { const on = b.dataset.fin === c.finish; b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+    const u = sh.querySelector('[data-sr="undo"]'); if (u) u.disabled = !undo.length;
+  }
+  // a day or night look at the car: at night the paint goes dark and the light strips glow
+  let night = false; const glowWas = liveryGlow();
+  function lightUp() {
+    sun.intensity = night ? 0.35 : 2.2; hemi.intensity = night ? 0.12 : 0.6;
+    mat.envMapIntensity = night ? 0.3 : 1.0; liveryGlow(night ? 2.4 : glowWas);
+    stage.classList.toggle('night', night);
+    const b = sh.querySelector('[data-sr="light"]'); b.textContent = night ? '☀️ Day' : '🌙 Night'; b.setAttribute('aria-pressed', night);
+  }
+  // a random livery that still looks designed: a strong main colour, an accent that reads against it
+  function randomCols() {
+    const h = Math.random() * 360, hsl = (hh, s, l) => '#' + new THREE.Color().setHSL(((hh % 360) + 360) % 360 / 360, s, l).getHexString();
+    const c1 = hsl(h, 0.55 + Math.random() * 0.35, 0.32 + Math.random() * 0.22);
+    const pick = Math.random();
+    const c2 = pick < 0.3 ? '#f4f4f4' : pick < 0.5 ? '#121418' : hsl(h + 150 + Math.random() * 60, 0.7, 0.55);
+    return { c1, c2, glow: hsl(h + (Math.random() < 0.5 ? 0 : 180), 0.9, 0.8), finish: Object.keys(FINISHES)[Math.floor(Math.random() * 4)] };
   }
 
   sh.onclick = (e) => {
-    const b = e.target.closest('[data-sr], [data-liv]'); if (!b) return;
+    const b = e.target.closest('[data-sr], [data-liv], [data-fin]'); if (!b) return;
+    if (b.dataset.fin) { change({ finish: b.dataset.fin }); syncCols(); paint(); return; }
     const k = b.dataset.sr;
-    if (b.dataset.liv) { const l = LIVERIES[+b.dataset.liv]; setCols({ c1: l.c1, c2: l.c2 }); syncCols(); paint(); return; }
-    if (k === 'own') { const c = carById(id); setCols({ c1: c.c1, c2: c.c2, glow: c.glow }); syncCols(); paint(); }
+    if (b.dataset.liv) { const l = LIVERIES[+b.dataset.liv]; change({ c1: l.c1, c2: l.c2, glow: l.glow, finish: l.finish }); syncCols(); paint(); return; }
+    if (k === 'own' || k === 'reset') { const c = carById(id); change({ c1: c.c1, c2: c.c2, glow: c.glow, finish: 'gloss' }); syncCols(); paint(); }
+    if (k === 'rand') { change(randomCols()); syncCols(); paint(); }
+    if (k === 'undo' && undo.length) { setCols(undo.pop()); syncCols(); paint(); }
+    if (k === 'light') { night = !night; lightUp(); }
     if (k === 'prev' || k === 'next') { const i = CARS.findIndex((c) => c.id === id); id = CARS[(i + (k === 'next' ? 1 : CARS.length - 1)) % CARS.length].id; info(); load(); }
     if (k === 'pick') { opts.pick?.(id); info(); }
     if (k === 'back') close();
@@ -260,10 +294,17 @@ export function openShowroom(ctx, opts = {}) {
   };
   sh.oninput = (e) => {
     if (e.target.id === 'srCut') { cut = +e.target.value; applyCut(); toSide(); if (!cut) glide = null; }
-    if (e.target.id === 'srC1') setCols({ c1: e.target.value });
-    if (e.target.id === 'srC2') setCols({ c2: e.target.value });
-    if (e.target.id === 'srG') setCols({ glow: e.target.value });
-    if (/^srC|^srG/.test(e.target.id)) paint();
+    const key = { srC1: 'c1', srC2: 'c2', srG: 'glow', srH1: 'c1', srH2: 'c2', srHG: 'glow' }[e.target.id];
+    if (!key) return;
+    let v = e.target.value.trim();
+    if (e.target.classList.contains('hex')) {
+      // a colour code typed by hand: #RGB or #RRGGBB, with or without the #
+      if (!v.startsWith('#')) v = '#' + v;
+      if (/^#[0-9a-f]{3}$/i.test(v)) v = '#' + [...v.slice(1)].map((x) => x + x).join('');
+      const ok = /^#[0-9a-f]{6}$/i.test(v); e.target.classList.toggle('bad', !ok);
+      if (!ok) return;
+    }
+    change({ [key]: v.toLowerCase() }, true); syncCols(e.target); paint();
   };
   const onKey = (e) => { if (e.key === 'Escape') close(); };
   addEventListener('keydown', onKey);
@@ -297,7 +338,7 @@ export function openShowroom(ctx, opts = {}) {
     placeTags(w, h);
   }
   function close() {
-    alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', onKey);
+    alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', onKey); liveryGlow(glowWas);
     controls.dispose();
     scene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); } });
     mat.dispose(); glass.dispose(); inner.dispose(); env.dispose(); renderer.dispose();
