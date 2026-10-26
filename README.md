@@ -29,6 +29,14 @@ lets the engineer make pit calls and nothing else. In Autonomous mode the strate
 handover your queued calls ("in two laps", a boost) are dropped, a box call already made stays and the pit wall says whose it is
 (`car.pitBy`), and a strategist call never replaces one of yours. Replays record the caller. Tests: `tools/test/authority.test.mjs`.
 
+**Driver brains** (`js/brain.js`, rules version): Nova and Echo each have a brain whose manner comes from their Driver DNA (fiery,
+cool or even). Ask on the radio ("Nova, how are the tyres?", "can you pass him?", "what do you think?", "what are my orders?",
+"good job") or with the *Talk to* buttons on the pit wall. A driver reads the race only from the engine (`read()`), remembers your last
+calls and its own worries, recommends a call (an offer you accept with "do it" or the card's button, through your own command path),
+says once when a call you made worries it (and obeys), and calls you when the tyres are finished or it's raining on slicks. A brain
+never commands the car. Lines are recorded per driver voice: `node tools/brain-lines.mjs`, then `LINES=brain python3 art/voice/gen.py …`
+writes `assets/voice/<voice>-brain.js`. Tests: `tools/test/brain.test.mjs` (every number said comes from the engine).
+
 **Race coach and beginner assist**: the coach card folds into a small pill (`S.settings.coachMin`). *Engineer calls the stops* on the
 pit wall (`S.settings.assist`, the `assist` command in `js/sim.js`) lets the engineer box both cars while you keep pace, battery and battles.
 

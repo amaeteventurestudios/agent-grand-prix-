@@ -190,6 +190,11 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .auto-row p { margin: 0; color: var(--mute); font-size: 13px; }
 .card .ask { display: block; width: 100%; margin-top: 8px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--ink); font: 600 13.5px var(--f-ui); text-align: left; cursor: pointer; }
 .card .ask:hover { border-color: var(--accent); }
+.talkto { margin-top: 10px; }
+.talkto p { margin: 0 0 6px; font: 600 13px var(--f-ui); color: var(--mute); }
+.talkto .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.talkto .chips button { border: 1px solid var(--line); background: var(--panel2); color: var(--ink); border-radius: 999px; padding: 6px 11px; font: 600 12.5px var(--f-ui); cursor: pointer; }
+.talkto .chips button:hover { border-color: var(--accent); }
 .boxing small { opacity: .85; font-weight: 500; }
 .switch { position: relative; width: 48px; height: 28px; flex: none; border-radius: 14px; border: 0; background: var(--line); }
 .switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .15s; }
