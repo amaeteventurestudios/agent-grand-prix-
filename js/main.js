@@ -91,12 +91,13 @@ function attract() {
   for (let i = 0; i < 20 * 35; i++) G.race.step();
   G.sel = G.race.order[0].id;
   G.attractT = 0;
-  cams.setMode('live');
+  cams.setMode(GLANCE.matches ? 'chase' : 'live');
   $('#hud').hidden = true; $('#camPill').hidden = true; $('#follow').hidden = true;
   $('#boost').hidden = true; $('#boxBtn').hidden = true; $('#talkBtn').hidden = true; $('#talkSaid').hidden = true; $('#stats').hidden = true; $('#pitline').hidden = true; $('#coach').hidden = true;
   $('#drivers').hidden = true; $('#suggest').hidden = true; $('#ack').hidden = true; G.suggest = null; sheet('peek');
   app.classList.add('attract');
   buildTower();
+  G.homeFull = false;   // every return home starts on the race itself; the menu opens on a tap
   home();
 }
 
@@ -166,7 +167,9 @@ function frame(now) {
   }
   if (G.attract && R) { // home screen: cut between TV and chase shots of the leading cars
     G.attractT += dt;
-    if (G.attractT > 9 && !reduce) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(cams.mode === 'live' ? 'tv' : 'live'); }
+    // a phone's home screen is mostly the race, so it stays close on the cars: chase, then TV, then the director
+    const shots = GLANCE.matches ? ['chase', 'tv', 'live'] : ['live', 'tv'];
+    if (G.attractT > 9 && !reduce) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(shots[(shots.indexOf(cams.mode) + 1) % shots.length]); }
   }
   if (R && world) {
     // behind the home screen and menus the race is scenery: no tags or rings over the titles
@@ -1428,6 +1431,25 @@ function show(html, cls = '') {
 }
 function hide() { $('#screen').hidden = true; }
 
+// On a phone (portrait, or landscape with little height) the home screen opens on the race itself:
+// the cars running behind a small title and one card, and the full menu fills the screen only when you
+// tap Menu. Portrait gets a quiet note that the race looks better sideways; both ways work.
+const GLANCE = matchMedia('(max-width: 760px), (max-height: 540px)');
+GLANCE.addEventListener?.('change', () => { if (G.attract && /\bhome\b/.test($('#screen').className) && !$('#screen').hidden) home(); });
+function glanceHome(start, first) {
+  const n = dayNumber(), dv = dailyVenue(n);
+  const line = first ? 'Two AI drivers race. You make the calls from the pit wall.' : start.line;
+  const sh = show(`
+    <div class="gl-top"><h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
+      <p class="tag">Your drivers race. You command.</p></div>
+    ${S.settings.noTurn ? '' : '<button type="button" class="gl-turn" data-go="noturn" aria-label="Hide this tip"><span>⤾</span> Even better sideways · both ways work <b aria-hidden="true">×</b></button>'}
+    <div class="gl-card">
+      <p class="gl-line">${first ? `Today: Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)}` : line}</p>
+      ${first ? `<p class="gl-sub">${line}</p>` : ''}
+      <div class="row"><button class="btn big" data-go="${first ? 'just' : start.go}" type="button">Start racing</button><button class="btn ghost big" data-go="menu" type="button">Menu</button></div>
+    </div>`, 'home glance');
+  sh.onclick = homeClick;
+}
 function home() {
   const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n];
   const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
@@ -1466,11 +1488,13 @@ function home() {
   const newcomer = first && !S.stats.starts && !nAc;
   // Start racing goes to the race that matters next: today's Daily, then the Championship, then a quick race
   const start = !done ? { go: 'daily', line: `Today's Daily Grand Prix: ${dv.flag} ${esc(dv.city)}` } : !seasonOver ? { go: 'season', line: `Championship round ${S.season.round}: ${sv.flag} ${esc(sv.city)}` } : { go: lr ? 'again' : 'quick', line: lr ? `Race again at ${lr.flag} ${esc(lr.city)}` : 'Pick any circuit' };
+  if (GLANCE.matches && G.attract && !G.homeFull) return glanceHome(start, first);
   const hero = `<div class="hero-acts"><button class="btn big" data-go="${start.go}" type="button">Start racing</button>
       <button class="btn ghost big" data-go="academy" type="button">🎓 Racing Academy${nAc ? ` · ${nAc}/${LESSONS.length}` : ''}</button>
       <button class="btn ghost big" data-go="watch" type="button">▶ Watch a race</button></div>
     <p class="hero-next">${start.line}</p>`;
   const sh = show(`
+    ${GLANCE.matches && G.attract ? '<button type="button" class="gl-back" data-go="glance">✕ <span>Back to the race</span></button>' : ''}
     <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
     <p class="tag">${newcomer ? 'Your AI drivers race. You run the team: tyres, pit stops, battery and the weather call. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
     ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
@@ -1766,6 +1790,9 @@ function accountSheet(back) {
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
   const go = b.dataset.go, n = dayNumber();
+  if (go === 'menu') { G.homeFull = true; return home(); }
+  if (go === 'glance') { G.homeFull = false; return home(); }
+  if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
   if (go === 'daily') needTeam(() => pre({ kind: 'daily', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
   if (go === 'season') {
     if (S.season.round > CALENDAR.length) return standings(true);
@@ -2431,15 +2458,15 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
       <div class="vpick lengths">${LENGTHS.map((l) => `<button type="button" data-len="${l.id}" class="${length === l.id ? 'on' : ''}"><b>${l.name}</b><span>${raceLaps(T, l.id)} laps · ${l.note}</span></button>`).join('')}</div>`}
       <div class="sub">Pre-race briefing</div>
       <p class="note">Your engineer's two plans for each driver. The race engine runs this race ${BRIEF_N() * 2} times in the background, with the same grid and forecast, to see where each plan finishes.</p>
-      <div class="briefs">${team().drivers.map((d, k) => `<div class="brief" data-car="you-${k}"><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + k)}</div>
+      <div class="briefs">${team().drivers.map((d, k) => `<div class="brief" data-car="you-${k}"><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span><span class="dn">${esc(d.name)}</span><button type="button" class="rn" data-rename="${k}" aria-label="Rename ${esc(d.name)}" title="Rename">✏️</button> · starts P${grid('you-' + k)}</div>
         ${[0, 1].map((j) => `<button type="button" class="pl" data-plan="${j}" aria-pressed="false"><span class="pn">Plan ${'AB'[j]}<i class="rec" hidden>Best here</i></span><span class="pd">${tyreHTML(P.plans['you-' + k][j].start)}${esc(P.plans['you-' + k][j].note)}</span><span class="pj">Running the race…</span></button>`).join('')}</div>`).join('')}</div>
       <p class="note" id="briefProg"></p>
       <div class="custom" id="custom" ${P.custom ? '' : 'hidden'}><div class="sub">Customize: starting tyres</div>
       <p class="note">Your own start. You call the stops yourself in the race; the pit wall shows when the window opens.</p>
       <div class="pick">${team().drivers.map((d, k) => `<div><div class="who">${esc(d.name)}</div>
         <div class="box-row" data-car="you-${k}">${Object.keys(COMPOUNDS).map((c) => `<button type="button" data-c="${c}" class="${picks['you-' + k] === c ? 'on' : ''}">${tyreHTML(c)}${COMPOUNDS[c].name}</button>`).join('')}</div></div>`).join('')}</div></div>
-      <details class="tg"${o.first ? ' open' : ''}><summary class="sub">Learn about tyres</summary>${tyreGuide(o.venue)}<p><button class="btn ghost" id="howWin" type="button">Race guide</button></p></details>
-      </div><div class="actions wiz-foot"><button class="btn" data-wiz="next" type="button">Accept plan</button><button class="btn ghost" id="customBtn" type="button">${P.custom ? 'Use the plans' : 'Customize'}</button><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
+      <details class="tg"${o.first ? ' open' : ''}><summary class="${S.settings.tyresSeen ? '' : 'glow'}"><span class="tg-dots"><i class="s"></i><i class="m"></i><i class="h"></i><i class="w"></i></span><span><b>Learn about tyres</b><small>Which rubber, when to stop, and the race guide</small></span></summary>${tyreGuide(o.venue)}<p><button class="btn ghost" id="howWin" type="button">Race guide</button></p></details>
+      </div><div class="actions wiz-foot"><button class="btn" data-wiz="next" type="button">Accept plan</button><button class="btn ghost${S.settings.customSeen ? '' : ' invite'}" id="customBtn" type="button">${P.custom ? 'Use the plans' : 'Customize'}</button><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
     const paint = () => {
       for (const id of ['you-0', 'you-1']) {
         const box = $(`.brief[data-car="${id}"]`, sh); if (!box) continue;
@@ -2462,6 +2489,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
       picks[row.dataset.car] = b.dataset.c; $$('button', row).forEach((x) => x.classList.toggle('on', x === b));
     })));
     $('#customBtn').addEventListener('click', () => {
+      if (!S.settings.customSeen) { S.settings.customSeen = true; store.save(); $('#customBtn').classList.remove('invite'); }
       P.custom = !P.custom; $('#custom').hidden = !P.custom; $('#customBtn').textContent = P.custom ? 'Use the plans' : 'Customize';
       if (!P.custom) for (const id of ['you-0', 'you-1']) picks[id] = P.plans[id][P.choice[id]].start;
       $$('.box-row', sh).forEach((row) => $$('button', row).forEach((x) => x.classList.toggle('on', x.dataset.c === picks[row.dataset.car])));
@@ -2469,6 +2497,24 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
     });
     $$('[data-len]', sh).forEach((b) => b.addEventListener('click', () => { S.settings.length = b.dataset.len; store.save(); const y = $('#sheet').scrollTop; pre(o, 'tyres'); $('#sheet').scrollTop = y; }));
     $('#howWin').addEventListener('click', () => winSheet(() => pre(o, 'tyres')));
+    // rename a driver right here: tap the pencil, type, Enter (or tap away) to keep it
+    sh.addEventListener('click', (e) => {
+      const rb = e.target.closest('[data-rename]'); if (!rb) return;
+      const k = +rb.dataset.rename, span = rb.previousElementSibling, d = S.team.drivers[k];
+      const inp = document.createElement('input'); inp.className = 'rn-in'; inp.value = d.name; inp.maxLength = 18; inp.setAttribute('aria-label', 'Driver name');
+      span.replaceWith(inp); rb.hidden = true; inp.focus(); inp.select();
+      let shut = false;
+      const done = (keep) => {
+        if (shut || !inp.isConnected) return; shut = true; // swapping the input out fires blur again
+        const v = inp.value.replace(/\s+/g, ' ').trim();
+        if (keep && v && v !== d.name) { d.name = v; const c = codeOf(v), other = S.team.drivers[1 - k].code; if (!codeProblem(c, other)) d.code = c; store.save(); }
+        const ns = document.createElement('span'); ns.className = 'dn'; ns.textContent = d.name; inp.replaceWith(ns); rb.hidden = false; rb.setAttribute('aria-label', 'Rename ' + d.name);
+        $$('.pick .who', sh)[k] && ($$('.pick .who', sh)[k].textContent = d.name);
+      };
+      inp.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') done(true); if (ev.key === 'Escape') done(false); });
+      inp.addEventListener('blur', () => done(true));
+    });
+    $('details.tg', sh).addEventListener('toggle', (e) => { if (e.target.open && !S.settings.tyresSeen) { S.settings.tyresSeen = true; store.save(); $('summary', e.target).classList.remove('glow'); } });
     wizWire(sh, () => {
       // the accepted plans ride into the race: start tyres, and the stops the pit wall reminds you of
       G.stops = P.custom ? null : { 'you-0': P.plans['you-0'][P.choice['you-0']].stops, 'you-1': P.plans['you-1'][P.choice['you-1']].stops };

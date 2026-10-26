@@ -1,68 +1,17 @@
-// The showroom: one car on a turntable in your colours. Drag to spin it, pinch or scroll to zoom,
-// pull the Cutaway slider to slice the bodywork away and see what sits inside, and pick your
-// team's colours. It has its own small renderer, made when the showroom opens and freed when it
+// The showroom: one car on a turntable in your colours. Drag to spin it all the way round, pinch or
+// scroll to zoom, and pick your team's colours. The Cutaway slider first turns the bodywork to glass,
+// so you see what sits inside from every angle, then pulls the car apart: bodywork up, wheels out,
+// parts apart. Tap a part (on the car or in the Inside list) to fly to it and read what it does, or
+// take the tour. It has its own small renderer, made when the showroom opens and freed when it
 // closes, so the race behind it is untouched.
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { loadCar, liveryMaterial, finishOf, liveryGlow } from './cars.js';
 import { CARS, carById, strengthBars } from './carspec.js';
 import { LIVERIES, FINISHES } from './data.js';
+import { PARTS, partById, buildInside, V } from './cutaway.js';
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-// Blender's car frame (X forward, Y left, Z up) to the scene's (glTF: Y up)
-const V = (x, y, z) => new THREE.Vector3(x, z, -y);
-
-// what's inside, the same for every car: where it sits (Blender frame) and what it does
-const INSIDE = [
-  { id: 'driver', name: 'Driver', text: 'Lies almost flat, feet up in the nose, inside a carbon survival cell.', at: [0.3, 0, 0.42] },
-  { id: 'fuel', name: 'Fuel cell', text: 'A rubber bag behind the seat, so a crash can\'t split it.', at: [-0.42, 0, 0.42] },
-  { id: 'battery', name: 'Battery', text: 'Stores energy saved under braking for the boost button.', at: [-0.4, 0.2, 0.13] },
-  { id: 'engine', name: 'Power unit', text: 'A small turbo engine plus an electric motor. Together, about 1000 hp.', at: [-1.05, 0, 0.5] },
-  { id: 'gearbox', name: 'Gearbox', text: 'Eight gears; a shift takes a few hundredths of a second.', at: [-1.75, 0, 0.32] },
-  { id: 'radiator', name: 'Radiators', text: 'Air from the side intakes cools the engine and battery.', at: [0.1, -0.52, 0.36] },
-  { id: 'brakes', name: 'Brakes', text: 'Carbon discs glow at about 1000 °C and stop the car from 300 km/h in 4 seconds.', at: [1.55, -0.62, 0.34] },
-];
-const OUTSIDE = [
-  { id: 'fwing', name: 'Front wing', text: 'Pushes the front tyres into the road for grip in the corners.', at: [2.75, 0.55, 0.16] },
-  { id: 'rwing', name: 'Rear wing', text: 'Grip for the rear tyres. A flap opens on the straights for top speed.', at: [-2.15, 0.4, 1.12] },
-  { id: 'canopy', name: 'Canopy', text: 'A closed bubble of tough glass shields the driver.', at: [0.4, 0, 0.84] },
-  { id: 'floor', name: 'Floor', text: 'Shaped tunnels underneath suck the car to the track.', at: [-0.6, -0.86, 0.08] },
-];
-
-// the parts inside, in simple rounded shapes and their own colours, as one group
-function internals() {
-  const g = new THREE.Group();
-  const mat = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.5, metalness: 0.15, ...o });
-  const put = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(geo, m); o.position.copy(V(x, y, z)); o.rotation.set(rx, ry, rz); g.add(o); return o; };
-  // a capsule lying along the car (Blender X), scaled to a length, width and height
-  const pod = (x0, x1, w, z0, z1, m, y = 0) => {
-    const r = Math.min(w, (z1 - z0) / 2), len = Math.max(0.01, x1 - x0 - 2 * r);
-    const o = put(new THREE.CapsuleGeometry(r, len, 6, 16), m, (x0 + x1) / 2, y, (z0 + z1) / 2, 0, 0, Math.PI / 2);
-    o.scale.set((z1 - z0) / 2 / r, 1, w / r); return o;
-  };
-  const suit = mat('#1f2a44'), carbon = mat('#14161a', { roughness: 0.35 }), alloy = mat('#9aa1ab', { metalness: 0.85, roughness: 0.28 });
-  pod(-0.12, 0.6, 0.17, 0.1, 0.2, carbon);                                   // seat shell
-  pod(-0.02, 0.56, 0.15, 0.17, 0.35, suit);                                  // the driver, lying back
-  pod(0.5, 1.35, 0.12, 0.15, 0.29, suit);                                    // legs, up in the nose
-  pod(-0.72, -0.12, 0.22, 0.18, 0.54, mat('#3b3f46', { roughness: 0.8 }));   // fuel cell
-  put(new THREE.BoxGeometry(0.58, 0.07, 0.46), mat('#2f6bff', { emissive: '#163c9c', emissiveIntensity: 0.7 }), -0.43, 0, 0.13); // battery
-  // the power unit: a block with two cylinder banks in a V, a turbo and an electric motor
-  pod(-1.42, -0.76, 0.16, 0.14, 0.38, alloy);
-  for (const s of [1, -1]) {
-    const bank = pod(-1.38, -0.8, 0.07, 0.36, 0.5, alloy, s * 0.1); bank.rotation.x = s * 0.45;
-    put(new THREE.BoxGeometry(0.5, 0.03, 0.09), mat('#c4262e'), -1.09, s * 0.14, 0.53, s * 0.45);
-  }
-  const turbo = put(new THREE.TorusGeometry(0.06, 0.03, 10, 24), mat('#b9bfc8', { metalness: 0.9, roughness: 0.2 }), -0.8, 0, 0.56); turbo.rotation.y = Math.PI / 2;
-  put(new THREE.CylinderGeometry(0.08, 0.08, 0.16, 20), mat('#e0a21b', { metalness: 0.5, roughness: 0.35 }), -0.9, 0.18, 0.22, Math.PI / 2); // MGU-K
-  const gb = put(new THREE.CylinderGeometry(0.075, 0.12, 0.6, 4, 1), mat('#5b616b', { metalness: 0.7, roughness: 0.35 }), -1.72, 0, 0.26, 0, 0, Math.PI / 2);
-  gb.rotation.y = Math.PI / 4;                                               // gearbox, tapering to the back
-  for (const s of [1, -1]) {
-    const r = put(new THREE.BoxGeometry(0.62, 0.24, 0.05), mat('#b5763e', { metalness: 0.6, roughness: 0.45 }), 0.08, s * 0.5, 0.3); r.rotation.y = s * 0.15;
-    for (const [x, y] of [[1.55, 0.62], [-1.55, 0.6]]) put(new THREE.CylinderGeometry(0.15, 0.15, 0.03, 28), mat('#ff6a1a', { emissive: '#ff3a00', emissiveIntensity: 0.9 }), x, s * y, 0.34);
-  }
-  return g;
-}
-
 // a soft studio to reflect in: a gradient dome with a few bright light panels
 function studioEnv(renderer) {
   const s = new THREE.Scene();
@@ -105,11 +54,18 @@ export function openShowroom(ctx, opts = {}) {
   const sh = show(`
     <div class="sr-stage"><canvas class="sr-gl" aria-label="The car in 3D. Drag to spin it, pinch or scroll to zoom."></canvas>
       <div class="sr-tags" aria-hidden="true"></div>
-      <div class="sr-cut"><label for="srCut">Cutaway</label><input id="srCut" type="range" min="0" max="100" value="0" aria-describedby="srCutHelp"><span id="srCutHelp">Slide to see inside</span></div>
+      <div class="sr-cut"><label for="srCut">Cutaway</label><input id="srCut" type="range" min="0" max="100" value="0" aria-describedby="srCutHelp"><span id="srCutHelp"><i>Car</i><i>See-through</i><i>Pulled apart</i></span></div>
       <button type="button" class="sr-x" data-sr="back" aria-label="Close the showroom">✕</button>
     </div>
     <div class="sr-panel">
-      ${W ? W.head : ''}
+      ${W ? W.head : `<div class="sr-tabs" role="tablist"><button type="button" role="tab" data-tab="car" class="on">Car and colours</button><button type="button" role="tab" data-tab="inside">Inside the car</button></div>
+      <div class="sr-pane sr-inside" data-pane="inside" hidden>
+        <p class="lede">Slide the Cutaway to see through the bodywork, then further to pull the car apart. Tap a part here or on the car.</p>
+        <div class="sr-tools"><button type="button" class="btn small" data-sr="tour">▶ Take the tour</button><button type="button" class="btn ghost small" data-sr="whole">Whole car</button></div>
+        <ol class="sr-parts">${PARTS.map((p, i) => `<li data-li="${p.id}"><button type="button" data-part="${p.id}"><i>${i + 1}</i><b>${esc(p.name)}</b><span>${esc(p.short)}</span></button>
+          <div class="more"><p>${esc(p.how)}</p><p class="fact">${esc(p.fact)}</p></div></li>`).join('')}</ol>
+      </div>
+      <div class="sr-pane" data-pane="car">`}
       <div class="sr-nav"><button type="button" class="chip" data-sr="prev" aria-label="Previous car">‹</button><div><div class="sub" id="srNo"></div><h2 id="srName"></h2></div><button type="button" class="chip" data-sr="next" aria-label="Next car">›</button></div>
       <p class="lede" id="srLine"></p>
       <div class="sr-bars" id="srBars"></div>
@@ -122,10 +78,10 @@ export function openShowroom(ctx, opts = {}) {
       <div class="swatches sr-sw"><button type="button" data-sr="own" class="own" aria-label="This car's own colours" title="This car's own colours"><i id="srOwn1"></i><i id="srOwn2"></i></button>${LIVERIES.map((l, i) => `<button type="button" data-liv="${i}" aria-label="${esc(l.name)}" title="${esc(l.name)}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
       <div class="sr-tools"><button type="button" class="chip" data-sr="rand">🎲 Randomize</button><button type="button" class="chip" data-sr="undo" disabled>↶ Undo</button><button type="button" class="chip" data-sr="reset">Reset</button><button type="button" class="chip" data-sr="light" aria-pressed="false">🌙 Night</button></div>
       ${W ? `<div class="actions"><button class="btn" data-sr="wnext" type="button">${W.nextLabel || 'Next'}</button><button class="btn ghost" data-sr="back" type="button">Back</button></div>`
-    : '<div class="actions"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">Back</button></div>'}
+    : '<div class="actions"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">Back</button></div></div>'}
     </div>`, W ? 'showroom wizcol' : 'showroom');
 
-  const canvas = sh.querySelector('.sr-gl'), stage = sh.querySelector('.sr-stage'), tags = sh.querySelector('.sr-tags');
+  const canvas = sh.querySelector('.sr-gl'), stage = sh.querySelector('.sr-stage'), tags = sh.querySelector('.sr-tags'), slider = sh.querySelector('#srCut');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !lite, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, lite ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -138,10 +94,10 @@ export function openShowroom(ctx, opts = {}) {
   const cam = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
   const controls = new OrbitControls(cam, canvas);
   controls.enableDamping = true; controls.enablePan = false;
-  controls.minDistance = 5; controls.maxDistance = 18; controls.maxPolarAngle = Math.PI * 0.49;
+  controls.minDistance = 2.6; controls.maxDistance = 18; controls.maxPolarAngle = Math.PI * 0.53;
   controls.target.set(0, 0.35, 0);
   controls.autoRotate = !reduced; controls.autoRotateSpeed = 0.8;
-  controls.addEventListener('start', () => { controls.autoRotate = false; if (glide) glide.t = 2; });
+  controls.addEventListener('start', () => { controls.autoRotate = false; fly = null; stopTour(); });
 
   const sun = new THREE.DirectionalLight('#ffffff', 2.2); sun.position.set(4, 8, 5); sun.castShadow = true;
   sun.shadow.mapSize.set(lite ? 1024 : 2048, lite ? 1024 : 2048);
@@ -154,14 +110,17 @@ export function openShowroom(ctx, opts = {}) {
   const ring = new THREE.Mesh(new THREE.RingGeometry(3.9, 4.0, 96).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#9aa3ad', transparent: true, opacity: 0.16 }));
   ring.position.y = 0.002; scene.add(ring);
 
-  // the cut: everything of the car beyond the plane is sliced away (the side facing you at the start)
-  const plane = new THREE.Plane(new THREE.Vector3(0, 0, -1), 2);
-  const mat = liveryMaterial(env.texture); mat.clippingPlanes = [plane]; mat.clipShadows = true;
-  const glass = new THREE.MeshStandardMaterial({ color: '#0a0d12', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.6, clippingPlanes: [plane] });
-  const inner = new THREE.MeshBasicMaterial({ color: '#0d0f13', side: THREE.BackSide, clippingPlanes: [plane] });  // the shell's inside, seen through the cut
-  const insides = internals(); insides.visible = false; scene.add(insides);
-  
-  let car = null, alive = true, cut = 0, token = 0;
+  // the bodywork, the canopy, and a glass ghost of the bodywork that shows through as the paint fades
+  const mat = liveryMaterial(env.texture);
+  const glass = new THREE.MeshStandardMaterial({ color: '#0a0d12', roughness: 0.04, metalness: 0, transparent: true, opacity: 0.6 });
+  const ghost = new THREE.ShaderMaterial({
+    uniforms: { uK: { value: 0 }, uC: { value: new THREE.Color('#7cc4ff') } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vec4 p = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-p.xyz); gl_Position = projectionMatrix * p; }',
+    fragmentShader: 'uniform float uK; uniform vec3 uC; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.2); gl_FragColor = vec4(uC * (0.05 + 0.95 * f) * uK, 1.0); }',
+  });
+
+  let car = null, alive = true, cut = 0, token = 0, inside = null, sel = null, fly = null, tour = null;
+  const body = new THREE.Group(), wheels = [];
   const C = new THREE.Color();
   function paint() {
     if (!car) return;
@@ -176,71 +135,106 @@ export function openShowroom(ctx, opts = {}) {
     const my = ++token;
     const m = await loadCar(id).catch(() => null);
     if (!alive || my !== token || !m) return;
-    if (car) { scene.remove(car); car.traverse((o) => { if (o.isMesh) o.geometry.dispose(); }); }
-    car = new THREE.Group(); car.userData.ims = [];
+    if (car) { scene.remove(car); car.traverse((o) => { if (o.isMesh && o.geometry !== undefined && !o.userData.shared) o.geometry.dispose(); }); }
+    if (inside) { scene.remove(inside.group); inside.group.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose?.(); } }); }
+    car = new THREE.Group(); car.userData.ims = []; wheels.length = 0;
+    body.clear(); car.add(body);
+    const hubs = {};
     for (const p of m.lods[lite ? 1 : 0]) {
       const geo = p.geo.clone();
       for (const k of ['iC1', 'iC2', 'iC3']) geo.setAttribute(k, new THREE.InstancedBufferAttribute(new Float32Array(3), 3));
       geo.setAttribute('iF', new THREE.InstancedBufferAttribute(new Float32Array(2), 2));
       const im = new THREE.InstancedMesh(geo, p.glass ? glass : mat, 1);
       im.setMatrixAt(0, p.local); im.castShadow = !p.glass; im.frustumCulled = false;
-      car.add(im); car.userData.ims.push(im);
-      if (!p.glass) { const back = new THREE.Mesh(geo, inner); back.applyMatrix4(p.local); car.add(back); }
+      car.userData.ims.push(im);
+      if (p.wheel) { const w = new THREE.Group(); w.add(im); car.add(w); wheels.push({ g: w, side: Math.sign(p.hub.z) || 1, front: p.wheel[0] === 'F' }); hubs[p.wheel] = p.hub.clone(); continue; }
+      body.add(im);
+      if (!p.glass) { const gm = new THREE.Mesh(geo, ghost); gm.applyMatrix4(p.local); gm.userData.shared = true; gm.renderOrder = 2; body.add(gm); }
     }
+    inside = buildInside(hubs, lite); scene.add(inside.group);
     scene.add(car); paint(); applyCut();
   }
+  // 0: the whole car. Up to 45: the paint fades to glass and the parts inside show through.
+  // Beyond 55: the car comes apart, bodywork up, wheels out, the parts inside spread a little.
+  const xr = () => Math.min(1, cut / 45), ex = () => Math.max(0, (cut - 55) / 45);
   function applyCut() {
-    // 0: whole car; 100: the half nearer you gone, down the centre line
-    plane.normal.set(0, 0, cam.position.z >= 0 ? -1 : 1);
-    plane.constant = cut <= 0 ? 3 : 1.25 * (1 - cut / 100);
-    insides.visible = cut > 4;
-    stage.classList.toggle('cut', cut > 25);
+    const x = xr(), e = ex();
+    const see = x > 0.01;
+    // see-through: the paint fades to glass. Pulled apart: the lifted bodywork turns solid again, so it
+    // reads as the shell it is, hovering over the parts it covers
+    const op = Math.min(1, 1 - 0.92 * x + 0.85 * e);
+    if (mat.transparent !== op < 0.99) { mat.transparent = op < 0.99; mat.needsUpdate = true; }
+    mat.opacity = op; mat.depthWrite = op > 0.5;
+    glass.opacity = 0.6 * (1 - 0.85 * x + 0.6 * e);
+    ghost.uniforms.uK.value = x * (1 - e) * 0.6;
+    body.position.y = 1.15 * e * e * (3 - 2 * e);
+    for (const w of wheels) { w.g.position.z = w.side * 0.75 * e; w.g.position.x = (w.front ? 0.15 : -0.15) * e; }
+    if (inside) {
+      inside.group.visible = see;
+      for (const p of PARTS) { const q = inside.parts.get(p.id); if (q) q.g.position.copy(V(...p.out)).multiplyScalar(e); }
+    }
+    for (const im of car ? car.userData.ims : []) im.castShadow = op > 0.6 && im.material !== glass;
+    // look a little higher as the car comes apart, so the lifted bodywork stays in the picture
+    if (!sel && !fly) controls.target.y = 0.35 + 0.5 * e;
+    stage.classList.toggle('cut', cut > 0);
   }
 
-  // callouts: the outside parts on the whole car, the inside ones once it is cut open
-  const tagEls = new Map();
-  for (const t of [...OUTSIDE, ...INSIDE]) {
-    const el = document.createElement('div'); el.className = 'sr-tag'; el.innerHTML = `<i class="dot"></i><em class="stem"></em><div class="card"><b>${esc(t.name)}</b><span>${esc(t.text)}</span></div>`;
-    tags.append(el); tagEls.set(t, el);
+  // pins: a numbered dot on each part you can tap; the chosen one opens a card with its name
+  const pins = new Map();
+  PARTS.forEach((p, i) => {
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'sr-pin'; el.dataset.part = p.id;
+    el.setAttribute('aria-label', p.name); el.innerHTML = `<b>${i + 1}</b><span class="card"><strong>${esc(p.name)}</strong><em>${esc(p.short)}</em></span>`;
+    tags.append(el); pins.set(p, el);
+  });
+  const P = new THREE.Vector3();
+  // where a part's pin sits now: its own point, moved with the part (or the bodywork) as the car comes apart
+  function pinAt(p, out) {
+    out.copy(V(...p.at));
+    if (p.inside) out.add(V(...p.out).multiplyScalar(ex()));
+    else if (p.id === 'tyres') out.add(new THREE.Vector3(0.15 * ex(), 0, -0.75 * ex()));
+    else out.y += body.position.y;
+    return out;
   }
-  const P = new THREE.Vector3(), N = new THREE.Vector3();
-  function placeTags(w, h) {
-    const showIn = cut > 35;
-    const list = showIn ? INSIDE : cut === 0 ? OUTSIDE : [];
-    const placed = [];
-    for (const [t, el] of tagEls) {
-      let on = list.includes(t);
+  function placePins(w, h) {
+    const x = xr();
+    for (const [p, el] of pins) {
+      // outside parts on the whole car, inside ones once you can see in; the chosen part always
+      let on = p.id === sel || (p.inside ? x > 0.5 : x < 0.25);
       if (on) {
-        P.copy(V(...t.at)); P.project(cam);
-        const x = (P.x * 0.5 + 0.5) * w, y = (-P.y * 0.5 + 0.5) * h;
-        const card = el.lastElementChild, left = x > w * 0.6, tw = card.offsetWidth || 160, th = card.offsetHeight || 40;
-        on = P.z < 1 && x > 4 && x < w - 4 && y > 4 && y < h - 70;
-        // the card sits beside its point, or is lifted above or dropped below it on a stem, so cards
-        // never cover each other; one with nowhere to go waits for a better angle
-        let dy = null;
-        if (on) for (const d of [0, -(th + 10), th + 10, -(2 * th + 20)]) {
-          const r = { x0: left ? x - tw - 12 : x + 12, x1: left ? x - 12 : x + tw + 12, y0: y + d - 14, y1: y + d - 14 + th };
-          if (r.x0 < 4 || r.x1 > w - 4 || r.y0 < 4 || r.y1 > h - 70) continue;
-          if (placed.some((q) => r.x0 < q.x1 + 6 && r.x1 > q.x0 - 6 && r.y0 < q.y1 + 6 && r.y1 > q.y0 - 6)) continue;
-          placed.push(r); dy = d; break;
-        }
-        on = dy !== null;
-        if (on) {
-          el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`; el.classList.toggle('left', left);
-          card.style.top = `${dy - 14}px`;
-          const stem = el.children[1]; stem.style.top = `${Math.min(0, dy)}px`; stem.style.height = `${Math.abs(dy)}px`;
-        }
+        pinAt(p, P).project(cam);
+        const px = (P.x * 0.5 + 0.5) * w, py = (-P.y * 0.5 + 0.5) * h;
+        on = P.z < 1 && px > 10 && px < w - 10 && py > 10 && py < h - 80;
+        if (on) { el.style.transform = `translate(${Math.round(px)}px, ${Math.round(py)}px)`; el.classList.toggle('left', px > w * 0.62); }
       }
-      el.classList.toggle('on', on);
+      el.classList.toggle('on', on); el.classList.toggle('sel', p.id === sel);
     }
   }
-  // once you start cutting, the camera glides round to the side so the section faces you
-  let glide = null;
-  function toSide() {
-    if (glide || cut <= 0) return;
+  // pick a part: open it in the list, light it up, and fly the camera to it
+  function choose(pid, opts2 = {}) {
+    sel = pid; const p = partById(pid);
+    sh.querySelectorAll('[data-li]').forEach((li) => li.classList.toggle('open', li.dataset.li === pid));
+    if (!p) { inside?.highlight(null); flyTo(new THREE.Vector3(0, 0.35, 0), 9.5); return; }
+    // inside parts need the bodywork see-through; outside ones need it back
+    const want = p.inside ? Math.max(cut, opts2.apart ? 80 : 50) : 0;
+    if (want !== cut) { cut = want; slider.value = cut; applyCut(); }
+    inside?.highlight(p.inside ? pid : null);
+    setTab('inside');
+    const li = sh.querySelector(`[data-li="${pid}"]`); if (li && !opts2.quiet) li.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+    flyTo(pinAt(p, new THREE.Vector3()), p.inside ? 4.4 : 5.2);
+  }
+  function flyTo(target, dist) {
     controls.autoRotate = false;
-    const side = cam.position.z >= 0 ? 1 : -1, to = new THREE.Vector3(1.4, 3.2, side * 10.5).multiplyScalar(cam.aspect < 0.9 ? 1.15 : 1);
-    glide = { from: cam.position.clone(), to, t: reduced ? 1 : 0 };
+    // keep looking from the side you're on, a little above, at the new distance
+    const dir = cam.position.clone().sub(controls.target); dir.y = Math.max(dir.y, dir.length() * 0.35);
+    dir.setLength(dist * (canvas.clientWidth < 560 ? 1.6 : cam.aspect < 0.9 ? 1.25 : 1));
+    fly = { t0: controls.target.clone(), t1: target.clone(), p0: cam.position.clone(), p1: target.clone().add(dir), k: reduced ? 1 : 0 };
+  }
+  // the tour: every part in turn, about five seconds each, until you touch anything
+  function startTour() { tour = { i: 0, t: 0 }; choose(PARTS[0].id, { quiet: true }); controls.autoRotate = false; sh.querySelector('[data-sr="tour"]').textContent = '■ Stop the tour'; }
+  function stopTour() { if (!tour) return; tour = null; const b = sh.querySelector('[data-sr="tour"]'); if (b) b.textContent = '▶ Take the tour'; }
+  function setTab(t) {
+    sh.querySelectorAll('[data-tab]').forEach((b) => { const on = b.dataset.tab === t; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    sh.querySelectorAll('[data-pane]').forEach((p) => { p.hidden = p.dataset.pane !== t; });
   }
 
   function info() {
@@ -279,7 +273,12 @@ export function openShowroom(ctx, opts = {}) {
   }
 
   sh.onclick = (e) => {
+    const tb = e.target.closest('[data-tab]'); if (tb) return setTab(tb.dataset.tab);
+    const pb = e.target.closest('[data-part]');
+    if (pb) { stopTour(); return choose(sel === pb.dataset.part && pb.classList.contains('sr-pin') ? null : pb.dataset.part); }
     const b = e.target.closest('[data-sr], [data-liv], [data-fin]'); if (!b) return;
+    if (b.dataset.sr === 'tour') return tour ? stopTour() : startTour();
+    if (b.dataset.sr === 'whole') { stopTour(); cut = 0; slider.value = 0; applyCut(); return choose(null); }
     if (b.dataset.fin) { change({ finish: b.dataset.fin }); syncCols(); paint(); return; }
     const k = b.dataset.sr;
     if (b.dataset.liv) { const l = LIVERIES[+b.dataset.liv]; change({ c1: l.c1, c2: l.c2, glow: l.glow, finish: l.finish }); syncCols(); paint(); return; }
@@ -293,7 +292,13 @@ export function openShowroom(ctx, opts = {}) {
     if (k === 'wnext') { after = W.next; close(); }
   };
   sh.oninput = (e) => {
-    if (e.target.id === 'srCut') { cut = +e.target.value; applyCut(); toSide(); if (!cut) glide = null; }
+    if (e.target.id === 'srCut') {
+      cut = +e.target.value; applyCut(); stopTour();
+      if (cut > 0 && !W) setTab('inside');
+      // a part that can't be seen at this setting lets go
+      const p = sel && partById(sel); if (p && (p.inside ? xr() < 0.5 : xr() > 0.25)) { sel = null; inside?.highlight(null); sh.querySelectorAll('[data-li]').forEach((li) => li.classList.remove('open')); }
+      return;
+    }
     const key = { srC1: 'c1', srC2: 'c2', srG: 'glow', srH1: 'c1', srH2: 'c2', srHG: 'glow' }[e.target.id];
     if (!key) return;
     let v = e.target.value.trim();
@@ -327,21 +332,26 @@ export function openShowroom(ctx, opts = {}) {
       if (w / h < 0.9) cam.position.setLength(9.4);
     }
     const dt = Math.min(0.05, (now - t0) / 1000); t0 = now;
-    if (glide && glide.t < 1.0001) {
-      glide.t = Math.min(1.0002, glide.t + dt / 0.9);
-      const k = Math.min(1, glide.t), e = k * k * (3 - 2 * k);
-      cam.position.lerpVectors(glide.from, glide.to, e);
+    if (fly) {
+      fly.k = Math.min(1, fly.k + dt / 1.1);
+      const e = fly.k * fly.k * (3 - 2 * fly.k);
+      controls.target.lerpVectors(fly.t0, fly.t1, e); cam.position.lerpVectors(fly.p0, fly.p1, e);
+      if (fly.k >= 1) fly = null;
+    }
+    if (tour && !fly && (tour.t += dt) > 5.5) {
+      tour.t = 0; tour.i++;
+      if (tour.i >= PARTS.length) { stopTour(); choose(null); } else choose(PARTS[tour.i].id, { quiet: true, apart: tour.i > 2 });
     }
     controls.update(dt);
-    if (cut > 0) applyCut();
+    if (inside) { inside.update(dt, xr(), sel); if (sel) inside.highlight(partById(sel)?.inside ? sel : null); }
     renderer.render(scene, cam);
-    placeTags(w, h);
+    placePins(w, h);
   }
   function close() {
     alive = false; cancelAnimationFrame(raf); removeEventListener('keydown', onKey); liveryGlow(glowWas);
     controls.dispose();
-    scene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); } });
-    mat.dispose(); glass.dispose(); inner.dispose(); env.dispose(); renderer.dispose();
+    scene.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); if (o.material !== mat && o.material !== glass && o.material !== ghost) o.material.dispose?.(); } });
+    mat.dispose(); glass.dispose(); ghost.dispose(); env.dispose(); renderer.dispose();
     renderer.forceContextLoss?.();
     (after || (() => {}))();
   }
