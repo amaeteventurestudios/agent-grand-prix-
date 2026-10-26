@@ -247,12 +247,11 @@ function pickCar(L, w) {
 
 // ---------- the poll loop ----------
 async function poll() {
-  let first = state.offset == null;
   for (;;) {
     try {
-      const q = first ? '?limit=50&timeout=25' : `?offset=${state.offset}&limit=50&timeout=25`;
+      // no offset until WhatsApp hands us one (a quiet first poll returns none, and "null" is refused)
+      const q = state.offset == null ? '?limit=50&timeout=25' : `?offset=${state.offset}&limit=50&timeout=25`;
       const up = await call('GET', '/updates' + q);
-      first = false;
       if (!up) continue; // 204: nothing new
       const val = up.entry?.[0]?.changes?.[0]?.value || {};
       const names = Object.fromEntries((val.contacts || []).filter((c) => c.profile).map((c) => [c.wa_id, c.profile.name]));
@@ -267,6 +266,7 @@ async function poll() {
     } catch (e) {
       if (e.status === 401 || e.code === 190 || e.code === 100) { log('The API key was rejected. Generate a new one in WhatsApp and update WHATSAPP_AGENT_TOKEN.'); await sleep(60000); }
       else if (e.status === 409) await sleep(1000); // another poll replaced this one
+      else if (e.status === 400 && /offset/i.test(e.message)) { log('Offset refused, starting fresh.'); state.offset = null; save(); }
       else { log('poll failed', e.message); await sleep(e.status === 429 ? 10000 : 4000); }
     }
     await sleep(4100); // at most 15 polls a minute
