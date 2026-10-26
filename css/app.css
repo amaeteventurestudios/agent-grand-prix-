@@ -163,6 +163,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .car-card .who b { font: 700 18px var(--f-ui); display: block; }
 .car-card .who span { color: var(--mute); font-size: 13px; }
 .car-card .sw { width: 6px; align-self: stretch; border-radius: 3px; }
+.car-card .portrait { border-radius: 10px; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 10px; margin-top: 10px; font-variant-numeric: tabular-nums; }
 .stats div { min-width: 0; }
 .stats small { display: block; color: var(--mute); font: 600 11px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; }
@@ -757,6 +758,8 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
 
 /* ---------- race control: the engineer's suggestion, the "copied" chip, the phone layout ---------- */
 .suggest { position: absolute; right: 100px; bottom: 58px; width: min(330px, calc(100% - 120px)); background: var(--panel); color: var(--ink); border-radius: 14px; padding: 10px 12px; box-shadow: 0 6px 24px rgba(17, 24, 39, .22); border-left: 4px solid #e10600; z-index: 8; animation: coachIn .25s ease-out; }
+.suggest .ch .who { display: inline-flex; align-items: center; gap: 6px; }
+.suggest .ch .who .portrait { margin: -6px 0; }
 .suggest .ch { display: flex; justify-content: space-between; align-items: center; font: 700 12px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .suggest .x { border: 0; background: none; font-size: 20px; line-height: 1; color: var(--mute); cursor: pointer; padding: 0 2px; }
 .suggest p { margin: 4px 0 8px; font-size: 14px; line-height: 1.38; }
@@ -782,9 +785,9 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
   .tabs .grip i { display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin: 4px auto 0; }
   /* your two cars across the top */
   .drivers:not([hidden]) { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; position: absolute; left: 8px; width: min(520px, calc(100% - 16px)); top: 52px; z-index: 4; }
-  .dc { display: grid; grid-template-columns: 4px auto 1fr auto auto; grid-template-rows: auto auto; column-gap: 6px; align-items: center; text-align: left; border: 0; border-radius: 10px; padding: 5px 8px 5px 6px; background: var(--hud); color: var(--hud-ink); font: 600 13px var(--f-ui); box-shadow: 0 2px 8px rgba(17, 24, 39, .14); cursor: pointer; min-height: 40px; }
+  .dc { display: grid; grid-template-columns: 26px auto 1fr auto auto; grid-template-rows: auto auto; column-gap: 6px; align-items: center; text-align: left; border: 0; border-radius: 10px; padding: 5px 8px 5px 6px; background: var(--hud); color: var(--hud-ink); font: 600 13px var(--f-ui); box-shadow: 0 2px 8px rgba(17, 24, 39, .14); cursor: pointer; min-height: 40px; }
   .dc > * { pointer-events: none; }
-  .dc i { grid-row: 1 / span 2; align-self: stretch; border-radius: 2px; }
+  .dc .portrait { grid-row: 1 / span 2; align-self: center; }
   .dc b { font: 800 italic 17px/1 var(--f-display); }
   .dc .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .dc .tyre { transform: scale(.85); }
@@ -833,3 +836,18 @@ details.tg summary { cursor: pointer; margin: 0; padding: 6px 0; }
   .talkfab { left: auto; right: 128px; transform: none; }
   .suggest, .coach:not(.lesson) { left: auto; right: 8px; width: 360px; }
 }
+
+/* driver portraits (js/portrait.js) */
+.portrait { display: inline-block; flex: none; vertical-align: middle; }
+.podium .portrait { display: block; margin: 0 auto 6px; border-radius: 10px; box-shadow: 0 0 0 2px rgba(255, 255, 255, .7); }
+.res td.pn { white-space: nowrap; }
+.res td.pn .portrait { margin: -4px 6px -4px 0; }
+.hm { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 10px; align-items: center; margin: 0 0 10px; }
+.hm-p .portrait { border-radius: 12px; }
+.hm-o { display: grid; gap: 6px; min-width: 0; }
+.hm-pat { display: flex; flex-wrap: wrap; gap: 4px; }
+.hm-pat button { border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 8px; padding: 4px 8px; font: 600 12px var(--f-ui); min-height: 30px; }
+.hm-pat button.on, .hm-vis button.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.hm-vis { display: flex; flex-wrap: wrap; gap: 4px; }
+.hm-vis button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: 3px; width: 36px; height: 30px; }
+.hm-vis i { display: block; width: 100%; height: 100%; border-radius: 5px; }

@@ -17,6 +17,7 @@ import { carMetrics } from './proving.js';
 import { PARAMS, PRESETS, SLOTS, fromPreset } from './dna.js';
 import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
+import { portraitSVG, helmetOf, HELMET_PATTERNS, VISORS } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 import { parseCall, radioSupported, listen } from './teamradio.js';
@@ -789,7 +790,7 @@ function driverCard(c, res) {
   const label = k === 'boxnow' ? `Box for ${COMPOUNDS[calls[0].tyre].name}s` : { attack: 'Attack', boost: 'Attack + boost', defend: 'Defend', harvest: 'Harvest', push: 'Push', save: 'Save tyres', swap: 'Swap places' }[k] || 'Do it';
   coachHide();
   const at = performance.now(); G.suggest = { id: c.id, at, action: k === 'boxnow' ? { box: calls[0].tyre } : {} };
-  el.innerHTML = `<div class="ch"><span>🎙️ ${esc(c.code)} · ${esc(c.name.split(' ')[0])}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(res.text.replace(/ Say do it, and I'll go\.$/, ''))}</p>
+  el.innerHTML = `<div class="ch"><span class="who">${portraitSVG(c, c.team, { size: 30, num: false, bg: false })}🎙️ ${esc(c.code)} · ${esc(c.name.split(' ')[0])}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(res.text.replace(/ Say do it, and I'll go\.$/, ''))}</p>
     <div class="acts"><button type="button" class="go">${label}</button><button type="button" class="no">Not now</button></div>`;
   el.hidden = false;
   const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
@@ -941,7 +942,7 @@ function driverCards(R) {
     const c = R.byId.get(id), life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
     const state = c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? `Boxing · ${COMPOUNDS[c.pitReq].name}s` : c.auto ? 'Autonomous' : { push: 'Pushing', save: 'Saving tyres', normal: '' }[c.pace] + (c.battle !== 'neutral' ? (c.pace === 'normal' ? '' : ' · ') + (c.battle === 'attack' ? 'Attack' : 'Defend') : '');
     const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 25 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
-    const html = `<i style="background:${c.team.c1}"></i><b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}`;
+    const html = `${portraitSVG(c, c.team, { size: 26, num: false, bg: false, id: 'dc' + k })}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}`;
     if (b.className !== cls) b.className = cls;
     if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
   });
@@ -1058,7 +1059,7 @@ function buildCard() {
   if (!c) { el.innerHTML = ''; return; }
   const isMine = mine().includes(c.id);
   el.innerHTML = `
-    <div class="top"><span class="sw" style="background:${c.team.c1}"></span><div class="pos" data-k="pos"></div>
+    <div class="top"><span class="sw" style="background:${c.team.c1}"></span><div class="pos" data-k="pos"></div>${portraitSVG(c, c.team, { size: 44 })}
       <div class="who"><b>${esc(c.name)}</b><span>${esc(c.team.name)}${c.player ? '' : ' · AI agent'}</span></div>
       ${isMine ? '' : '<button class="link" type="button" data-act="back">My car</button>'}</div>
     <div class="stats">
@@ -1444,6 +1445,28 @@ const DRIVER_IDEAS = ['Kofi', 'Tunde', 'Kwame', 'Jabari', 'Femi', 'Malik', 'Ayo'
   'Bayo', 'Kalu', 'Obi', 'Thabo', 'Zane', 'Dayo', 'Nico', 'Omar', 'Jonah', 'Ezra', 'Ade', 'Leon', 'Musa'];
 const pickIdea = (list, not = []) => { const l = list.filter((x) => !not.includes(x)); return l[Math.floor(Math.random() * l.length)]; };
 
+// your driver's helmet: a live portrait beside a row of patterns and a row of visor tints. The
+// design is fixed on first sight (it would otherwise follow the name as it is typed).
+function helmetHTML(d, tm, k) {
+  d.helmet ||= helmetOf({ ...d, code: (d.code || '') + k });
+  return `<div class="hm" data-hm="${k}"><span class="hm-p">${portraitSVG(d, tm, { size: 76 })}</span><div class="hm-o">
+    <div class="hm-pat">${HELMET_PATTERNS.map((p) => `<button type="button" data-pat="${p.id}" class="${d.helmet.pat === p.id ? 'on' : ''}">${p.name}</button>`).join('')}</div>
+    <div class="hm-vis">${VISORS.map((v) => `<button type="button" data-vis="${v.id}" class="${d.helmet.visor === v.id ? 'on' : ''}" aria-label="${v.name} visor" title="${v.name} visor"><i style="background:linear-gradient(135deg,${v.b},${v.a})"></i></button>`).join('')}</div></div></div>`;
+}
+function helmetWire(root, d, k, paint, extra) {
+  const box = $(`[data-hm="${k}"]`, root);
+  const draw = () => { $('.hm-p', box).innerHTML = portraitSVG({ ...d, ...extra() }, paint(), { size: 76 }); };
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-pat],[data-vis]'); if (!b) return;
+    if (b.dataset.pat) d.helmet = { ...d.helmet, pat: b.dataset.pat }; else d.helmet = { ...d.helmet, visor: b.dataset.vis };
+    $$('[data-pat]', box).forEach((x) => x.classList.toggle('on', x.dataset.pat === d.helmet.pat));
+    $$('[data-vis]', box).forEach((x) => x.classList.toggle('on', x.dataset.vis === d.helmet.visor));
+    draw();
+  });
+  box._draw = draw;
+}
+const helmetsRedraw = (root, drivers) => drivers.forEach((d, k) => { const b = $(`[data-hm="${k}"]`, root); if (b && b._draw) b._draw(); });
+
 // Edit team: names, numbers and colours, any time
 function teamSheet(next) {
   const t = structuredClone(team());
@@ -1460,13 +1483,17 @@ function teamSheet(next) {
       <label class="field"><span>Race number</span><input id="n${i + 1}" type="number" inputmode="numeric" min="1" max="99" value="${nums[i]}"></label></div>`).join('')}
     </div>
     <p class="note">The callsign is the three letters on the timing tower. The race number is painted on the car.</p>
+    <div class="sub" style="margin-top:14px">Helmets</div>
+    ${t.drivers.map((d, i) => helmetHTML(d, t, i)).join('')}
     <p class="err" id="tErr" hidden></p>
     <div class="sub" style="margin-top:14px">Colours</div>
     <div class="swatches">${LIVERIES.map((l, i) => `<button type="button" data-l="${i}" class="${i === liv ? 'on' : ''}" aria-label="${l.name}" title="${l.name}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
     <p class="note"><button type="button" class="link" id="tPaint">Mix your own colours and finish in the showroom</button></p>
     <div class="actions"><button class="btn" id="tSave" type="button">Save</button><button class="btn ghost" id="tSkip" type="button">Cancel</button></div>`);
   let picked = false;
-  $$('[data-l]', sh).forEach((b) => b.addEventListener('click', () => { liv = +b.dataset.l; picked = true; $$('[data-l]', sh).forEach((x) => x.classList.toggle('on', x === b)); }));
+  const paintNow = () => (picked ? LIVERIES[liv] : t);
+  t.drivers.forEach((d, i) => helmetWire(sh, d, i, () => paintNow(), () => ({ num: +$('#n' + (i + 1)).value })));
+  $$('[data-l]', sh).forEach((b) => b.addEventListener('click', () => { liv = +b.dataset.l; picked = true; $$('[data-l]', sh).forEach((x) => x.classList.toggle('on', x === b)); helmetsRedraw(sh, t.drivers, paintNow()); }));
   $('#tPaint').addEventListener('click', () => openShowroom({ S, show, save: store.save, team }, { id: carModel() || 'falcon', lite, back: () => teamSheet(next), pick: (id) => { S.settings.car = id; store.save(); } }));
   // a callsign follows the name until you type one yourself
   [1, 2].forEach((i) => { const k = $('#k' + i), d = $('#d' + i); let own = false; k.addEventListener('input', () => { own = true; k.value = k.value.toUpperCase().replace(/[^A-Z]/g, ''); }); d.addEventListener('input', () => { if (!own) k.value = codeOf(d.value); }); });
@@ -1479,7 +1506,7 @@ function teamSheet(next) {
     if (badK) { $('#tErr').textContent = badK; $('#tErr').hidden = false; return; }
     const L = LIVERIES[liv], paint = picked ? { c1: L.c1, c2: L.c2, glow: L.glow, finish: L.finish } : { c1: S.team.c1, c2: S.team.c2, glow: S.team.glow, finish: S.team.finish };
     S.team = { name: $('#tName').value.trim() || t.name, short: codeOf($('#tShort').value || $('#tName').value), ...paint,
-      drivers: [{ name: d1, code: k1, num: n1 }, { name: d2, code: k2, num: n2 }] };
+      drivers: [{ name: d1, code: k1, num: n1, helmet: t.drivers[0].helmet }, { name: d2, code: k2, num: n2, helmet: t.drivers[1].helmet }] };
     store.save(); next();
   });
   $('#tSkip').addEventListener('click', next);
@@ -1537,7 +1564,7 @@ function onboard(step = 'team', then) {
   if (step === 'drivers') {
     const prof = activeProfiles(S), style = SLOTS.map((sl) => { const o = (prof[sl] && prof[sl].origin || '').replace('preset:', ''); return OB_STYLES.includes(o) ? o : 'balanced'; });
     const sh = show(`${head('Your drivers', 'Name your two AI drivers, give them race numbers and pick how they drive.')}
-      ${t.drivers.map((d, k) => `<div class="ob-driver" data-d="${k}">
+      ${t.drivers.map((d, k) => `<div class="ob-driver" data-d="${k}">${helmetHTML(d, t, k)}
         <div class="ob-drow"><label class="field"><span>Driver ${k + 1}</span><input class="obN" maxlength="14" value="${esc(d.name)}" placeholder="${k ? 'Echo' : 'Nova'}" autocomplete="off"></label>
           <button class="btn ghost dice" data-dice="${k}" type="button" aria-label="Suggest a name">🎲</button>
           <label class="field num"><span>Number</span><input class="obNum" type="number" inputmode="numeric" min="1" max="99" value="${d.num || (k ? 77 : 7)}"></label></div>
@@ -1547,6 +1574,7 @@ function onboard(step = 'team', then) {
       ${wizFoot('Next')}`, 'wizp');
     $$('.ob-driver', sh).forEach((row) => {
       const k = +row.dataset.d;
+      helmetWire(row, t.drivers[k], k, () => t, () => ({ num: +$('.obNum', row).value }));
       $$('[data-style]', row).forEach((b) => b.addEventListener('click', () => { style[k] = b.dataset.style; $$('[data-style]', row).forEach((x) => x.classList.toggle('on', x === b)); }));
       $('[data-dice]', row).addEventListener('click', () => { $('.obN', row).value = pickIdea(DRIVER_IDEAS, $$('.obN', sh).map((x) => x.value)); });
     });
@@ -1556,7 +1584,7 @@ function onboard(step = 'team', then) {
       if (!names[0] || !names[1]) return err('Give both drivers a name, or tap the dice.');
       const bad = numProblem(nums[0], nums[1]) || numProblem(nums[1], nums[0]); if (bad) return err(bad);
       const codes = driverCodes(names[0], names[1]);
-      t.drivers = names.map((n, k) => ({ name: n, code: codes[k], num: nums[k] }));
+      t.drivers = names.map((n, k) => ({ name: n, code: codes[k], num: nums[k], helmet: t.drivers[k].helmet }));
       SLOTS.forEach((sl, k) => { if (style[k] !== (prof[sl] && prof[sl].origin || '').replace('preset:', '')) setProfile(S, fromPreset(sl, style[k]), 'you', 'picked when building the team'); });
       store.save(); go(1);
     }, back);
@@ -2264,7 +2292,7 @@ function results() {
   if (G.props.length) say(['d_notes']);
   store.save();
   const top = res.slice(0, 3);
-  const pod = (x, cls) => `<div class="${cls}" style="background:${x.car.team.c1};color:${readable(x.car.team.c1)}"><b>${x.pos}</b>${esc(x.car.code)}<br><small>${esc(x.car.team.short)}</small></div>`;
+  const pod = (x, cls) => `<div class="${cls}" style="background:${x.car.team.c1};color:${readable(x.car.team.c1)}">${portraitSVG(x.car, x.car.team, { size: 56 })}<b>${x.pos}</b>${esc(x.car.code)}<br><small>${esc(x.car.team.short)}</small></div>`;
   G.resShare = share;
   G.resHTML = `
     <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : 'Quick race'}</div>
@@ -2273,7 +2301,7 @@ function results() {
     <div class="podium">${pod(top[1], 'p2')}${pod(top[0], 'p1')}${pod(top[2], 'p3')}</div>
     ${earned.length ? `<div class="tro">${earned.map((t) => `<span>${t}</span>`).join('')}</div>` : ''}
     ${seasonLine || dailyLine ? `<p class="lede">${seasonLine} ${dailyLine}</p>` : ''}
-    <table class="res"><tbody>${res.map((x) => `<tr class="${x.car.team.you ? 'mine' : ''}"><td>${x.pos}</td><td><span class="sw" style="display:inline-block;width:5px;height:14px;border-radius:2px;background:${x.car.team.c1};margin-right:6px"></span>${esc(x.car.name)}</td><td class="m">${esc(x.car.team.short)}</td><td class="m">${x.used.join('›')}${x.fastest ? ' ⏱' : ''}</td><td class="r">${x.gapText}</td><td class="r">${x.points || ''}</td></tr>`).join('')}</tbody></table>
+    <table class="res"><tbody>${res.map((x) => `<tr class="${x.car.team.you ? 'mine' : ''}"><td>${x.pos}</td><td class="pn">${portraitSVG(x.car, x.car.team, { size: 24, num: false, bg: false })}${esc(x.car.name)}</td><td class="m">${esc(x.car.team.short)}</td><td class="m">${x.used.join('›')}${x.fastest ? ' ⏱' : ''}</td><td class="r">${x.gapText}</td><td class="r">${x.points || ''}</td></tr>`).join('')}</tbody></table>
     <div class="actions">
       ${G.kind === 'season' && S.season.round <= CALENDAR.length ? '<button class="btn" data-r="next" type="button">Next round</button>' : ''}
       ${G.kind === 'daily' ? '<button class="btn" data-r="share" type="button">Share result</button>' : ''}
@@ -2346,8 +2374,8 @@ function shareSheet(text, back) {
 
 function standings(over) {
   const drivers = [];
-  TEAMS.forEach((t) => t.drivers.forEach((d, i) => drivers.push({ id: `${t.id}-${i}`, name: d.name, team: t.short, c: t.c1 })));
-  team().drivers.forEach((d, i) => drivers.push({ id: `you-${i}`, name: d.name, team: team().short, c: team().c1, you: true }));
+  TEAMS.forEach((t, ti) => t.drivers.forEach((d, i) => drivers.push({ id: `${t.id}-${i}`, d: { ...d, num: TAKEN_NUMS[ti * 2 + i] }, tm: t, name: d.name, team: t.short, c: t.c1 })));
+  team().drivers.forEach((d, i) => drivers.push({ id: `you-${i}`, d, tm: team(), name: d.name, team: team().short, c: team().c1, you: true }));
   drivers.forEach((d) => (d.pts = S.season.pts[d.id] || 0));
   drivers.sort((a, b) => b.pts - a.pts);
   const teams = [...TEAMS.map((t) => ({ id: t.id, name: t.name, c: t.c1 })), { id: 'you', name: team().name, c: team().c1, you: true }]
@@ -2355,7 +2383,7 @@ function standings(over) {
   const done = S.season.round - 1;
   const sh = show(`<h2>Season ${S.season.no}</h2><p class="lede">${done ? `After ${done} of ${CALENDAR.length} rounds.` : 'The season starts in Abuja.'}</p>
     <div class="grid2">
-      <div><div class="sub">Drivers</div><table class="res"><tbody>${drivers.map((d, i) => `<tr class="${d.you ? 'mine' : ''}"><td>${i + 1}</td><td><span class="sw" style="display:inline-block;width:5px;height:14px;border-radius:2px;background:${d.c};margin-right:6px"></span>${esc(d.name)}</td><td class="m">${esc(d.team)}</td><td class="r">${d.pts}</td></tr>`).join('')}</tbody></table></div>
+      <div><div class="sub">Drivers</div><table class="res"><tbody>${drivers.map((d, i) => `<tr class="${d.you ? 'mine' : ''}"><td>${i + 1}</td><td class="pn">${portraitSVG(d.d, d.tm, { size: 24, num: false, bg: false })}${esc(d.name)}</td><td class="m">${esc(d.team)}</td><td class="r">${d.pts}</td></tr>`).join('')}</tbody></table></div>
       <div><div class="sub">Teams</div><table class="res"><tbody>${teams.map((t, i) => `<tr class="${t.you ? 'mine' : ''}"><td>${i + 1}</td><td><span class="sw" style="display:inline-block;width:5px;height:14px;border-radius:2px;background:${t.c};margin-right:6px"></span>${esc(t.name)}</td><td class="r">${t.pts}</td></tr>`).join('')}</tbody></table></div>
     </div>
     <div class="sub" style="margin-top:14px">Calendar</div>
