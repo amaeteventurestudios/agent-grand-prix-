@@ -1,7 +1,7 @@
 // Team radio: spoken calls become the same calls the buttons make.
 // Run: node tools/test/radio.test.mjs
 import assert from 'node:assert/strict';
-import { parseCall } from '../../js/teamradio.js';
+import { parseCall, wakeSplit } from '../../js/teamradio.js';
 
 const cars = [{ id: 'you-0', name: 'Nova', code: 'NOV' }, { id: 'you-1', name: 'Echo Ade', code: 'ECH' }];
 const p = (s, sel = 'you-0') => parseCall(s, cars, sel);
@@ -43,4 +43,10 @@ t('battery until close to the car ahead', () => {
 t('contradictions ask back, never guess', () => { assert.ok(p('push and save the tyres').clarify); assert.ok(p('attack and defend').clarify); });
 t('do it confirms', () => { assert.deepEqual(p('Do it'), { confirm: true }); assert.deepEqual(p('yes, go ahead'), { confirm: true }); });
 t('both names with and', () => assert.equal(k('Nova and Echo, box'), 'you-0:box you-1:box'));
+t('hands-free: only what follows "Radio" is a call', () => {
+  assert.equal(wakeSplit('Radio, box box, softs'), 'box box, softs'); assert.equal(k(wakeSplit('radio box box softs')), 'you-0:boxnow/S');
+  assert.equal(wakeSplit('Hey radio. Echo push'), 'Echo push'); assert.equal(wakeSplit('team radio'), ''); assert.equal(wakeSplit('OK radio: attack'), 'attack');
+  assert.equal(wakeSplit('box box'), null, 'no wake word, no call'); assert.equal(wakeSplit('the radio is loud'), null);
+  assert.equal(wakeSplit('radiohead'), null); assert.equal(wakeSplit(''), null);
+});
 console.log(`radio: ${n} checks passed`);

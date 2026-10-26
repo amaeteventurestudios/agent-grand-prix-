@@ -26,7 +26,7 @@ import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as sto
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
-import { parseCall, radioSupported, listen } from './teamradio.js';
+import { parseCall, radioSupported, listen, wakeSplit } from './teamradio.js';
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { plans as briefPlans } from './briefing.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
@@ -570,6 +570,12 @@ const radioStats = /[?&]radiostats\b/.test(location.search);
 function talkBtn(R) {
   const b = $('#talkBtn');
   b.hidden = G.attract || !radioSupported() || !R.byId.get(G.mineSel) || S.settings.talk === false;
+  const hf = !!S.settings.handsfree;
+  if (b.classList.contains('free') !== hf) {
+    b.classList.toggle('free', hf);
+    $('small', b).textContent = hf ? 'SAY “RADIO”' : 'HOLD TO TALK';
+    b.title = hf ? 'Hands-free: say "Radio" then the call. Hold to talk still works.' : 'Hold and speak (or hold T)';
+  }
   radioPlans(R);
 }
 function talkSaid(text, kind) {
@@ -582,6 +588,7 @@ function talkSaid(text, kind) {
 function mark(k) { const m = talk.m; if (m && m[k] == null) m[k] = Math.round(performance.now() - m.t0); }
 function talkStart() {
   if (talk.rec || !G.race || G.attract || !radioSupported()) return;
+  freeStop();
   talk.done = false; talk.heard = ''; talk.n++;
   talk.m = { t0: performance.now(), id: talk.n };
   voice.stop(); sound.duck(true);
@@ -622,6 +629,70 @@ function talkStop() {
   rec.stop(); clearTimeout(talk.guard);
   talk.guard = setTimeout(() => { if (talk.rec === rec) { rec.abort(); rec.end(); } }, 1500);
 }
+// Hands-free radio (Radio voices sheet): the mic stays open through the race, and a call is anything
+// said after "Radio". It closes whenever our own radio is talking, so the engineer's and drivers' voices
+// coming out of the speaker are never heard as calls, and while the race is paused, hidden or over.
+// Holding the button still works, and takes over the mic for that one transmission.
+const free = { rec: null, n: 0, armed: 0, retry: 0, fails: 0, done: false };
+function freeWanted() {
+  const R = G.race;
+  return !!(S.settings.handsfree && S.settings.talk !== false && R && !G.attract && !G.paused && !document.hidden && !talk.rec
+    && radioSupported() && myCars().some((c) => c && !c.dnf && !c.finished));
+}
+function freeStop() {
+  const rec = free.rec; if (!rec) return;
+  free.rec = null; rec.abort();
+  if (free.armed) { free.armed = 0; sound.duck(false); }
+  $('#talkBtn').classList.remove('on');
+}
+function freeTick() {
+  if (!freeWanted() || voice.speaking()) return freeStop();
+  if (free.rec || performance.now() < free.retry) return;
+  const n = ++free.n; free.done = false;
+  const mine = () => free.n === n && free.rec;
+  try {
+    free.rec = listen({
+      lang: /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
+      onStart: () => { if (mine()) free.fails = 0; },
+      onWords: (text, final, alts) => {
+        if (!mine() || free.done) return;
+        clearTimeout(free.timer);
+        let said = wakeSplit(text);
+        if (said === null) { if (performance.now() > free.armed) return; said = text.trim(); }   // "Radio." ... "box now"
+        if (!free.armed) { sound.duck(true); $('#talkBtn').classList.add('on'); }
+        free.armed = performance.now() + 6000;
+        if (!said) { talkSaid('Radio… go ahead'); return; }
+        talkSaid('“' + said + '”');
+        const others = alts.map(wakeSplit).filter((a) => a);
+        const go = (last) => {
+          if (!mine() || free.done) return;
+          const r = understand(said, others);
+          if (!r && !last) return;
+          free.done = true; talk.m = { t0: performance.now(), id: ++talk.n };
+          if (r) radioDo(r, said); else interpret(said);
+          freeStop(); free.retry = performance.now() + 400;   // a fresh mic, so the same words aren't heard twice
+        };
+        if (final) go(true); else free.timer = setTimeout(() => go(false), 350);
+      },
+      onError: (err) => {
+        if (!mine()) return;
+        if (err === 'not-allowed' || err === 'service-not-allowed') {
+          // some browsers (iPhone Safari among them) only open the mic while a finger is on the button
+          S.settings.handsfree = false; store.save(); talkBtn(G.race);
+          toast(free.fails ? 'This browser only listens while you hold the mic. Hands-free is off; hold to talk still works.' : 'Allow the microphone to use hands-free radio. The buttons still work.');
+        }
+        free.fails++;
+      },
+      onEnd: () => {
+        if (free.n !== n) return;
+        if (free.rec) { free.rec = null; if (free.armed) { free.armed = 0; sound.duck(false); } $('#talkBtn').classList.remove('on'); }
+        // browsers close a quiet mic after a while: open it again, a little slower after each failure
+        free.retry = performance.now() + Math.min(8000, 300 * 2 ** Math.min(free.fails, 5));
+      },
+    });
+  } catch { free.rec = null; free.fails++; free.retry = performance.now() + 3000; }
+}
+setInterval(freeTick, 400);
 function understand(text, alts = []) {
   const cars = myCars().map((c) => ({ id: c.id, name: c.name, code: c.code }));
   // a question for a driver ("Nova, can you pass him?", "how are the tyres?") goes to that driver's
@@ -1930,9 +2001,11 @@ function onboard(step = 'team', then) {
     const sh = show(`${head('Your race engineer', 'Your engineer runs the radio when you hand the cars to the AI, and answers when you ask for advice. When you are Team Principal, only you and your drivers talk. Tap a voice to hear a call.')}
       ${vpickHTML()}
       <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your drivers reply in their own voices: "Copy. Boxing."</span></label>
+      ${radioSupported() ? `<label class="coachopt"><input type="checkbox" id="freeOpt" ${S.settings.handsfree ? 'checked' : ''}><span><b>Hands-free radio</b> The mic stays on during your races. Say "Radio", then the call: "Radio, box box, softs". It goes quiet while your team is talking. Best with headphones.</span></label>` : ''}
       ${wizFoot('Next')}`, 'wizp');
     vpickWire(sh);
     $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
+    $('#freeOpt')?.addEventListener('change', (e) => { S.settings.handsfree = e.target.checked; store.save(); if (G.race) talkBtn(G.race); });
     wizWire(sh, () => go(1), back);
   }
   if (step === 'mode') {
@@ -2413,6 +2486,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
     <div class="sub">Radio voice</div>
     ${vpickHTML()}
     <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your drivers reply on the radio in their own voices.</span></label>
+    ${radioSupported() ? `<label class="coachopt"><input type="checkbox" id="freeOpt" ${S.settings.handsfree ? 'checked' : ''}><span><b>Hands-free radio</b> The mic stays on during your races. Say "Radio", then the call: "Radio, box box, softs". It goes quiet while your team is talking. Best with headphones.</span></label>` : ''}
     <div class="sub">Driver DNA</div>
     <div class="dna-pre">${dnaLine(S, team())}<button class="btn ghost" id="preDna" type="button">Tune</button></div>
     <label class="statsopt"><input type="checkbox" id="statsOpt" ${statsEl.hidden ? '' : 'checked'}> Show frame rate (for testing on your phone)</label>
@@ -2421,6 +2495,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   vpickWire(sh);
   $('#coachOpt').addEventListener('change', (e) => { P.coachOn = e.target.checked; S.settings.coach = P.coachOn; store.save(); });
   $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
+  $('#freeOpt')?.addEventListener('change', (e) => { S.settings.handsfree = e.target.checked; store.save(); if (G.race) talkBtn(G.race); });
   $('#statsOpt').addEventListener('change', (e) => { S.settings.stats = e.target.checked; store.save(); statsEl.hidden = !e.target.checked; });
   $('#preDna').addEventListener('click', () => studio(() => pre(o, 'settings')));
   $('[data-wiz="back"]', sh).addEventListener('click', back);
@@ -2525,9 +2600,11 @@ function voiceSheet(back) {
     <p class="lede">Pick your race engineer's voice. Tap one to hear a call.</p>
     ${vpickHTML()}
     <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your two drivers reply on the radio in their own voices: "Copy. Boxing."</span></label>
+    ${radioSupported() ? `<label class="coachopt"><input type="checkbox" id="freeOpt" ${S.settings.handsfree ? 'checked' : ''}><span><b>Hands-free radio</b> The mic stays on during your races. Say "Radio", then the call: "Radio, box box, softs". It goes quiet while your team is talking. Best with headphones.</span></label>` : ''}
     <div class="actions"><button class="btn" id="vDone" type="button">Done</button></div>`);
   vpickWire(sh);
   $('#replyOpt').addEventListener('change', (e) => { S.settings.replies = e.target.checked; store.save(); });
+  $('#freeOpt')?.addEventListener('change', (e) => { S.settings.handsfree = e.target.checked; store.save(); if (G.race) talkBtn(G.race); });
   $('#vDone').addEventListener('click', back);
 }
 function pauseMenu() {

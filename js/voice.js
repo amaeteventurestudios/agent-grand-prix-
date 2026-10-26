@@ -74,6 +74,8 @@ export class Voice {
     this.next();
   }
   stop() { this.q = []; }
+  // a transmission playing, waiting, or just ended: the hands-free mic closes so it never hears our own radio
+  speaking() { return this.busy || this.q.length > 0 || performance.now() - (this.endAt || 0) < 700; }
   // nothing playing or waiting, for the engineer's regular updates (they never push out a call)
   idle() { return !!this.id && !this.busy && !this.q.length && performance.now() - (this.endAt || 0) > 1200; }
   async next() {

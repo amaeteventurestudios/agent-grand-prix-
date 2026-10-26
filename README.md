@@ -87,6 +87,13 @@ boost on an empty battery); say it again and they do it. The same call for the s
 are still talking: a partial transcript that holds still for 350 ms is acted on. `?radiostats` shows each step's time (mic open, first
 words, call understood, done). Test hook: `__agp.radio(text)`. Firefox has no speech recognition, so the button is hidden there.
 
+**Hands-free radio** (Radio voices sheet, off by default): the mic stays open through your race and only what follows the wake word is a
+call: "Radio, box box, softs", or "Radio." then the call within six seconds (`wakeSplit()` in `js/teamradio.js`). The mic closes while
+our own radio is playing (`voice.speaking()`), so the engineer's and drivers' voices from the speaker are never heard as calls, and
+while the race is paused, hidden or over; the browser's quiet-mic timeouts reopen it with a growing back-off. Holding the button still
+works and takes the mic for that transmission. Browsers that only allow the mic during a touch (iPhone Safari among them) switch it
+off with a note, and hold-to-talk carries on.
+
 Phrases the matcher can't place go to the optional interpreter, `server/radio.mjs` (127.0.0.1:8140 behind Caddy at `/api/radio/*`). It
 asks Jev (TypeSafe's classifier) three typed questions (call, car, tyre) and returns calls only when it is at least 70% sure, otherwise a
 question back. It stays off until the `TYPESAFE_API_KEY` secret is set (key from console.typesafe.ai/keys); the key never reaches the
