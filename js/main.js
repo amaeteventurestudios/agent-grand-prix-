@@ -4,7 +4,7 @@ import { startHere } from './here.js';
 import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
-import { DT, LIFE, fmtLap, fmtTime } from './sim.js';
+import { DT, LIFE, tyreLife, fmtLap, fmtTime } from './sim.js';
 import { QualiSession, Q_LEN, fmtQ } from './quali.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
 import { World } from './world.js';
@@ -347,6 +347,7 @@ const tyreHTML = (c) => `<span class="tyre" style="--c:${COMPOUNDS[c].color}"><b
 function tick() {
   lessonTick();
   const R = G.race; if (!R) return;
+  agentsUI();
   // HUD
   const lead = R.order[0];
   $('#hudLap').textContent = R.leaderLap(); $('#hudLaps').textContent = R.laps;
@@ -991,7 +992,7 @@ function coach(R) {
     if (theirs(behind) && back < 0.6 && c.battle !== 'defend' && ok('defend', 2))
       return fire('defend', { say: [carTag(c.id), 'k_defend'], text: `${esc(behind.code)} is right behind ${esc(c.code)}. <b>Defend</b> covers the inside line and makes ${esc(c.code)} about half as easy to pass.`, act: `Defend with ${esc(c.code)}`, run: () => cmd({ battle: 'defend' }, c.id) });
     if (c.tyre.wear > 0.66 && !c.pitReq && left > 1 && ok('tyre-' + c.id, 1)) {
-      const wm = G.venue.wear || 1, nx = !COMPOUNDS[c.tyre.c].dry ? c.tyre.c : !R.ruleMet(c) ? nextDry(c) : left <= LIFE.S / wm * 0.85 ? 'S' : left <= LIFE.M / wm * 0.85 ? 'M' : 'H';
+      const wm = G.venue.wear || 1, nx = !COMPOUNDS[c.tyre.c].dry ? c.tyre.c : !R.ruleMet(c) ? nextDry(c) : left <= LIFE.S * R.life / wm * 0.85 ? 'S' : left <= LIFE.M * R.life / wm * 0.85 ? 'M' : 'H';
       return fire('tyre-' + c.id, { say: [carTag(c.id), 'k_tyre', 'q_' + nx], text: `${esc(c.code)}'s ${COMPOUNDS[c.tyre.c].name}s are down to ${Math.round((1 - c.tyre.wear) * 100)}%. Under 25% the grip falls away and a puncture gets likely. Box for ${COMPOUNDS[nx].name}s?`, act: `Box for ${COMPOUNDS[nx].name}s`, run: () => cmd({ box: nx }, c.id) });
     }
     if (gap > 2.5 && back > 2.5 && c.ers < 0.45 && c.ersMode !== 'harvest' && ok('harvest', 2))
@@ -1242,6 +1243,7 @@ function renderControls(force) {
   }
   el.innerHTML = `
     <div class="card">
+      ${G.kind !== 'academy' && myRunning().length ? `<button type="button" class="teamhand${agentsOn() ? ' on' : ''}" data-act="team">🤖 ${agentsOn() ? 'Your agents run the team · Take it back' : 'Hand the team to my agents'}</button>` : ''}
       <div class="mine-tabs">${[a, b].map((x) => `<button type="button" data-mine="${x.id}" class="${x.id === id ? 'on' : ''}${x.dnf ? ' out' : ''}"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${x.team.c1}"></span>${esc(x.code)} · ${x.dnf ? 'OUT' : 'P' + x.pos}</button>`).join('')}</div>
       <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'The AI strategist runs this car and talks to your driver.' : c.assist ? 'You make the calls. The engineer only calls the stops.' : 'You alone make the calls and talk to your drivers. The engineer stays off the radio until you ask.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
@@ -1271,6 +1273,7 @@ $('#controls').addEventListener('click', (e) => {
   const t = e.target.closest('button'); if (!t || t.disabled) return;
   const R = G.race, id = G.mineSel || 'you-0';
   if (t.dataset.mine) { G.mineSel = t.dataset.mine; select(t.dataset.mine); return; }
+  if (t.dataset.act === 'team') { handTeam(!agentsOn()); return; }
   if (t.dataset.act === 'auto') { const c = R.byId.get(id); R.command(id, { auto: !c.auto }); say([carTag(id), c.auto ? 'c_auto' : 'c_manual']); handover(c); }
   if (t.dataset.act === 'ask') askEngineer(R.byId.get(id));
   if (t.dataset.talk) driverAsk(R.byId.get(id), t.dataset.talk, TALK.find(([k]) => k === t.dataset.talk)[1]);
@@ -2271,7 +2274,7 @@ function briefRun(o, key) {
 }
 function planFor(v, probe) {
   const laps = probe.laps, wm = v.wear || 1, W = probe.weather, lines = [];
-  const life = (c) => LIFE[c] / wm;
+  const life = (c) => LIFE[c] * tyreLife(laps) / wm;
   if (W.wet0 > 0.17) {
     const c = W.wet0 > 0.7 ? 'W' : 'I';
     lines.push(`The track is ${c === 'W' ? 'soaked' : 'damp'}: start both cars on <b>${COMPOUNDS[c].name}s</b>.`);
@@ -2382,7 +2385,7 @@ function showroom(back, id) {
 }
 // what each tyre does at this track: speed, and roughly how many laps before it fades
 function tyreGuide(v) {
-  const wm = v.wear || 1, laps = (c) => Math.max(1, Math.round(LIFE[c] / wm * 0.8));
+  const wm = v.wear || 1, laps = (c) => Math.max(1, Math.round(LIFE[c] * tyreLife(G.laps || 0) / wm * 0.8));
   const rows = [
     ['S', 100, `Fastest. Lasts about ${laps('S')} laps here. Use it to gain places at the start or for a short last stint.`],
     ['M', 82, `A little slower. Lasts about ${laps('M')} laps. The safe all-rounder.`],
@@ -2776,6 +2779,8 @@ function pauseMenu() {
       <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
       <button class="btn ghost wide" id="pAcademy" type="button">Racing Academy</button>
+      ${G.kind !== 'academy' && !G.race.done ? `<button class="btn ghost wide" id="pAgents" type="button">${agentsOn() ? 'Take the team back' : 'Hand the team to my agents'}</button>` : ''}
+      ${canFinish() ? '<button class="btn ghost wide" id="pFinish" type="button">Finish the race now</button>' : ''}
       <button class="btn ghost wide" id="pRestart" type="button">${G.kind === 'academy' ? 'Restart lesson' : 'Restart race'}</button>
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
@@ -2784,9 +2789,53 @@ function pauseMenu() {
   $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
   $('#pRestart').addEventListener('click', () => (G.kind === 'academy' && G.lessonId ? startLesson(G.lessonId) : G.kind === 'practice' ? freePractice() : pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }, 'tyres')));
   $('#pAcademy').addEventListener('click', () => academyHome(pauseMenu));
+  $('#pAgents')?.addEventListener('click', () => { handTeam(!agentsOn()); resume(); });
+  $('#pFinish')?.addEventListener('click', finishNow);
   $('#pQuit').addEventListener('click', () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); });
 }
 function resume() { hide(); G.paused = false; }
+
+// Hand the team to my agents: both your cars go Autonomous at once, so the AI strategists make every
+// call, and Take it back gives both cars to you again. It works in any race; a live race with other
+// people keeps running in real time either way.
+const myRunning = () => (G.race ? mine().map((id) => G.race.byId.get(id)).filter((c) => c && !c.dnf && !c.finished) : []);
+function agentsOn() { const m = myRunning(); return m.length > 0 && m.every((c) => c.auto); }
+function handTeam(on) {
+  const R = G.race; if (!R || G.attract || R.done) return;
+  for (const c of myRunning()) if (!!c.auto !== on) { R.command(c.id, { auto: on }); handover(c, !on); }
+  const text = on ? 'Your agents run the team now: both cars, every call. Take it back any time.' : 'You run the team again: both cars answer to you.';
+  toast(text, true); addRadio({ from: 'race', text });
+  agentsUI(true);
+}
+function agentsUI(force) {
+  const b = $('#agentsBtn'); if (!b) return;
+  const R = G.race, show = !!R && !G.attract && !R.done && G.kind !== 'academy' && myRunning().length > 0;
+  const on = show && agentsOn(), key = `${show}|${on}`;
+  if (!force && b.dataset.k === key) return;
+  b.dataset.k = key; b.hidden = !show;
+  b.classList.toggle('on', on);
+  b.textContent = on ? 'Agents racing · Take back' : 'Hand to agents';
+  b.setAttribute('aria-label', on ? 'Your agents run the team. Tap to take it back.' : 'Hand the team to your AI agents');
+}
+$('#agentsBtn').addEventListener('click', () => handTeam(!agentsOn()));
+
+// Finish the race now: only when you race the AI alone (never the Daily, a season round, a lesson or
+// a live race with other people). Your agents take both cars and the race runs to the flag in a blink.
+const canFinish = () => !!G.race && !G.race.done && !fairRace() && !G.room;
+function finishNow() {
+  const R = G.race; if (!canFinish()) return;
+  handTeam(true); hide();
+  G.paused = true;
+  const go = () => {
+    if (G.race !== R) return;
+    let k = 0; while (!R.done && k < 2500) { R.step(); k++; }
+    G.evIdx = R.events.length;   // the race's chatter on the way to the flag is skipped, not read out
+    if (R.done) { G.paused = false; return; }
+    toast(`Your agents are racing it out: lap ${R.leaderLap()} of ${R.laps}…`);
+    setTimeout(go, 0);
+  };
+  go();
+}
 
 // ---------- results ----------
 const TROPHIES = {
@@ -3013,11 +3062,11 @@ function standings(over) {
 window.__agp = {
   skipIntro() { lightsSequence(true); },
   ff(sec) { const R = G.race; for (let i = 0; i < sec / DT && !R.done; i++) R.step(); tick(); },
-  start(kind = 'daily', id) {
+  start(kind = 'daily', id, length) {
     S.team ||= DEFAULT_TEAM;
     const n = dayNumber(), v = id ? VENUES.find((x) => x.id === id) : dailyVenue(n);
     Object.assign(G, { kind, venue: v, seed: hashString((kind === 'daily' ? 'daily-' : 'quick-') + (kind === 'daily' ? n : v.id)), day: n, round: kind === 'season' ? S.season.round : null });
-    G.laps = null; startRace({}, false); lightsSequence(true);
+    G.laps = length ? raceLaps(trackFor(v), length) : null; startRace({}, false); lightsSequence(true);
   },
   get room() { const L = G.room; return L ? { id: L.id, n: L.n, me: L.me, calls: L.calls.length, snaps: L.snaps || {} } : null; },
   cam: setCam, tab: setTab, select, results, pre, academy: startLesson, practice: freePractice,

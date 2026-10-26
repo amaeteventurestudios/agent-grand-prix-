@@ -18,7 +18,7 @@ export function dailyVenue(n) { return VENUES[(((n - 1) % VENUES.length) + VENUE
 
 const trackCache = new Map();
 export function trackFor(venue) {
-  if (!trackCache.has(venue.id)) trackCache.set(venue.id, generateTrack(hashString(venue.id + '-layout-1'), venue));
+  if (!trackCache.has(venue.id)) trackCache.set(venue.id, Object.assign(generateTrack(hashString(venue.id + '-layout-1'), venue), { venueId: venue.id }));
   return trackCache.get(venue.id);
 }
 
@@ -74,10 +74,18 @@ export const LENGTHS = [
   { id: 'short', name: 'Short', note: 'About 5 min' },
   { id: 'medium', name: 'Medium', note: 'About 10 min' },
   { id: 'long', name: 'Long', note: 'About 18 min' },
+  { id: 'full', name: 'Full distance', note: 'Real Grand Prix laps · about 35 min' },
 ];
+// Full distance: the lap count a Grand Prix runs at that place (just over 305 km; Monaco is the short
+// exception), or, where there is no Grand Prix, the laps a 305 km race of that circuit's size would take.
+const GP_LAPS = { sakhir: 57, jeddah: 50, suzuka: 53, shanghai: 56, mexico: 71, montreal: 70, monaco: 78, barcelona: 66,
+  spielberg: 71, britain: 52, budapest: 70, ardennes: 44, zandvoort: 72, monza: 53, baku: 51, singapore: 62, saopaulo: 71,
+  abudhabi: 58, miami: 57, austin: 56, lasvegas: 50, melbourne: 58, lusail: 57, imola: 63, madrid: 57, sochi: 53, newdelhi: 60 };
+export const fullLaps = (track, venueId) => GP_LAPS[venueId] || Math.min(78, Math.max(44, Math.round(305 / (track.lapTime * 0.16))));
 export function raceLaps(track, length = 'short') {
   if (length === 'medium') return Math.min(20, Math.max(12, Math.round(470 / track.lapTime)));
   if (length === 'long') return Math.min(36, Math.max(20, Math.round(900 / track.lapTime)));
+  if (length === 'full') return fullLaps(track, track.venueId);
   return lapsFor(track);
 }
 
