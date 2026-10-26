@@ -104,12 +104,31 @@ const limited = (ip) => {
   if (hits.size > 5000) hits.clear();
   return h.length > 20;
 };
+const vhits = new Map(); // the spoken replies: a sentence each, 40 a minute
+const vlimited = (ip) => { const now = Date.now(), h = (vhits.get(ip) || []).filter((x) => now - x < 60000); h.push(now); vhits.set(ip, h); if (vhits.size > 5000) vhits.clear(); return h.length > 40; };
+let voiceOn = false;
 const send = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)); };
 const clean = (s, n) => String(s ?? '').replace(/[^\p{L}\p{N} .,'?!-]/gu, '').slice(0, n);
 
 export function serve(port = PORT) {
   return http.createServer((req, res) => {
-    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: !!KEY, brain: !!AKEY });
+    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: !!KEY, brain: !!AKEY, voice: voiceOn });
+    if (req.url === '/api/radio/voice' && req.method === 'POST') {
+      if (!voiceOn) return send(res, 503, { error: 'off' });
+      const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',').pop().trim();
+      if (vlimited(ip)) return send(res, 429, { error: 'slow down' });
+      let body = '';
+      req.on('data', (d) => { body += d; if (body.length > 1000) req.destroy(); });
+      req.on('end', async () => {
+        try {
+          const j = JSON.parse(body), { speak } = await import('./voice.mjs');
+          const w = await speak(String(j.text || '').replace(/[^\p{L}\p{N} .,'?!%:-]/gu, '').slice(0, 240), String(j.voice || ''));
+          if (!w) return send(res, 400, {});
+          res.writeHead(200, { 'content-type': 'audio/wav', 'cache-control': 'no-store', 'content-length': w.length }); res.end(w);
+        } catch (e) { send(res, 502, { error: String(e.message || e).slice(0, 80) }); }
+      });
+      return;
+    }
     const isTalk = req.url === '/api/radio/talk';
     if ((req.url !== '/api/radio/interpret' && !isTalk) || req.method !== 'POST') return send(res, 404, {});
     if (!(isTalk ? AKEY : KEY)) return send(res, 503, { error: 'off' });
@@ -130,4 +149,10 @@ export function serve(port = PORT) {
   }).listen(port, '127.0.0.1');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) { serve(); console.log(`team radio on 127.0.0.1:${PORT}, interpreter ${KEY ? 'on' : 'off (no TYPESAFE_API_KEY)'}, driver brain ${AKEY ? 'on' : 'off (no ANTHROPIC_API_KEY)'}`); }
+if (import.meta.url === `file://${process.argv[1]}`) {
+  serve();
+  // the drivers' spoken replies switch on once the voice model has loaded (a one-time download)
+  if (AKEY) import('./voice.mjs').then((v) => v.warm()).then(() => { voiceOn = true; console.log('driver voices ready'); })
+    .catch((e) => console.log('driver voices off:', String(e.message || e).slice(0, 120)));
+  console.log(`team radio on 127.0.0.1:${PORT}, interpreter ${KEY ? 'on' : 'off (no TYPESAFE_API_KEY)'}, driver brain ${AKEY ? 'on' : 'off (no ANTHROPIC_API_KEY)'}`);
+}
