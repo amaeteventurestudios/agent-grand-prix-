@@ -99,6 +99,15 @@ export function parseCall(text, cars, sel) {
 }
 const cap = (k) => ({ boxnow: 'Box', box: 'Box', cancel: 'Stay out' }[k] || k[0].toUpperCase() + k.slice(1));
 
+// Hands-free: the mic stays open, and only what follows the wake word is a call, so the game's own
+// sound and a conversation in the room are never taken for one. "Radio, box box", "Radio. Nova, push".
+// Returns the words after the wake word ('' when it was said alone), or null when it wasn't said.
+const WAKE = /^\s*(?:(?:hey|ok|okay|oi|and)\s+)?(?:team\s+)?(?:radio|radios|raydio)\b[\s,.!:;-]*/i;
+export function wakeSplit(text) {
+  const m = String(text || '').match(WAKE);
+  return m ? text.slice(m[0].length).trim() : null;
+}
+
 // The browser's speech recognition, push-to-talk. onWords gets every partial result while you talk,
 // so a call can land before you let go; onEnd fires when the mic closes.
 export const radioSupported = () => typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition);
