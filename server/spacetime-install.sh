@@ -48,19 +48,13 @@ SAVED=$(sudo sed -n 's/^STDB_TOKEN=//p' /etc/novenique-owner.env 2>/dev/null | h
 if [ -n "$SAVED" ]; then ST login --token "$SAVED" >/dev/null
 elif ! have; then ST login --server-issued-login home >/dev/null; fi
 
-# 4. publish each game into its own database (updates keep the data)
-for g in $GAMES; do
-  sudo rm -rf "$ROOT/modules/$g" && sudo mkdir -p "$ROOT/modules" && sudo cp -r "/tmp/stdb-modules/$g" "$ROOT/modules/$g"
-  sudo chown -R spacetimedb:spacetimedb "$ROOT/modules"
-  ( cd "$ROOT/modules/$g" && sudo -u spacetimedb env HOME="$ROOT" PATH="$NODE_DIR/bin:/usr/bin:/bin" npm install --silent --no-audit --no-fund --ignore-scripts )
-  ST publish --server home --module-path "$ROOT/modules/$g" --yes "$g"
-done
-
-# 5. outside access: only a game's live connection and new player identities. Publishing, SQL and deletes stay local.
+# 4. outside access: none but a health ping. The games pass presence on from their own services on
+# this machine (AGP: server/accounts.mjs), so no browser ever talks to SpacetimeDB.
+# Closed before publishing, so nothing outside can call claim() first.
 sudo mkdir -p /etc/caddy/sites
 sudo tee /etc/caddy/sites/spacetime.caddy >/dev/null <<CADDY
 $SITE {
-	@open path_regexp open ^/v1/(identity(/.*)?|database/[a-z0-9-]+/subscribe|ping)$
+	@open path /v1/ping
 	handle @open {
 		reverse_proxy 127.0.0.1:$PORT
 	}
@@ -69,12 +63,27 @@ $SITE {
 CADDY
 sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null && sudo systemctl reload caddy
 
+# 5. publish each game into its own database (updates keep the data)
+for g in $GAMES; do
+  sudo rm -rf "$ROOT/modules/$g" && sudo mkdir -p "$ROOT/modules" && sudo cp -r "/tmp/stdb-modules/$g" "$ROOT/modules/$g"
+  sudo chown -R spacetimedb:spacetimedb "$ROOT/modules"
+  ( cd "$ROOT/modules/$g" && sudo -u spacetimedb env HOME="$ROOT" PATH="$NODE_DIR/bin:/usr/bin:/bin" npm install --silent --no-audit --no-fund --ignore-scripts )
+  ST publish --server home --module-path "$ROOT/modules/$g" --yes "$g"
+done
+# this server's login becomes the only writer of AGP's visits (see spacetime/agp/src/index.ts)
+ST call --server home agp claim
+
+
 # 6. the owner's screen: both games on one page, behind the owner's password (OWNER_PASSWORD secret)
 OWNER_SITE="${OWNER_SITE:-owner.129-146-26-28.sslip.io}"
 sudo mkdir -p /opt/novenique-owner && sudo cp /tmp/owner.mjs /opt/novenique-owner/owner.mjs
 TOKEN=$(sudo sed -n 's/^spacetimedb_token *= *"\(.*\)"/\1/p' "$CLI_TOML" | head -1)
 sudo install -m 600 /dev/null /etc/novenique-owner.env
 printf 'STDB_TOKEN=%s\nSTDB_URL=http://127.0.0.1:%s\n' "$TOKEN" "$PORT" | sudo tee /etc/novenique-owner.env >/dev/null
+# AGP's accounts service writes presence with the same login, from its own env file
+sudo install -m 600 /dev/null /etc/agp-spacetime.env
+printf 'STDB_TOKEN=%s\nSTDB_URL=http://127.0.0.1:%s\n' "$TOKEN" "$PORT" | sudo tee /etc/agp-spacetime.env >/dev/null
+if systemctl list-unit-files agp-accounts.service >/dev/null 2>&1; then sudo systemctl restart agp-accounts || true; fi
 sudo tee /etc/systemd/system/novenique-owner.service >/dev/null <<UNIT
 [Unit]
 Description=Novenique owner screen (every game on one page)
@@ -112,4 +121,5 @@ sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddy
 sleep 1; curl -fsS http://127.0.0.1:8150/health && echo ' <- owner screen'
 
 echo "== SpacetimeDB $(ST --version 2>/dev/null | head -1)"
+sleep 2; curl -fsS http://127.0.0.1:8141/api/me/health && echo ' <- accounts (presence: true means AGP reports who is online)' || true
 for g in $GAMES; do echo "== $g"; ST sql --server home "$g" "SELECT * FROM $( [ "$g" = agp ] && echo lobby || echo pulse )" || true; done

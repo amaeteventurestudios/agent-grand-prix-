@@ -1,5 +1,6 @@
 // Agent Grand Prix: the page. Home screen over a live race, the race itself with the pit
 // wall, results, the season and the Daily Grand Prix.
+import { startHere } from './here.js';
 import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
@@ -3037,4 +3038,9 @@ accountStart(S).then((fromServer) => {
   else if (account.on && G.attract && !$('#screen').hidden) home();
   if (new URLSearchParams(location.search).get('signedin')) { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); history.replaceState(null, '', location.pathname); }
 });
+// who is online and where, for the owner's screen (js/here.js)
+startHere(() => ({
+  name: team().name || '',
+  screen: G.qs ? 'quali' : G.lesson && !G.attract ? 'academy' : G.race && !G.attract && !G.ended ? (G.kind === 'live' ? 'live' : 'race') : 'home',
+}));
 requestAnimationFrame(frame);

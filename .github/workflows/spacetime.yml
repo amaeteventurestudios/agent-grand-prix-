@@ -3,7 +3,7 @@
 name: SpacetimeDB
 on:
   push:
-    paths: ['spacetime/**', 'server/spacetime-install.sh', 'server/owner.mjs', '.github/workflows/spacetime.yml']
+    paths: ['spacetime/**', 'server/spacetime-install.sh', 'server/owner.mjs', 'server/accounts.mjs', '.github/workflows/spacetime.yml']
   workflow_dispatch:
 concurrency: spacetime-${{ github.ref }}
 env:
@@ -38,6 +38,20 @@ jobs:
           spacetime call --server home agp hello '"Harmattan Five"' '"race"'
           spacetime sql --server home agp "SELECT * FROM lobby"
           spacetime sql --server home agp "SELECT * FROM player"
+          # presence: the server's login claims the writer seat, then writes a visit over HTTP the way
+          # server/accounts.mjs does; a stranger's login may not write one
+          spacetime call --server home agp claim
+          TOKEN=$(sed -n 's/^spacetimedb_token *= *"\(.*\)"/\1/p' $(find "$HOME" -name cli.toml -path '*spacetime*' | head -1) | head -1)
+          code=$(curl -s -o out.txt -w '%{http_code}' -X POST -H "authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '["k1","Harmattan Five","race"]' http://127.0.0.1:3010/v1/database/agp/call/seen); cat out.txt; echo " seen -> $code"
+          [ "$code" -lt 300 ] || { echo '::error::the writer could not record a visit'; exit 1; }
+          spacetime sql --server home agp "SELECT * FROM visitor"
+          spacetime sql --server home agp "SELECT * FROM lobby" | tee lobby.txt
+          STRANGER=$(curl -s -X POST http://127.0.0.1:3010/v1/identity | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+          code=$(curl -s -o out.txt -w '%{http_code}' -X POST -H "authorization: Bearer $STRANGER" -H 'content-type: application/json' -d '["k2","Intruder","race"]' http://127.0.0.1:3010/v1/database/agp/call/seen); cat out.txt; echo " stranger seen -> $code"
+          if spacetime sql --server home agp "SELECT * FROM visitor" | grep -q Intruder; then echo '::error::a stranger wrote a visit'; exit 1; fi
+          code=$(curl -s -o out.txt -w '%{http_code}' -X POST -H "authorization: Bearer $STRANGER" -H 'content-type: application/json' -d '[]' http://127.0.0.1:3010/v1/database/agp/call/claim); echo " stranger claim -> $code"
+          [ "$code" -ge 400 ] || { echo '::error::a stranger took the writer seat'; exit 1; }
+          spacetime call --server home agp tidy
           spacetime call --server home palasora hello '"Ada"' '"downtown"'
           spacetime sql --server home palasora "SELECT * FROM pulse"
           # privacy: a stranger sees the public counts but never the private player rows
