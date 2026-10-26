@@ -21,6 +21,7 @@ import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 import { parseCall, radioSupported, listen } from './teamradio.js';
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
+import { plans as briefPlans } from './briefing.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
 
 const $ = (s, el = document) => el.querySelector(s);
@@ -263,7 +264,25 @@ const voiceId = () => (S.settings.voice === undefined || (S.settings.voice && !V
 const carTag = (id) => (id === 'you-1' ? 'car2' : 'car1');
 let lastPassSay = -1e9;
 let lastDnaSay = -1e9;
-function say(parts, prio) { if (S.settings.sound !== false && voiceId()) voice.say(parts, prio); }
+function say(parts, prio) {
+  if (S.settings.sound === false || !voiceId()) return;
+  // Team Principal mode: the engineer keeps quiet, so only you and your drivers are on the radio
+  if (engineerQuiet(parts)) { parts = parts.filter((p) => String(p).startsWith('@')); if (!parts.length) return; }
+  voice.say(parts, prio);
+}
+// The engineer talks only when it has the car (Autonomous mode, or its own stop calls in beginner
+// assist), when you asked it (Ask the engineer, "strategist, …"), and in Academy lessons. Otherwise
+// it shows race information on the pit wall and says nothing; your drivers still answer you.
+const PIT_CLIPS = /^(bbb|bb_|s_box|q_|u_outlap)/;
+function engineerQuiet(parts) {
+  const R = G.race; if (!R || G.attract) return false;
+  if (G.lesson && !G.lesson.done) return false;
+  if (performance.now() - (G.askT || -1e9) < 12000) return false;
+  const tag = parts && parts[0], cars = (tag === 'car1' ? ['you-0'] : tag === 'car2' ? ['you-1'] : mine()).map((id) => R.byId.get(id)).filter(Boolean);
+  if (cars.some((c) => c.auto)) return false;
+  if (cars.some((c) => c.assist) && parts?.some((p) => PIT_CLIPS.test(p))) return false;
+  return true;
+}
 // your drivers answer on the radio in their own voices ("Copy. Boxing."), never the engineer's
 const DRIVER_VOICES = ['george', 'lewis', 'daniel', 'fable', 'michael', 'alex'];
 const driverVoice = (id) => DRIVER_VOICES.filter((v) => v !== voiceId())[id === 'you-1' ? 1 : 0];
@@ -421,6 +440,7 @@ function engineer(R) {
     }
   }
   if (!voice.idle() || S.settings.sound === false || !voiceId()) return;
+  if (engineerQuiet()) { E.pend.clear(); return; }
   // the oldest waiting update, if it's still fresh
   let best = null;
   for (const [id, p] of E.pend) if (!best || p.at < best[1].at) best = [id, p];
@@ -428,7 +448,7 @@ function engineer(R) {
   const [id, p] = best; E.pend.delete(id);
   if (performance.now() - p.at > 15000) return;
   const parts = engUpdate(R, R.byId.get(id), p.kind, E);
-  if (parts) voice.say(parts);
+  if (parts) say(parts);
 }
 function engUpdate(R, c, kind, E) {
   if (!c || c.dnf || c.finished || c.pit) return null;
@@ -699,7 +719,7 @@ function radioPlans(R) {
   const due = talk.plans.filter((p) => { const c = R.byId.get(p.id); return c && (p.lap != null ? R.lapOf(c) >= p.lap : c.interval > 0 && c.interval < p.gap); });
   if (!due.length) return;
   talk.plans = talk.plans.filter((p) => !due.includes(p));
-  for (const p of due) { const c = R.byId.get(p.id); addRadio({ from: 'engineer', text: `${c.code}: ${p.lap != null ? 'laps done' : 'you\'re within a second'}. ${p.call.k === 'balanced' ? 'Battery back to balanced.' : cap1(p.call.k) + ' now.'}` }); }
+  for (const p of due) { const c = R.byId.get(p.id); addRadio({ from: 'engineer', car: c.id, text: `${c.code}: ${p.lap != null ? 'laps done' : 'you\'re within a second'}. ${p.call.k === 'balanced' ? 'Battery back to balanced.' : cap1(p.call.k) + ' now.'}` }); }
   radioCalls(due.map((p) => p.call));
 }
 const cap1 = (k) => k[0].toUpperCase() + k.slice(1);
@@ -759,6 +779,7 @@ function driverNudges(R) {
 // "Strategist, what's our best option?": the same reading of the race the coach uses, with a call you
 // can accept by saying "do it"
 function strategist(c) {
+  G.askT = performance.now();
   const R = G.race, left = R.laps - R.leaderLap(), ahead = R.order[c.pos - 2], behind = R.order[c.pos];
   const rain = R.weather.showers.find((s) => s.start > R.t && (s.start - R.t) / (R.track.lapTime * 1.05) < 2.5);
   let o;
@@ -1091,7 +1112,7 @@ function renderControls(force) {
   el.innerHTML = `
     <div class="card">
       <div class="mine-tabs">${[a, b].map((x) => `<button type="button" data-mine="${x.id}" class="${x.id === id ? 'on' : ''}${x.dnf ? ' out' : ''}"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${x.team.c1}"></span>${esc(x.code)} · ${x.dnf ? 'OUT' : 'P' + x.pos}</button>`).join('')}</div>
-      <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'The AI strategist runs this car and talks to your driver.' : c.assist ? 'You make the calls. The engineer only calls the stops.' : 'You alone make the calls. The engineer advises only when you ask.'}</p>
+      <div class="auto-row"><p><b>${c.auto ? 'Autonomous' : 'Team Principal'}</b><br>${c.auto ? 'The AI strategist runs this car and talks to your driver.' : c.assist ? 'You make the calls. The engineer only calls the stops.' : 'You alone make the calls and talk to your drivers. The engineer stays off the radio until you ask.'}</p>
         <button type="button" class="switch" role="switch" aria-checked="${c.auto}" aria-label="Autonomous mode" data-act="auto"></button></div>
       ${c.auto || c.dnf || c.finished ? '' : '<button type="button" class="ask" data-act="ask">🎧 Ask the engineer</button>'}
       ${c.dnf || c.finished ? '' : `<div class="talkto"><p>🎙️ Talk to ${esc(c.name.split(' ')[0])}</p><div class="chips">${TALK.map(([k, l]) => `<button type="button" data-talk="${k}">${l}</button>`).join('')}</div></div>`}
@@ -1154,12 +1175,14 @@ function teamOrder(o, spoken) {
   if (spoken) reply(id, 'r_copy'); else say([o === 'swap' ? 'o_swap' : o === 'hold' ? 'o_hold' : 'o_free']);
   G.assisted = true; renderControls(true);
 }
-function nextDry(c) { return c.tyre.c === 'S' ? 'M' : c.tyre.c === 'M' ? 'H' : 'M'; }
+// the plan's next tyre (the briefing's or the engineer's), else the next harder one
+function nextDry(c) { if (c.plan?.next && c.plan.next !== c.tyre.c) return c.plan.next; return c.tyre.c === 'S' ? 'M' : c.tyre.c === 'M' ? 'H' : 'M'; }
 
 // ---------- radio and toasts ----------
 function addRadio(m) {
+  if (m.from === 'engineer' && engineerQuiet(m.car ? [carTag(m.car)] : null)) { if (m.chat) return; m = { ...m, from: 'info' }; }
   const ol = $('#radio'), li = document.createElement('li');
-  const who = m.from === 'engineer' ? 'Engineer' : m.from === 'driver' ? (m.code || 'Driver') : m.from === 'you' ? 'You' : 'Race control';
+  const who = m.from === 'engineer' ? 'Engineer' : m.from === 'info' ? 'Pit wall' : m.from === 'driver' ? (m.code || 'Driver') : m.from === 'you' ? 'You' : 'Race control';
   li.className = m.from;
   li.innerHTML = `<div class="who"><span>${esc(who)}</span><span>Lap ${G.race.leaderLap()}</span></div><div>${esc(m.text)}</div>`;
   if (m.action) {
@@ -1479,7 +1502,7 @@ function onboard(step = 'team', then) {
     }, back);
   }
   if (step === 'engineer') {
-    const sh = show(`${head('Your race engineer', 'Your engineer talks to your drivers on the team radio, so you can watch the race instead of reading. Tap a voice to hear a call.')}
+    const sh = show(`${head('Your race engineer', 'Your engineer runs the radio when you hand the cars to the AI, and answers when you ask for advice. When you are Team Principal, only you and your drivers talk. Tap a voice to hear a call.')}
       ${vpickHTML()}
       <label class="coachopt"><input type="checkbox" id="replyOpt" ${S.settings.replies !== false ? 'checked' : ''}><span><b>Drivers answer</b> Your drivers reply in their own voices: "Copy. Boxing."</span></label>
       ${wizFoot('Next')}`, 'wizp');
@@ -1694,6 +1717,30 @@ function helpSheet(back) {
 }
 
 // the engineer's plan for this race: start tyres for each driver and when to stop
+// the briefing's projection runs in a worker (js/briefing.worker.js); results paint in as they land
+const BRIEF_N = () => (lite ? 3 : 5);
+let briefWorker = null;
+function briefRun(o, key) {
+  try { briefWorker?.terminate(); } catch { /* gone */ }
+  briefWorker = null;
+  const args = { venueId: o.venue.id, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps };
+  const done = (r) => {
+    if (P.briefKey !== key) return;
+    if (r.done) { P.projDone = true; recommend(); } else { P.proj = r.out; P.projI = r.i; P.projN = r.n; }
+    if ($('.briefs')) P.paint?.();
+  };
+  // the better plan becomes the pick, unless you already chose
+  const recommend = () => {
+    if (P.touched || !P.proj) return;
+    for (const id of ['you-0', 'you-1']) { const [a, b] = P.proj[id]; P.choice[id] = b.mid < a.mid || (b.mid === a.mid && b.beats > 0.5) ? 1 : 0; if (P.picks) P.picks[id] = P.plans[id][P.choice[id]].start; }
+  };
+  try {
+    briefWorker = new Worker(new URL('./briefing.worker.js', import.meta.url), { type: 'module' });
+    briefWorker.onmessage = (e) => done(e.data);
+    briefWorker.onerror = () => { briefWorker = null; };
+    briefWorker.postMessage({ args, plans: P.plans, n: BRIEF_N() });
+  } catch { briefWorker = null; }
+}
 function planFor(v, probe) {
   const laps = probe.laps, wm = v.wear || 1, W = probe.weather, lines = [];
   const life = (c) => LIFE[c] / wm;
@@ -1862,11 +1909,19 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
     return;
   }
   if (step === 'tyres') {
+    // the pre-race briefing: Plan A and Plan B per driver, priced by the real engine in the background
     const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps });
-    const T = probe.track, W = probe.weather, wetStart = W.wet0 > 0.17, plan = planFor(o.venue, probe);
+    const T = probe.track, W = probe.weather, wetStart = W.wet0 > 0.17;
     const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
     const rainTxt = wetStart ? 'Wet track at the start' : W.showers.length ? `${Math.round(clamp(o.venue.rain + 0.25, 0.3, 0.9) * 100)}% chance of rain` : o.venue.rain > 0.2 ? `${Math.round(o.venue.rain * 60)}% chance of rain` : 'Dry';
-    const picks = P.picks ||= o.first ? { 'you-0': plan.start[0], 'you-1': plan.start[1] } : { 'you-0': wetStart ? (W.wet0 > 0.7 ? 'W' : 'I') : 'M', 'you-1': wetStart ? (W.wet0 > 0.7 ? 'W' : 'I') : 'M' };
+    const key = [o.seed, G.laps, carModel(), JSON.stringify(raceDNA(S, dnaOn) && Object.values(raceDNA(S, dnaOn)).map((p) => p.hash))].join('|');
+    if (P.briefKey !== key) {
+      P.briefKey = key; P.proj = null; P.projDone = false; P.touched = false;
+      P.plans = briefPlans({ laps: probe.laps, wear: o.venue.wear || 1, wet0: W.wet0, showers: W.showers.length });
+      P.choice = { 'you-0': 0, 'you-1': 0 }; P.custom = false; P.picks = null;
+      briefRun(o, key);
+    }
+    const picks = P.picks ||= { 'you-0': P.plans['you-0'][0].start, 'you-1': P.plans['you-1'][0].start };
     const sh = show(`${head(`<p class="lede">${esc(o.venue.circuit)}, ${esc(o.venue.country)}. ${esc(o.venue.note)}</p>`)}
       <div class="facts">
         <div><small>Laps</small><b>${probe.laps}</b></div>
@@ -1876,24 +1931,53 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
       </div>
       ${o.kind === 'daily' || o.first ? '' : `<div class="sub">Race length</div>
       <div class="vpick lengths">${LENGTHS.map((l) => `<button type="button" data-len="${l.id}" class="${length === l.id ? 'on' : ''}"><b>${l.name}</b><span>${raceLaps(T, l.id)} laps · ${l.note}</span></button>`).join('')}</div>`}
-      <div class="sub">Starting tyres</div>
-      <p class="note">You run two cars and make the calls for both. Starting them on different tyres covers more bets.</p>
-      <div class="pick">${team().drivers.map((d, k) => `<div><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + k)}</div>
-        <div class="box-row" data-car="you-${k}">${Object.keys(COMPOUNDS).map((c) => `<button type="button" data-c="${c}" class="${picks['you-' + k] === c ? 'on' : ''}">${tyreHTML(c)}${COMPOUNDS[c].name}</button>`).join('')}</div></div>`).join('')}</div>
-      <div class="plan"><div class="sub">Your engineer's plan</div><ul>${plan.lines.map((l) => `<li>${l}</li>`).join('')}</ul>
-        <button class="btn ghost" id="usePlan" type="button">Use this plan</button> <button class="btn ghost" id="howWin" type="button">Race guide</button></div>
-      <details class="tg"${o.first ? ' open' : ''}><summary class="sub">What each tyre does here</summary>${tyreGuide(o.venue)}</details>
-      ${wizFoot('Next')}`, 'wizp');
+      <div class="sub">Pre-race briefing</div>
+      <p class="note">Your engineer's two plans for each driver. The race engine runs this race ${BRIEF_N() * 2} times in the background, with the same grid and forecast, to see where each plan finishes.</p>
+      <div class="briefs">${team().drivers.map((d, k) => `<div class="brief" data-car="you-${k}"><div class="who"><span class="sw" style="width:5px;height:16px;border-radius:2px;background:${team().c1}"></span>${esc(d.name)} · starts P${grid('you-' + k)}</div>
+        ${[0, 1].map((j) => `<button type="button" class="pl" data-plan="${j}" aria-pressed="false"><span class="pn">Plan ${'AB'[j]}<i class="rec" hidden>Best here</i></span><span class="pd">${tyreHTML(P.plans['you-' + k][j].start)}${esc(P.plans['you-' + k][j].note)}</span><span class="pj">Running the race…</span></button>`).join('')}</div>`).join('')}</div>
+      <p class="note" id="briefProg"></p>
+      <div class="custom" id="custom" ${P.custom ? '' : 'hidden'}><div class="sub">Customize: starting tyres</div>
+      <p class="note">Your own start. You call the stops yourself in the race; the pit wall shows when the window opens.</p>
+      <div class="pick">${team().drivers.map((d, k) => `<div><div class="who">${esc(d.name)}</div>
+        <div class="box-row" data-car="you-${k}">${Object.keys(COMPOUNDS).map((c) => `<button type="button" data-c="${c}" class="${picks['you-' + k] === c ? 'on' : ''}">${tyreHTML(c)}${COMPOUNDS[c].name}</button>`).join('')}</div></div>`).join('')}</div></div>
+      <details class="tg"${o.first ? ' open' : ''}><summary class="sub">Learn about tyres</summary>${tyreGuide(o.venue)}<p><button class="btn ghost" id="howWin" type="button">Race guide</button></p></details>
+      </div><div class="actions wiz-foot"><button class="btn" data-wiz="next" type="button">Accept plan</button><button class="btn ghost" id="customBtn" type="button">${P.custom ? 'Use the plans' : 'Customize'}</button><button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
+    const paint = () => {
+      for (const id of ['you-0', 'you-1']) {
+        const box = $(`.brief[data-car="${id}"]`, sh); if (!box) continue;
+        $$('.pl', box).forEach((b, j) => {
+          const on = !P.custom && P.choice[id] === j; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on);
+          const r = P.proj && P.proj[id][j];
+          b.querySelector('.pj').innerHTML = !r || !r.n ? 'Running the race…' : `Projected <b>P${r.mid}</b> · range P${r.best}–P${r.worst}${r.dnf ? ` · out in ${r.dnf} of ${r.n}` : ''} · ahead of Plan ${'BA'[j]} in <b>${Math.round(r.beats * r.n)} of ${r.n}</b>`;
+          const best = P.projDone && P.proj && (r.mid < P.proj[id][1 - j].mid || (r.mid === P.proj[id][1 - j].mid && r.beats > 0.5));
+          b.querySelector('.rec').hidden = !best;
+        });
+      }
+      const pr = $('#briefProg', sh); if (pr) pr.textContent = P.projDone ? '' : P.projI ? `Simulating: ${P.projI} of ${P.projN} races done.` : '';
+    };
+    P.paint = paint; paint();
+    $$('.brief', sh).forEach((box) => $$('.pl', box).forEach((b) => b.addEventListener('click', () => {
+      const id = box.dataset.car, j = +b.dataset.plan; P.choice[id] = j; P.touched = true; P.custom = false; picks[id] = P.plans[id][j].start;
+      $('#custom').hidden = true; $('#customBtn').textContent = 'Customize'; paint();
+    })));
     $$('.box-row', sh).forEach((row) => $$('button', row).forEach((b) => b.addEventListener('click', () => {
       picks[row.dataset.car] = b.dataset.c; $$('button', row).forEach((x) => x.classList.toggle('on', x === b));
     })));
-    $$('[data-len]', sh).forEach((b) => b.addEventListener('click', () => { S.settings.length = b.dataset.len; store.save(); const y = $('#sheet').scrollTop; pre(o, 'tyres'); $('#sheet').scrollTop = y; }));
-    $('#usePlan').addEventListener('click', () => {
-      $$('.box-row', sh).forEach((row, k) => { picks[row.dataset.car] = plan.start[k]; $$('button', row).forEach((x) => x.classList.toggle('on', x.dataset.c === plan.start[k])); });
-      toast('Plan set: ' + plan.start.map((c) => COMPOUNDS[c].name).join(' and ') + ' to start.');
+    $('#customBtn').addEventListener('click', () => {
+      P.custom = !P.custom; $('#custom').hidden = !P.custom; $('#customBtn').textContent = P.custom ? 'Use the plans' : 'Customize';
+      if (!P.custom) for (const id of ['you-0', 'you-1']) picks[id] = P.plans[id][P.choice[id]].start;
+      $$('.box-row', sh).forEach((row) => $$('button', row).forEach((x) => x.classList.toggle('on', x.dataset.c === picks[row.dataset.car])));
+      paint(); if (P.custom) $('#custom').scrollIntoView({ block: 'nearest' });
     });
+    $$('[data-len]', sh).forEach((b) => b.addEventListener('click', () => { S.settings.length = b.dataset.len; store.save(); const y = $('#sheet').scrollTop; pre(o, 'tyres'); $('#sheet').scrollTop = y; }));
     $('#howWin').addEventListener('click', () => winSheet(() => pre(o, 'tyres')));
-    wizWire(sh, () => go(1), back);
+    wizWire(sh, () => {
+      // the accepted plans ride into the race: start tyres, and the stops the pit wall reminds you of
+      G.stops = P.custom ? null : { 'you-0': P.plans['you-0'][P.choice['you-0']].stops, 'you-1': P.plans['you-1'][P.choice['you-1']].stops };
+      G.planNotes = P.custom ? null : { 'you-0': P.plans['you-0'][P.choice['you-0']].note, 'you-1': P.plans['you-1'][P.choice['you-1']].note };
+      if (!P.custom) toast('Plan accepted: ' + ['you-0', 'you-1'].map((id) => `${team().drivers[+id.slice(-1)].name} Plan ${'AB'[P.choice[id]]}`).join(', ') + '.');
+      go(1);
+    }, back);
     return;
   }
   // race settings
@@ -1933,7 +2017,9 @@ function startRace(picks, auto, saved = null) {
   app.classList.remove('attract');
   loadVenue(G.venue);
   // everything the race is built from is kept, so a refresh can build the same race again
-  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
+  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.stops && !G.lesson ? { stops: G.stops } : {}), ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
+  // a briefing plan belongs to the race it was made for: used once, then gone
+  G.stops = null; try { briefWorker?.terminate(); } catch { /* gone */ } briefWorker = null;
   const setup = setupRace({ venue: G.venue, seed: G.seed, ...args });
   G.setup = setup; G.race = setup.make(); G.auto0 = auto;
   // each driver's own brain, its manner from the Driver DNA it races with
@@ -1950,10 +2036,12 @@ function startRace(picks, auto, saved = null) {
   voice.use(voiceId(), sound.ctx);
   // your drivers' own lines (js/brain.js), fetched now so the first answer isn't waiting on a download
   if (S.settings.replies !== false && voiceId()) mine().forEach((id) => voice.pack(driverVoice(id) + '-brain'));
-  addRadio({ from: 'engineer', text: auto ? 'Autonomous mode. I\'ll make the calls; take over whenever you like.' : `Radio check. You have the calls. ${G.setup.weather.showers.length || G.setup.weather.wet0 ? 'Keep an eye on the sky today.' : 'It looks dry: we need one stop for a second compound.'}` });
+  addRadio({ from: 'engineer', chat: true, text: auto ? 'Autonomous mode. I\'ll make the calls; take over whenever you like.' : `Radio check. You have the calls. ${G.setup.weather.showers.length || G.setup.weather.wet0 ? 'Keep an eye on the sky today.' : 'It looks dry: we need one stop for a second compound.'}` });
   if (!auto) for (const id of ['you-0', 'you-1']) {
     const c = G.race.byId.get(id);
-    if (c.plan.lap) addRadio({ from: 'engineer', text: `${c.code} plan: one stop around lap ${c.plan.lap + 1}, then ${COMPOUNDS[c.plan.next].name}s. The pit wall will show you when the window opens.` });
+    if (!c.plan.lap) continue;
+    const st = [{ lap: c.plan.lap, tyre: c.plan.next }, ...(c.stopsLeft || [])];
+    addRadio({ from: 'engineer', text: `${c.code} plan: ${st.length > 1 ? `${st.length} stops, around laps ${st.map((x) => x.lap + 1).join(' and ')}, onto ${st.map((x) => COMPOUNDS[x.tyre].name + 's').join(' then ')}` : `one stop around lap ${c.plan.lap + 1}, then ${COMPOUNDS[c.plan.next].name}s`}. The pit wall will show you when the window opens.` });
   }
   if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
   tick();

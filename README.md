@@ -28,6 +28,9 @@ gives a view when you tap *Ask the engineer* (card or pit wall); its call still 
 lets the engineer make pit calls and nothing else. In Autonomous mode the strategist runs the car. Switching modes is yours alone; on a
 handover your queued calls ("in two laps", a boost) are dropped, a box call already made stays and the pit wall says whose it is
 (`car.pitBy`), and a strategist call never replaces one of yours. Replays record the caller. Tests: `tools/test/authority.test.mjs`.
+In Team Principal mode the engineer is also off the radio (`engineerQuiet()` in `js/main.js`): no lap updates, plan or coach lines in
+its voice; race information goes to the radio log as *Pit wall* text. It speaks when you ask (Ask the engineer, "strategist, …"), for a
+car in Autonomous mode, for its own stop calls in beginner assist, and in Academy lessons. Your drivers always answer you.
 
 **Driver brains** (`js/brain.js`, rules version): Nova and Echo each have a brain whose manner comes from their Driver DNA (fiery,
 cool or even). Ask on the radio ("Nova, how are the tyres?", "can you pass him?", "what do you think?", "what are my orders?",
@@ -36,6 +39,13 @@ calls and its own worries, recommends a call (an offer you accept with "do it" o
 says once when a call you made worries it (and obeys), and calls you when the tyres are finished or it's raining on slicks. A brain
 never commands the car. Lines are recorded per driver voice: `node tools/brain-lines.mjs`, then `LINES=brain python3 art/voice/gen.py …`
 writes `assets/voice/<voice>-brain.js`. Tests: `tools/test/brain.test.mjs` (every number said comes from the engine).
+
+**Pre-race briefing** (`js/briefing.js`, run in `js/briefing.worker.js`): before a quick, daily or season race the engineer offers
+Plan A and Plan B for each driver (start tyre and stops). The real engine races the same grid and forecast several times in the
+background with different race dice, your cars following each plan, and the briefing shows the projected finish, the range and how often
+each plan finished ahead; the better one is picked unless you chose. *Accept plan* sends the stops into the race (`setupRace({ stops })`,
+`car.plan`, then `car.stopsLeft`), so the pit wall, the BOX button and the engineer's radio follow it. *Customize* picks your own start
+tyres instead, and the tyre guide sits behind *Learn about tyres*. Tests: `tools/test/briefing.test.mjs`.
 
 **Race coach and beginner assist**: the coach card folds into a small pill (`S.settings.coachMin`). *Engineer calls the stops* on the
 pit wall (`S.settings.assist`, the `assist` command in `js/sim.js`) lets the engineer box both cars while you keep pace, battery and battles.
