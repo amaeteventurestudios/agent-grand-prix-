@@ -815,12 +815,16 @@ function driverCards(R) {
   el.hidden = false;
   const hud = $('#hud'), below = hud.offsetTop + hud.offsetHeight + 4;
   if (el.dataset.top !== String(below)) { el.dataset.top = below; el.style.top = below + 'px'; stage.style.setProperty('--below', (below + 50) + 'px'); }
-  const html = ['you-0', 'you-1'].map((id) => {
+  // the buttons stay put and only their insides change, so a tap is never lost to a redraw
+  if (el.children.length !== 2) el.innerHTML = ['you-0', 'you-1'].map((id) => `<button type="button" data-mine="${id}" class="dc"></button>`).join('');
+  ['you-0', 'you-1'].forEach((id, k) => {
     const c = R.byId.get(id), life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
     const state = c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? `Boxing · ${COMPOUNDS[c.pitReq].name}s` : c.auto ? 'Autonomous' : { push: 'Pushing', save: 'Saving tyres', normal: '' }[c.pace] + (c.battle !== 'neutral' ? (c.pace === 'normal' ? '' : ' · ') + (c.battle === 'attack' ? 'Attack' : 'Defend') : '');
-    return `<button type="button" data-mine="${id}" class="dc${id === G.mineSel ? ' on' : ''}${life < 25 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}"><i style="background:${c.team.c1}"></i><b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span><span class="er">⚡${Math.round(c.ers * 100)}</span>${state ? `<small>${esc(state)}</small>` : ''}</button>`;
-  }).join('');
-  if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
+    const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 25 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
+    const html = `<i style="background:${c.team.c1}"></i><b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}`;
+    if (b.className !== cls) b.className = cls;
+    if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
+  });
 }
 $('#drivers').addEventListener('click', (e) => {
   const b = e.target.closest('[data-mine]'); if (!b) return;
