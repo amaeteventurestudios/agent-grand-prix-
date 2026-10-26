@@ -92,7 +92,19 @@ asks Jev (TypeSafe's classifier) three typed questions (call, car, tyre) and ret
 question back. It stays off until the `TYPESAFE_API_KEY` secret is set (key from console.typesafe.ai/keys); the key never reaches the
 browser. `tools/jev-bench.mjs` (Actions: *Jev benchmark*) compares Jev with the matcher on the same phrases.
 
-Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (academy, baseline, cars, coach, dna, dna-effects, resume, radio, interp).
+**Driver Evolution** (`js/career.js`): your drivers get better through experience, never through a hidden bonus. Every race that counts
+(not Academy or practice) is added to each driver's career from the race engine's own numbers: laps, finishes, retirements, wins,
+podiums, overtakes made and lost, lock-ups, contacts, spins, pit stops, wet races, clean races, circuits seen and a best lap. Experience
+(`XP`) is weighted so finishing and hard conditions teach more than where you finished, and it earns five ranks: Rookie, Racer,
+Contender, Veteran, Master. A rank does nothing to the car; it only widens what a driver may be taught. The Team Strategist's career
+lessons (`lessonFor()`) read the whole record rather than one bad afternoon: a pattern of lock-ups over several races earns "braking
+later costs more than it gains", a career of being overtaken earns "holding a place under pressure". Each lesson is offered once, is
+gated by rank and a number of races, moves one Driver DNA slider inside the same bounds everyone races under, and is only marked learned
+when you approve it, so a lesson you reject can come back. The results sheet shows what each race taught (`.xp` rows, tap one for the
+driver), and a driver's career page has the record, the rank, what it is good at (`strengths()`), what it has learned and what is still
+ahead. Tests: `tools/test/career.test.mjs`.
+
+Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (academy, baseline, cars, career, coach, dna, dna-effects, resume, radio, interp, report, agent, accounts).
 
 ## WhatsApp agent
 
