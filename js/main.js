@@ -85,6 +85,7 @@ function attract() {
   cams.setMode('live');
   $('#hud').hidden = true; $('#camPill').hidden = true; $('#follow').hidden = true;
   $('#boost').hidden = true; $('#boxBtn').hidden = true; $('#talkBtn').hidden = true; $('#talkSaid').hidden = true; $('#stats').hidden = true; $('#pitline').hidden = true; $('#coach').hidden = true;
+  $('#drivers').hidden = true; $('#suggest').hidden = true; $('#ack').hidden = true; G.suggest = null; sheet('peek');
   app.classList.add('attract');
   buildTower();
   home();
@@ -223,7 +224,27 @@ function speedUI() {
 }
 $$('[data-cam]').forEach((b) => b.addEventListener('click', () => setCam(b.dataset.cam)));
 function setCam(m) { cams.setMode(m); $$('[data-cam]').forEach((x) => x.classList.toggle('on', x.dataset.cam === m)); }
-$$('[data-tab]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.tab)));
+// phones held upright: the race fills the screen and Strategy, Timing and Radio live in a panel you
+// swipe up from the bottom (peek: just the tab bar, half, full)
+const PHONE_UP = '(orientation: portrait) and (max-width: 1199px)';
+const phoneUp = () => matchMedia(PHONE_UP).matches;
+const SHEETS = ['peek', 'half', 'full'];
+function sheet(s) { if (app.dataset.sheet !== s) app.dataset.sheet = s; }
+app.dataset.sheet = 'peek';
+$$('[data-tab]').forEach((b) => b.addEventListener('click', () => {
+  if (phoneUp()) { if (app.dataset.sheet === 'peek') sheet('half'); else if (app.dataset.tab === b.dataset.tab) sheet('peek'); }
+  setTab(b.dataset.tab);
+}));
+$('#grip').addEventListener('click', () => sheet(SHEETS[(SHEETS.indexOf(app.dataset.sheet) + 1) % 3]));
+{ // swipe the tab bar up or down
+  let y0 = null;
+  $('#tabs').addEventListener('pointerdown', (e) => { y0 = e.clientY; });
+  $('#tabs').addEventListener('pointerup', (e) => {
+    if (y0 === null || !phoneUp()) return; const dy = e.clientY - y0; y0 = null;
+    const i = SHEETS.indexOf(app.dataset.sheet);
+    if (dy < -28) sheet(SHEETS[Math.min(2, i + 1)]); else if (dy > 28) sheet(SHEETS[Math.max(0, i - 1)]);
+  });
+}
 function setTab(t) {
   app.dataset.tab = t; $$('[data-tab]').forEach((x) => x.classList.toggle('on', x.dataset.tab === t));
   if (t === 'radio') $('#radioDot').hidden = true;
@@ -335,11 +356,13 @@ function tick() {
     fl.innerHTML = `<span class="sw" style="background:${f.team.c1}"></span>P${f.pos} ${esc(f.name)} · ${Math.round(f.v * 3.6)} km/h${f.drs ? ' · <b>DRS</b>' : ''}`;
   } else fl.hidden = true;
   stageCards(R, f);
+  driverCards(R);
   pitLine(R, f);
   boostBtn(R);
   boxBtn(R);
   talkBtn(R);
-  coach(R);
+  if (!G.suggest) coach(R);
+  suggestCheck(R);
   engineer(R);
   live.save();
 }
@@ -785,6 +808,57 @@ function stageCards(R, f) {
   if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
 }
 
+// phones: your two cars as cards across the top of the race; tap one to give it calls
+function driverCards(R) {
+  const el = $('#drivers');
+  if (G.attract || !phoneUp()) { el.hidden = true; return; }
+  el.hidden = false;
+  const hud = $('#hud'), below = hud.offsetTop + hud.offsetHeight + 4;
+  if (el.dataset.top !== String(below)) { el.dataset.top = below; el.style.top = below + 'px'; stage.style.setProperty('--below', (below + 50) + 'px'); }
+  const html = ['you-0', 'you-1'].map((id) => {
+    const c = R.byId.get(id), life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
+    const state = c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? `Boxing · ${COMPOUNDS[c.pitReq].name}s` : c.auto ? 'Autonomous' : { push: 'Pushing', save: 'Saving tyres', normal: '' }[c.pace] + (c.battle !== 'neutral' ? (c.pace === 'normal' ? '' : ' · ') + (c.battle === 'attack' ? 'Attack' : 'Defend') : '');
+    return `<button type="button" data-mine="${id}" class="dc${id === G.mineSel ? ' on' : ''}${life < 25 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}"><i style="background:${c.team.c1}"></i><b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span><span class="er">⚡${Math.round(c.ers * 100)}</span>${state ? `<small>${esc(state)}</small>` : ''}</button>`;
+  }).join('');
+  if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
+}
+$('#drivers').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-mine]'); if (!b) return;
+  const id = b.dataset.mine;
+  // a second tap on the car you're already running opens its calls
+  if (G.mineSel === id && G.sel === id && app.dataset.sheet === 'peek') { setTab('wall'); sheet('half'); }
+  G.mineSel = id; select(id);
+});
+
+// the engineer's suggestion as a card with the call on a button, and a short "copied" when a call lands
+function suggest(car, text, action) {
+  const el = $('#suggest');
+  // a lesson teaches one thing at a time, so the engineer's own suggestions wait until it's over
+  if (!action || car.dnf || car.finished || (G.lesson && !G.lesson.done)) return;
+  coachHide();
+  const label = action.box ? `Box for ${COMPOUNDS[action.box].name}s` : action.ers === 'harvest' ? 'Harvest' : 'Do it';
+  el.innerHTML = `<div class="ch"><span>📻 Engineer suggests · ${esc(car.code)}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(text)}</p>
+    <div class="acts"><button type="button" class="go">${label}</button><button type="button" class="no">Not now</button></div>`;
+  el.hidden = false;
+  const at = performance.now(); G.suggest = { id: car.id, at, action };
+  const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
+  el.querySelector('.x').onclick = el.querySelector('.no').onclick = close;
+  el.querySelector('.go').onclick = () => { close(); cmd(action, car.id); renderControls(true); tick(); };
+  setTimeout(close, 16000);
+}
+function suggestCheck(R) {
+  const s = G.suggest; if (!s) return;
+  const c = R.byId.get(s.id);
+  // the moment passed: the car pitted, or the call was made some other way
+  if (c.pit || c.dnf || c.finished || (s.action.box && c.pitReq) || (s.action.ers && c.ersMode === s.action.ers)) { $('#suggest').hidden = true; G.suggest = null; }
+}
+let ackT = 0;
+function ack(text) {
+  const el = $('#ack'); el.textContent = '✓ ' + text; el.hidden = false; el.classList.remove('in'); void el.offsetWidth; el.classList.add('in');
+  clearTimeout(ackT); ackT = setTimeout(() => { el.hidden = true; }, 1900);
+}
+const CALL_WORDS = { pace: { push: 'Push', save: 'Save tyres', normal: 'Normal pace' }, ers: { harvest: 'Harvest', balanced: 'Balanced battery', deploy: 'Deploy' }, battle: { attack: 'Attack', defend: 'Defend', neutral: 'Neutral' } };
+
 // the pit stop as five steps, lit while the followed car goes through them
 function pitLine(R, f) {
   const el = $('#pitline');
@@ -957,6 +1031,7 @@ function cmd(c, id = G.mineSel || 'you-0', o = {}) {
   if (car.auto && !('auto' in c)) { G.race.command(id, { auto: false }); toast(`${car.code}: you took over the calls.`); }
   G.race.command(id, c);
   lessonEvent({ type: 'cmd', id, c });
+  { const k = Object.keys(c).find((x) => CALL_WORDS[x]); const w = c.box ? `Box this lap · ${COMPOUNDS[c.box].name}s` : 'box' in c ? 'Staying out' : k ? CALL_WORDS[k][c[k]] : null; if (w && !(k === 'ers' && G.boost)) ack(`${car.code}: ${w}`); }
   // a call you spoke on the radio needs no echo from the engineer, only the driver's answer
   const eng = (parts) => { if (!o.spoken) say(parts); };
   if (c.box) { eng([carTag(id), 'bb_' + c.box]); reply(id, o.reply || 'r_box'); }
@@ -971,6 +1046,7 @@ function teamOrder(o, spoken) {
   if (c.auto) G.race.command(id, { auto: false });
   G.race.command(id, { order: o });
   lessonEvent({ type: 'order', o });
+  ack({ hold: 'Hold positions', free: 'Race freely', swap: 'Swap places' }[o]);
   if (spoken) reply(id, 'r_copy'); else say([o === 'swap' ? 'o_swap' : o === 'hold' ? 'o_hold' : 'o_free']);
   G.assisted = true; renderControls(true);
 }
@@ -1027,7 +1103,7 @@ function drainEvents() {
       if (e.action?.box) say([carTag(e.car), whyClip(e.text), /Reminder/.test(e.text) ? 'reminder' : 'q_' + e.action.box].filter(Boolean), true);
       else if (e.action?.ers) say([carTag(e.car), 'battery']);
       addRadio({ from: 'engineer', text: `${car.code}: ${e.text}`, action: e.action, car: e.car });
-      toast(`📻 ${car.code}: ${e.text}`, true);
+      suggest(car, e.text, e.action);
     } else if ((e.type === 'radio' || e.type === 'pit') && isMine) {
       const bx = /Boxing this lap for (\w)/.exec(e.text);
       if (bx) { say([carTag(e.car), whyClip(e.text), 'bb_' + bx[1]].filter(Boolean)); reply(e.car, 'r_box'); }
@@ -1381,6 +1457,8 @@ function lessonCard(o) {
   if (!o) { el.hidden = true; return; }
   const { def, st, i, n } = o;
   G.lessonHl = st.hl || null;
+  // a panel the lesson opened closes again once the step is about the race, not a control in it
+  if (G.lessonSheet && !$$(st.hl || '#none').some((x) => x.closest('.wall, .tower'))) { G.lessonSheet = false; sheet('peek'); }
   el.innerHTML = `<div class="ch"><span>🎓 Lesson ${def.n} · ${esc(def.title)}</span><span class="stp">${Math.min(i + 1, n)} / ${n}</span></div>
     <div class="bar"><i style="width:${Math.round((i + (st.end ? 1 : 0)) / n * 100)}%"></i></div>
     <p>${fill(st.text, lessonNames())}</p>
@@ -1393,7 +1471,9 @@ function lessonCard(o) {
 function lessonHl() {
   const sel = G.lessonHl;
   if (!sel) return;
-  const t = $(sel);
+  const t = $$(sel).find((x) => x.getClientRects().length) || (phoneUp() ? $(sel) : null);
+  // on an upright phone the control may be in the closed panel: open it on the right tab
+  if (t && phoneUp() && t.closest('.wall, .tower') && (app.dataset.sheet === 'peek' || !t.getClientRects().length)) { setTab(t.closest('.tower') ? 'order' : 'wall'); if (app.dataset.sheet === 'peek') { sheet('half'); G.lessonSheet = true; } }
   if (t && !t.classList.contains('hl')) {
     $$('.hl').forEach((x) => x.classList.remove('hl')); t.classList.add('hl');
     // bring it into view once, when the step starts (the pit wall scrolls on phones)
@@ -1754,7 +1834,7 @@ function startRace(picks, auto, saved = null) {
   live.track(G.race, args, saved);
   if (!saved && !auto && S.settings.assist && G.kind !== 'academy') ['you-0', 'you-1'].forEach((id) => G.race.command(id, { assist: true }));
   world.setCars(G.race.cars);
-  G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; G.boxPicks = {}; coachHide();
+  G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; G.boxPicks = {}; coachHide(); G.suggest = null; $('#suggest').hidden = true;
   $('#radio').innerHTML = '';
   buildTower(); buildCard(); renderControls(true);
   $('#hud').hidden = false; $('#camPill').hidden = false;
