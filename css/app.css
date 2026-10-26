@@ -240,6 +240,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .sheet .lede { color: var(--mute); margin: 0 0 14px; }
 .sheet .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 520px) { .sheet .grid2 { grid-template-columns: 1fr; } .sheet { padding: 18px; } }
+.sheet .grid2.tight { grid-template-columns: 1fr 1fr; gap: 8px; }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field span { font: 700 12px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .field input { font: 600 17px var(--f-ui); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); min-width: 0; }
@@ -535,6 +536,16 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .sr-cols label { display: grid; justify-items: center; gap: 4px; font: 600 12px var(--f-ui); color: var(--mute); }
 .sr-cols input { width: 100%; height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); padding: 3px; cursor: pointer; }
 .sr-sw .own { outline: 1px dashed var(--mute); outline-offset: 1px; }
+.sr-col { display: grid; gap: 4px; }
+.sr-col .hex { width: 100%; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel2); color: var(--ink); font: 600 12px/1 var(--f-mono, ui-monospace, monospace); text-align: center; text-transform: uppercase; padding: 0 4px; cursor: text; }
+.sr-col .hex.bad { border-color: var(--bad); box-shadow: 0 0 0 2px rgba(216, 38, 44, .2); }
+.sr-fin { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 10px; }
+.sr-fin button { min-height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); color: var(--ink); font: 600 12px var(--f-ui); cursor: pointer; }
+.sr-fin button.on { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.sr-tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; }
+.sr-tools .chip { min-height: 36px; padding: 0 12px; }
+.sr-tools .chip:disabled { opacity: .45; cursor: default; }
+.sr-stage.night { background: radial-gradient(120% 90% at 50% 40%, #1b2230, #06080c) !important; }
 @media (max-width: 760px), (max-aspect-ratio: 1/1) {
   .screen.showroom .sheet { grid-template-columns: 1fr; grid-template-rows: minmax(300px, 56%) 1fr; }
   .sr-panel { border-left: 0; border-top: 1px solid var(--line); padding: 16px; padding-bottom: max(16px, env(safe-area-inset-bottom)); }

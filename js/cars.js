@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 import { CARS } from './carspec.js';
+import { FINISHES } from './data.js';
 
 export const MODELS = CARS;
 
@@ -59,15 +60,20 @@ function parse(root, id) {
 }
 
 const glow = { value: 0.8 };
+// how brightly the light strips glow (the showroom's night preview turns them up)
+export const liveryGlow = (k) => { const was = glow.value; if (k !== undefined) glow.value = k; return was; };
+// a team's paint finish (gloss when none is set)
+export const finishOf = (k) => FINISHES[k] || FINISHES.gloss;
+
 export function liveryMaterial(env) {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.4, metalness: 0, envMap: env, envMapIntensity: 1.0 });
   m.onBeforeCompile = (s) => {
     s.uniforms.uGlow = glow;
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec3 iC1;\nattribute vec3 iC2;\nattribute vec3 iC3;\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvC1 = iC1; vC2 = iC2; vC3 = iC3;');
+      .replace('#include <common>', '#include <common>\nattribute vec3 iC1;\nattribute vec3 iC2;\nattribute vec3 iC3;\nattribute vec2 iF;\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nvarying vec2 vF;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvC1 = iC1; vC2 = iC2; vC3 = iC3; vF = iF;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nuniform float uGlow;')
+      .replace('#include <common>', '#include <common>\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nvarying vec2 vF;\nuniform float uGlow;')
       .replace('#include <color_fragment>', `
         vec4 mk = vColor;
         // the mask blends between vertices; a sharp step at 0.5, a pixel wide, gives crisp livery edges
@@ -78,11 +84,14 @@ export function liveryMaterial(env) {
         base = mix(base, vC2, mk.g);
         base = mix(base, mix(vC3, vec3(1.0), 0.35), mk.b);
         diffuseColor.rgb = base;`)
-      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(clamp(0.86 - 0.66 * mk.a, 0.2, 0.9), 0.32, isMetal);')
-      .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = isMetal * 0.85;')
+      .replace('#include <roughnessmap_fragment>', `
+        // painted panels take the team's finish (gloss, satin, matte, metallic); carbon, metal and rubber keep theirs
+        float painted = step(0.95, mk.a) * clamp(mk.r + mk.g, 0.0, 1.0);
+        float roughnessFactor = mix(mix(clamp(0.86 - 0.66 * mk.a, 0.2, 0.9), 0.32, isMetal), vF.x, painted);`)
+      .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = mix(isMetal * 0.85, vF.y, painted);')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += mk.b * vC3 * uGlow;');
   };
-  m.customProgramCacheKey = () => 'agp-livery-2';
+  m.customProgramCacheKey = () => 'agp-livery-3';
   return m;
 }
 
@@ -119,6 +128,7 @@ export class Fleet {
       geo.setAttribute('iC1', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
       geo.setAttribute('iC2', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
       geo.setAttribute('iC3', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
+      geo.setAttribute('iF', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 2), 2));
       const im = new THREE.InstancedMesh(geo, p.glass ? this.glassMat : this.mat, this.cap);
       im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       im.frustumCulled = false; im.count = 0;
@@ -171,13 +181,14 @@ export class Fleet {
         C.set(c.c1); im.geometry.attributes.iC1.setXYZ(i, C.r, C.g, C.b);
         C.set(c.c2); im.geometry.attributes.iC2.setXYZ(i, C.r, C.g, C.b);
         C.set(c.glow || this.glowDefault); im.geometry.attributes.iC3.setXYZ(i, C.r, C.g, C.b);
+        const f = finishOf(c.finish); im.geometry.attributes.iF.setXY(i, f.r, f.m);
       }
     }
     sh.im.instanceMatrix.needsUpdate = true;
     for (const L of this.layers) for (const { im } of L) {
       if (!im.count) continue;
       im.instanceMatrix.needsUpdate = true;
-      im.geometry.attributes.iC1.needsUpdate = im.geometry.attributes.iC2.needsUpdate = im.geometry.attributes.iC3.needsUpdate = true;
+      im.geometry.attributes.iC1.needsUpdate = im.geometry.attributes.iC2.needsUpdate = im.geometry.attributes.iC3.needsUpdate = im.geometry.attributes.iF.needsUpdate = true;
     }
   }
 
