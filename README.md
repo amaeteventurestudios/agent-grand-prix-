@@ -92,7 +92,19 @@ asks Jev (TypeSafe's classifier) three typed questions (call, car, tyre) and ret
 question back. It stays off until the `TYPESAFE_API_KEY` secret is set (key from console.typesafe.ai/keys); the key never reaches the
 browser. `tools/jev-bench.mjs` (Actions: *Jev benchmark*) compares Jev with the matcher on the same phrases.
 
-Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (academy, baseline, cars, coach, dna, dna-effects, resume, radio, interp).
+**Driver Evolution** (`js/career.js`): your drivers get better through experience, never through a hidden bonus. Every race that counts
+(not Academy or practice) is added to each driver's career from the race engine's own numbers: laps, finishes, retirements, wins,
+podiums, overtakes made and lost, lock-ups, contacts, spins, pit stops, wet races, clean races, circuits seen and a best lap. Experience
+(`XP`) is weighted so finishing and hard conditions teach more than where you finished, and it earns five ranks: Rookie, Racer,
+Contender, Veteran, Master. A rank does nothing to the car; it only widens what a driver may be taught. The Team Strategist's career
+lessons (`lessonFor()`) read the whole record rather than one bad afternoon: a pattern of lock-ups over several races earns "braking
+later costs more than it gains", a career of being overtaken earns "holding a place under pressure". Each lesson is offered once, is
+gated by rank and a number of races, moves one Driver DNA slider inside the same bounds everyone races under, and is only marked learned
+when you approve it, so a lesson you reject can come back. The results sheet shows what each race taught (`.xp` rows, tap one for the
+driver), and a driver's career page has the record, the rank, what it is good at (`strengths()`), what it has learned and what is still
+ahead. Tests: `tools/test/career.test.mjs`.
+
+Run: `python3 -m http.server` in this folder. Test hooks: `window.__agp.start(kind, venueId)`, `ff(sec)`, `cam(mode)`, `info()`, `crew(up, big)`, `engineer(carId, kind)`, `pre(o, step)`. Tests: `node tools/test/<name>.test.mjs` (academy, baseline, cars, career, coach, dna, dna-effects, resume, radio, interp, report, agent, accounts).
 
 ## WhatsApp agent
 
@@ -127,3 +139,39 @@ Ubuntu) on every push to main, or by hand from the Actions tab (Deploy to server
 itself once the `SITE_DOMAIN` variable names a domain pointed at the server, otherwise plain
 `http://<IP>`), and the agent runs as the `agent-grand-prix` service once its key is set. The secrets
 and the one Oracle console step (open ports 80 and 443) are listed at the top of the workflow.
+
+## Accounts (Novenique Core)
+
+The game works with no account: everything is saved in the browser. When the accounts service is
+running, the same save is also kept on the server under whoever you are, so signing in on another
+device brings your team with you.
+
+- `server/accounts.mjs` runs on 127.0.0.1:8141 behind Caddy at `/api/me/*` and
+  `/auth/novenique/*`. Everyone starts as a guest (no sign-up before a first race); signing in
+  attaches that guest to a Novenique account, or merges it into one that already exists.
+- It needs `NOVENIQUE_URL` (a repository variable in Actions > Variables) and the client id and
+  secret, which Novenique Core writes on the server at `/etc/novenique/clients/agp.env`. With
+  either missing the service still runs and answers `{ "accounts": false }`, and the game stays
+  on this-device saves. No key is ever sent from GitHub.
+- Saves live in `/var/lib/agp-accounts/<user id>.json`. Identity stays with Novenique; this
+  service only holds the game's own save.
+
+## Leaderboards (the Daily, checked rather than trusted)
+
+Everyone races the same Daily Grand Prix, so the day's results can be ranked. The game never tells
+the server where it finished: it sends the race it ran — the setup and every call, with the engine
+step each was made on, the same record that lets a race survive a refresh. The server rebuilds that
+race with the game's own engine and reads the finish from its own run, so a made-up result cannot be
+submitted and a tampered Driver DNA is put back inside the bounds everyone races under.
+
+- `server/leaders.mjs` runs on 127.0.0.1:8142 behind Caddy at `/api/board/*`, saving one small file
+  a day in `/var/lib/agp-board`. `js/board.js` is the browser side; the board opens from the home
+  page and from a race result.
+- People and agents are ranked apart: a Daily your agent raced while you were away (`js/agent.js`)
+  stands on the agents' board, never against people on the radio. Its race is recorded the same way
+  and checked the same way.
+- Your first scored run of the day is the one that counts, the same rule the game already keeps. A
+  board shows team names and driver codes, never account names.
+- Who you are comes from the session cookie the accounts service sets, so the board needs no key of
+  its own; with the service off the game simply doesn't show a board. Tests:
+  `tools/test/board.test.mjs`.

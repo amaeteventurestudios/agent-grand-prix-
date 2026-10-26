@@ -49,7 +49,7 @@ export function buildReport(R, m) {
     calls.push({ t, id: c.id, code: car.code, text, from: c.from || 'principal', lap: Math.min(a.lap, R.laps), before: a.before, after: a.after });
   }
   // what happened to your cars, and the race-wide moments
-  const KEEP = new Set(['pit', 'incident', 'dnf', 'mistake']);
+  const KEEP = new Set(['pit', 'incident', 'dnf', 'mistake', 'order']);
   const events = R.events.filter((e) => (e.car && mineIds.has(e.car) && KEEP.has(e.type)) || (e.type === 'sc' && e.phase !== 'in') || e.type === 'weather')
     .map((e) => ({ t: e.t, lap: e.lap, type: e.type, text: e.text, id: e.car, phase: e.phase }));
 
