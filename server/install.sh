@@ -82,9 +82,10 @@ if [ ! -x "$NODE_DIR/bin/node" ]; then
   sudo mkdir -p "$NODE_DIR" && sudo tar -xJf /tmp/node.tar.xz -C "$NODE_DIR" --strip-components=1 && rm -f /tmp/node.tar.xz
 fi
 # the drivers' AI brain talks to Claude through Anthropic's SDK (MIT), installed beside the app
-SDK_V=1.3.0
-if ! grep -qs "\"version\": \"$SDK_V\"" "$APP/node_modules/@anthropic-ai/sdk/package.json"; then
-  sudo env PATH="$NODE_DIR/bin:$PATH" npm install --prefix "$APP" --no-save --no-audit --no-fund --omit=dev "@anthropic-ai/sdk@$SDK_V" >/dev/null 2>&1 || echo 'Could not install the AI brain SDK (drivers fall back to the rules brain)'
+# and speaks through Kokoro (kokoro-js, Apache 2.0); its voice model downloads once into the service's state
+SDK_V=1.3.0 KOKORO_V=1.2.1
+if ! grep -qs "\"version\": \"$SDK_V\"" "$APP/node_modules/@anthropic-ai/sdk/package.json" || ! grep -qs "\"version\": \"$KOKORO_V\"" "$APP/node_modules/kokoro-js/package.json"; then
+  sudo env PATH="$NODE_DIR/bin:$PATH" npm install --prefix "$APP" --no-save --no-audit --no-fund --omit=dev "@anthropic-ai/sdk@$SDK_V" "kokoro-js@$KOKORO_V" >/dev/null 2>&1 || echo 'Could not install the AI brain packages (drivers fall back to the rules brain and recorded clips)'
 fi
 # ---- team radio interpreter + drivers' AI brain (always runs; each part waits for its key) ----
 sudo tee /etc/systemd/system/agp-radio.service >/dev/null <<UNIT
@@ -96,9 +97,11 @@ Wants=network-online.target
 EnvironmentFile=/etc/agent-grand-prix.env
 ExecStart=$NODE_DIR/bin/node $APP/server/radio.mjs
 WorkingDirectory=$APP
+Environment=HF_CACHE=/var/lib/agp-radio/models
 Restart=always
 RestartSec=5
 DynamicUser=yes
+StateDirectory=agp-radio
 [Install]
 WantedBy=multi-user.target
 UNIT

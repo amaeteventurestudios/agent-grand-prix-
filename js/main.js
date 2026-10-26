@@ -743,8 +743,13 @@ async function aiTalk(heard) {
     talkSaid('“' + heard.trim() + '”', 'ok');
     b.remember({ t: Date.now(), from: 'you', kind: 'talk', text: heard.slice(0, 120) });
     b.remember({ t: Date.now(), from: 'driver', kind: 'talk', text: r.text });
-    // the free words have no recorded clip: the driver's voice says a short ack, the words show on the radio
-    reply(c.id, 'r_copy');
+    // the free words are read in the driver's own voice by our server (Kokoro), a sentence at a time;
+    // without it the driver's recorded "copy" plays and the words show on the radio
+    if (G.aiVoice && S.settings.replies !== false && S.settings.sound !== false && voiceId()) {
+      const v = driverVoice(c.id), parts = r.text.match(/[^.!?]+[.!?]*/g).map((x) => x.trim()).filter(Boolean).slice(0, 4);
+      voice.sayLive(parts.map((t) => fetch('/api/radio/voice', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: t, voice: v }), signal: AbortSignal.timeout(8000) })
+        .then((x) => (x.ok ? x.arrayBuffer() : null)).catch(() => null)));
+    } else reply(c.id, 'r_copy');
     addRadio({ from: 'driver', code: c.code, text: r.text });
     if (r.call && R.t - asked < 10) { talk.offer = { call: r.call, t: R.t, from: c.id }; driverCard(c, { text: r.text, call: r.call }); }
     G.assisted = true;
@@ -834,8 +839,8 @@ function strategist(c) {
   // the interpreter is on only when our server says so (it holds the key; the browser never does)
   // (asked again a little later if the first try is lost while the page is still busy loading)
   const health = (again) => fetch('/api/radio/health', { signal: AbortSignal.timeout(4000) }).then((r) => (r.ok ? r.json() : null))
-    .then((j) => { G.interp = !!(j && j.interpreter); G.aiBrain = !!(j && j.brain); })
-    .catch(() => { G.interp = G.aiBrain = false; if (again) setTimeout(() => health(false), 8000); });
+    .then((j) => { G.interp = !!(j && j.interpreter); G.aiBrain = !!(j && j.brain); G.aiVoice = !!(j && j.voice); })
+    .catch(() => { G.interp = G.aiBrain = G.aiVoice = false; if (again) setTimeout(() => health(false), 8000); });
   health(true);
 }
 

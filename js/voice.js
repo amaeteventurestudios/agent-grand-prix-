@@ -65,6 +65,14 @@ export class Voice {
     if (this.q.length > 5) this.q.length = 5;
     this.next();
   }
+  // a line with no recorded clip (a driver's AI reply), read by our server a sentence at a time:
+  // chunks are promises of WAV data, and the first sentence plays while the next is still being made
+  sayLive(chunks) {
+    if (!this.id || !chunks.length) return;
+    const live = chunks.map((p) => p.then((ab) => (ab ? this.context()?.decodeAudioData(ab) : null)).catch(() => null));
+    this.q.push({ live, at: performance.now() });
+    this.next();
+  }
   stop() { this.q = []; }
   // nothing playing or waiting, for the engineer's regular updates (they never push out a call)
   idle() { return !!this.id && !this.busy && !this.q.length && performance.now() - (this.endAt || 0) > 1200; }
@@ -73,6 +81,24 @@ export class Voice {
     const item = this.q.shift(); if (!item) return;
     if (performance.now() - item.at > 9000) return this.next();
     this.busy = true;
+    if (item.live) {
+      try {
+        const first = await item.live[0], x = this.context();
+        if (x && first) {
+          this.duck?.(true);
+          let t = this.click(x, x.currentTime + 0.05);
+          for (const p of item.live) {
+            const b = await p; if (!b) break;
+            t = Math.max(t, x.currentTime + 0.02);
+            const s = x.createBufferSource(); s.buffer = b; s.connect(this.chain); s.start(t); t += b.duration + 0.1;
+          }
+          t = this.click(x, t);
+          await new Promise((res) => setTimeout(res, (t - x.currentTime) * 1000 + 250));
+          this.duck?.(false);
+        }
+      } finally { this.busy = false; this.endAt = performance.now(); }
+      return this.next();
+    }
     try {
       const bufs = (await Promise.all(item.parts.map((k) => this.load(k)))).filter(Boolean);
       const x = this.context();
