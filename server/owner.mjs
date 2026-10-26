@@ -15,7 +15,8 @@ const TOKEN = process.env.STDB_TOKEN || '';
 
 // one entry per game: its database, its private people table, its public counts, and its services
 const GAMES = [
-  { id: 'agp', name: 'Agent Grand Prix', site: 'https://agentgrandprix.com', people: 'player', where: 'screen', counts: 'lobby',
+  // AGP's players are visits the game reports every 45 s: online means seen in the last 90 s
+  { id: 'agp', name: 'Agent Grand Prix', site: 'https://agentgrandprix.com', people: 'visitor', where: 'screen', counts: 'lobby', fresh: 90,
     services: ['agp-web', 'agp-accounts', 'agp-board', 'agp-live', 'agp-radio', 'agent-grand-prix'] },
   { id: 'palasora', name: 'Palasora', site: 'https://palasora.com', people: 'resident', where: 'district', counts: 'pulse',
     services: ['palasora-pb', 'palasora-api', 'palasora-worker', 'palasora-web'] },
@@ -47,11 +48,12 @@ const active = (unit) => new Promise((res) => execFile('systemctl', ['is-active'
 async function game(g) {
   const out = { id: g.id, name: g.name, site: g.site, ok: true, online: [], total: 0, counts: null, services: {} };
   try {
-    const people = await sql(g.id, `SELECT * FROM ${g.people}`);
+    const seen = (p) => Date.parse(p.last_seen || p.lastSeen || '') || 0;
+    const people = (await sql(g.id, `SELECT * FROM ${g.people}`)).map((p) => (g.fresh ? { ...p, online: Date.now() - seen(p) < g.fresh * 1000 } : p));
     out.total = people.length;
     out.online = people.filter((p) => p.online).map((p) => ({ name: p.name || 'Guest', where: p[g.where] || '', since: p.last_seen || p.lastSeen || '' }));
-    out.recent = people.filter((p) => !p.online).sort((a, b) => String(b.last_seen || '').localeCompare(String(a.last_seen || ''))).slice(0, 10)
-      .map((p) => ({ name: p.name || 'Guest', where: p[g.where] || '', seen: p.last_seen || '' }));
+    out.recent = people.filter((p) => !p.online).sort((a, b) => seen(b) - seen(a)).slice(0, 10)
+      .map((p) => ({ name: p.name || 'Guest', where: p[g.where] || '', seen: p.last_seen || p.lastSeen || '' }));
     out.counts = (await sql(g.id, `SELECT * FROM ${g.counts}`))[0] || null;
   } catch (e) { out.ok = false; out.error = String(e.message || e); }
   for (const s of g.services) out.services[s] = await active(s);

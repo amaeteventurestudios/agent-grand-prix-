@@ -131,6 +131,8 @@ EnvironmentFile=/etc/agent-grand-prix.env
 # (core/deploy/install.sh); until then the service runs and answers { accounts: false }.
 EnvironmentFile=-/etc/novenique/clients/agp.env
 EnvironmentFile=-/etc/agp-session.env
+# the SpacetimeDB login for presence (server/spacetime-install.sh writes it)
+EnvironmentFile=-/etc/agp-spacetime.env
 ExecStart=$NODE_DIR/bin/node $APP/server/accounts.mjs
 # Core runs on this same server: talk to it directly, keep the public address for the browser
 Environment=NOVENIQUE_INTERNAL_URL=http://127.0.0.1:8200

@@ -11,6 +11,8 @@
 //   GET  /api/me/signin          start signing in: answers with the Novenique address to open
 //   GET  /api/me/callback        Novenique sends the player back here; finishes and goes home
 //   POST /api/me/signout         back to a guest on this device
+//   POST /api/me/here            "I'm here, on this screen": passed on to the game's SpacetimeDB, so the
+//                                owner's screen shows who is online and racing (works with accounts off)
 // The session cookie is httpOnly, Secure and SameSite=Lax; nothing but the cookie identifies a
 // player, and the guest token never reaches the browser's JavaScript.
 import http from 'node:http';
@@ -85,6 +87,32 @@ export function open(c) {
 const cookies = (req) => Object.fromEntries(String(req.headers.cookie || '').split(';').map((s) => { const i = s.indexOf('='); return i < 0 ? ['', ''] : [s.slice(0, i).trim(), decodeURIComponent(s.slice(i + 1))]; }));
 const setCookie = (name, value, maxAge) => `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${maxAge}; HttpOnly; Secure; SameSite=Lax`;
 
+// Presence: the browser sends a random id it keeps on the device; SpacetimeDB only ever sees a keyed
+// hash of it, the team name and the screen. At most one write per device every 30 s (sooner when the
+// screen changes), and nothing at all when this server has no SpacetimeDB login.
+const STDB = (process.env.STDB_URL || 'http://127.0.0.1:3010').replace(/\/$/, '');
+const STDB_TOKEN = process.env.STDB_TOKEN || '';
+const herePeers = new Map();
+let tidied = 0;
+async function stdbCall(reducer, args) {
+  const r = await fetch(`${STDB}/v1/database/agp/call/${reducer}`, { method: 'POST', headers: { authorization: `Bearer ${STDB_TOKEN}`, 'content-type': 'application/json' }, body: JSON.stringify(args), signal: AbortSignal.timeout(4000) });
+  if (!r.ok) throw new Error(`${reducer}: ${r.status}`);
+}
+export async function here(body) {
+  if (!STDB_TOKEN) return false;
+  const dev = String(body && body.k || '').slice(0, 64), screen = String(body && body.screen || 'home').slice(0, 12);
+  if (!/^[A-Za-z0-9_-]{8,64}$/.test(dev)) return false;
+  const key = crypto.createHmac('sha256', KEY || SECRET || 'agp-presence').update(dev).digest('base64url').slice(0, 24);
+  const name = String(body.name || '').replace(/[^\p{L}\p{N} '°.&-]/gu, '').trim().slice(0, 32);
+  const now = Date.now(), last = herePeers.get(key);
+  if (last && last.screen === screen && last.name === name && now - last.at < 30000) return true;
+  herePeers.set(key, { screen, name, at: now });
+  if (herePeers.size > 5000) for (const [k, v] of herePeers) if (now - v.at > 120000) herePeers.delete(k);
+  await stdbCall('seen', [key, name, screen]);
+  if (now - tidied > 3600e3) { tidied = now; stdbCall('tidy', []).catch(() => {}); }
+  return true;
+}
+
 const send = (res, code, body, headers = {}) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers }); res.end(JSON.stringify(body)); };
 const S256 = (v) => crypto.createHash('sha256').update(v).digest('base64url');
 
@@ -109,7 +137,13 @@ const me = (s) => ({ id: (s.user && (s.user.id || s.user.user_id)) || s.uid, nam
 export function serve(port = PORT) {
   return http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
-    if (u.pathname === '/api/me/health') return send(res, 200, { accounts: on(), sessions: sessions() });
+    if (u.pathname === '/api/me/health') return send(res, 200, { accounts: on(), sessions: sessions(), presence: !!STDB_TOKEN });
+    if (u.pathname === '/api/me/here' && req.method === 'POST') {
+      let body = ''; req.on('data', (d) => { body += d; if (body.length > 1024) req.destroy(); });
+      return req.on('end', async () => {
+        try { send(res, 200, { ok: await here(JSON.parse(body || '{}')) }); } catch { send(res, 200, { ok: false }); }
+      });
+    }
     if (!on() && !(sessions() && (u.pathname === '/api/me' || u.pathname === '/api/me/save'))) return send(res, 503, { error: 'off' });
     try {
       if (u.pathname === '/api/me' && req.method === 'GET') {

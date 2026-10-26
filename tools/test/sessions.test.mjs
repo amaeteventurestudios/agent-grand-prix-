@@ -18,7 +18,7 @@ const base = `http://127.0.0.1:${srv.address().port}/api/me`;
 
 await ta('with no Core, sessions are on and sign-in is off', async () => {
   assert.equal(on(), false); assert.equal(sessions(), true);
-  assert.deepEqual(await (await fetch(base + '/health')).json(), { accounts: false, sessions: true });
+  assert.deepEqual(await (await fetch(base + '/health')).json(), { accounts: false, sessions: true, presence: false });
   assert.equal((await fetch(base + '/signin')).status, 503, 'nothing to sign in to yet');
 });
 
