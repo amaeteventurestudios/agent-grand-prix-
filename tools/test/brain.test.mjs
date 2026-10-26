@@ -6,7 +6,8 @@ import { readFileSync } from 'node:fs';
 import { VENUES } from '../../js/data.js';
 import { setupRace, DEFAULT_TEAM, raceLaps, trackFor } from '../../js/game.js';
 import { PRESETS } from '../../js/dna.js';
-import { Brain, persona, intent, read, LINES } from '../../js/brain.js';
+import { Brain, persona, intent, read, LINES, honest } from '../../js/brain.js';
+import { accept } from '../../server/talk.mjs';
 
 const base = JSON.parse(readFileSync(new URL('../../art/voice/lines.json', import.meta.url)));
 const pre = (id) => PRESETS.find((p) => p.id === id).params;
@@ -103,5 +104,14 @@ t('a retired driver says nothing', () => {
   const R = race(91), c = R.byId.get('you-0');
   R.retire(c, 'engine', 'test');
   assert.equal(new Brain('you-0').answer('tyres', read(R, c)), null);
+});
+t('an AI reply is used only when it is honest and its call is real', () => {
+  const f = { id: 'you-0', pos: 12, left: 5, tyreLeft: 43, ers: 61, mate: { pos: 8 }, ahead: { code: 'TAN', gap: 0.8, mate: false }, behind: { code: 'FJO', gap: 2.4, mate: false } };
+  assert.deepEqual(accept('{"say":"Tyres are at 43%, P12. Let me attack.","call":{"k":"attack","tyre":null}}', f), { text: 'Tyres are at 43%, P12. Let me attack.', call: { id: 'you-0', k: 'attack' } });
+  assert.equal(accept('{"say":"We are P3, easy!","call":null}', f), null, 'invented position');
+  assert.equal(accept('{"say":"Battery 90%.","call":null}', f), null, 'invented battery');
+  assert.equal(accept('{"say":"Box me.","call":{"k":"teleport","tyre":null}}', f), null, 'unknown call');
+  assert.equal(accept('not json', f), null);
+  assert.ok(honest('Two more laps like this and the gap is 0.8 s.', f));
 });
 console.log(`brain: ${ok} checks passed`);

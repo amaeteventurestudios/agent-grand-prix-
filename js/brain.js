@@ -238,3 +238,20 @@ export class Brain {
     return r;
   }
 }
+
+// For the AI brain (server/talk.mjs): the calls a reply may offer, and a check that every number in a
+// reply is one the engine gave (as said: rounded gaps, tyre and battery in tens). A reply that fails
+// is dropped and the rules brain answers instead.
+export const CALL_KINDS = ['box', 'boxnow', 'cancel', 'push', 'save', 'normal', 'attack', 'defend', 'neutral', 'boost', 'harvest', 'balanced', 'swap', 'hold', 'free'];
+export function honest(text, f) {
+  const ok = [f.pos, f.left, f.tyreLeft, f.ers, f.mate?.pos, f.ahead?.gap, f.behind?.gap].filter((x) => x != null);
+  const near = (n) => ok.some((x) => Math.abs(x - n) < 1e-9) || [f.tyreLeft, f.ers].some((x) => Math.abs(Math.round(x / 10) * 10 - n) < 1e-9)
+    || [f.ahead?.gap, f.behind?.gap].some((g) => g != null && Math.abs(Math.round(g) - n) < 1e-9);
+  // small counting words ("one more lap", "two cars") are fine; a number with a unit or a P must be real
+  for (const m of String(text).matchAll(/\b(?:P\s?)?(\d+(?:\.\d+)?)\s*(%|percent|s\b|sec|seconds?|laps?)?/gi)) {
+    const n = Number(m[1]), unit = m[2] || /^P/i.test(m[0]);
+    if (!unit && n <= 2) continue;
+    if (!near(n)) return false;
+  }
+  return true;
+}

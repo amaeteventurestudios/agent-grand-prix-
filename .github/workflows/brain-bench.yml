@@ -1,0 +1,20 @@
+# Runs tools/brain-bench.mjs: the same radio questions to every AI model whose key is set, for the
+# drivers' AI brain. Keys are GitHub secrets (Settings > Secrets and variables > Actions), any subset:
+# ANTHROPIC_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, GROQ_API_KEY. Run it by hand: Actions >
+# Driver brain benchmark > Run workflow, then open the run to read the table in its summary.
+name: Driver brain benchmark
+on: workflow_dispatch
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm install --no-save @anthropic-ai/sdk
+      - run: node tools/brain-bench.mjs
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
