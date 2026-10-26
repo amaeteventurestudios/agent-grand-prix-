@@ -136,7 +136,7 @@ export class Race {
         auto: e.auto !== false,
         grid: i + 1,
         dist: -10 - i * 9, lat: i % 2 ? -2.6 : 2.6, latT: 0, v: 0, prevDist: 0, prevLat: 0,
-        tyre: { c: start, wear: 0, laps: 0, fresh: 0 }, used: [start], stops: 0,
+        tyre: { c: start, wear: 0, laps: 0, fresh: 0, temp: 0.55 }, used: [start], stops: 0,
         ers: 0.6, pace: 'normal', ersMode: 'balanced', battle: 'neutral', order: 'free', letBy: null, orderLap: -9,
         pitReq: null, pit: null, stopT: 0,
         pass: null, yieldT: 0, mistakeT: 0,
@@ -264,6 +264,19 @@ export class Race {
       if (this.t < car.react) { continue; }
       let grip = tyreGrip(car.tyre.c, car.tyre.wear, w) * (this.venue.grip || 1);
       if (car.tyre.fresh < 700) grip *= 0.975 + 0.025 * (car.tyre.fresh / 700);
+      // tyre temperature: the window is 0.5 to 0.72. Corners, pushing, a hot track and following in
+      // another car's dirty air heat the tyres; saving, a wet track and the safety car cool them.
+      // Under the window there is less grip; over it, less grip and faster wear.
+      const str0 = T.straight[i], dirty = car.ahead && car.dS < 25 && !str0 ? 1 - car.dS / 25 : 0;
+      let tt = 0.6 + (car.pace === 'push' ? 0.13 : car.pace === 'save' ? -0.08 : 0) + (car.battle === 'attack' ? 0.03 : 0)
+        + 0.12 * dirty + ((this.venue.temp || 25) - 25) * 0.005 - 0.25 * w + (str0 ? -0.04 : 0.04);
+      if (this.sc) tt -= 0.25;
+      const tyre = car.tyre; tyre.temp ??= 0.55;
+      tyre.temp += (tt - tyre.temp) * Math.min(1, 0.12 * dt);
+      car.cold = Math.max(0, 0.5 - tyre.temp); car.hot = Math.max(0, tyre.temp - 0.72);
+      if (isDry(car.tyre.c)) grip *= 1 - 0.12 * car.cold - 0.25 * car.hot;
+      // dirty air: right behind another car in a corner there is less downforce
+      grip *= 1 - 0.035 * dirty;
       const wetSkill = 1 - (1 - car.traits.wet) * 0.03 * w;
       const str = T.straight[i];
       let f = 1 - (1 - Math.sqrt(grip)) * (str ? 0.4 : 1);
@@ -433,6 +446,7 @@ export class Race {
       if (car.battle === 'attack') wr *= 1.1;
       wr *= 1.25 - 0.45 * car.traits.tyre;
       if (car.dna) wr *= car.dna.wear;
+      if (car.hot && isDry(car.tyre.c)) wr *= 1 + 6 * car.hot;          // overheating tyres wear fast
       car.tele.wearSum += wr; car.tele.dist += car.v * dt;
       if (car.tyre.c === 'I') wr *= 1 + Math.max(0, 0.25 - w) * 12;
       if (car.tyre.c === 'W') wr *= 1 + Math.max(0, 0.45 - w) * 11;
@@ -717,7 +731,7 @@ export class Race {
     const c = car.pit.box || car.pitReq || 'M';
     if (this.slowStop === car.id) { this.emit('pit', `Slow stop for ${car.code}! ${car.stopLen.toFixed(1)} s.`, car); this.slowStop = null; }
     else if (car.player) this.emit('pit', `${car.code}: ${car.stopLen.toFixed(1)} s stop, ${COMPOUNDS[c].name}s on.`, car);
-    car.tyre = { c, wear: 0, laps: 0, fresh: 0 };
+    car.tyre = { c, wear: 0, laps: 0, fresh: 0, temp: 0.4 };   // out of the blankets, a little under the window
     car.puncture = false;
     if (!car.used.includes(c)) car.used.push(c);
     car.stops++; (car.stopTimes ||= []).push(car.stopLen);

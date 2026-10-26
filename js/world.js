@@ -1104,6 +1104,13 @@ export class World {
     this.sprayPts = new THREE.Points(sg, new THREE.PointsMaterial({ color: '#e6edf5', size: 1.6, transparent: true, opacity: 0, depthWrite: false }));
     this.sprayPts.frustumCulled = false;
     this.scene.add(this.sprayPts);
+    // sparks: the plank kissing the track at top speed over the bumps of a long straight
+    const kn = this.lite ? 120 : 360;
+    this.sparks = { n: kn, p: new Float32Array(kn * 3), v: new Float32Array(kn * 3), life: new Float32Array(kn), k: 0 };
+    const kg = new THREE.BufferGeometry(); kg.setAttribute('position', new THREE.BufferAttribute(this.sparks.p, 3));
+    this.sparkPts = new THREE.Points(kg, new THREE.PointsMaterial({ color: '#ffb347', size: 0.55, transparent: true, opacity: 0.95, depthWrite: false, blending: THREE.AdditiveBlending }));
+    this.sparkPts.frustumCulled = false;
+    this.scene.add(this.sparkPts);
   }
 
   setWeather(rain, wet) {
@@ -1146,6 +1153,19 @@ export class World {
       g.position.set(tmp.x, c.stopT > 0 ? 0.11 : 0.02, tmp.z);   // up on the jacks during a stop
       const dl = (c.lat - c.prevLat) / 0.05, yaw = Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
       g.rotation.y = -Math.atan2(tmp.tz, tmp.tx) - yaw;
+      // the body on its springs: it leans out of a corner, dips its nose under braking and squats
+      // as it accelerates, and skips a little over the kerbs (looks only: the race engine decides)
+      if (dt > 0 && !c.dnf) {
+        const N = T.N, ix = Math.floor(((d % N) + N) % N), kk = T.k[ix] || 0;
+        const ay = Math.min(36, c.v * c.v * Math.abs(kk));
+        const dv = o.v0 === undefined ? 0 : (c.v - o.v0) / dt; o.v0 = c.v;
+        o.ax = (o.ax || 0) + (clamp(dv, -60, 30) - (o.ax || 0)) * Math.min(1, dt * 6);
+        o.roll = (o.roll || 0) + (-Math.sign(kk) * ay * 0.0011 - (o.roll || 0)) * Math.min(1, dt * 5);
+        const kerb = Math.abs(lat) > T.half - 1.2 && Math.abs(kk) > 0.004 && c.v > 20 ? Math.sin(performance.now() * 0.09 + c.i) * 0.035 : 0;
+        o.body.rotation.x = o.roll + kerb * 0.6;
+        o.body.rotation.z = clamp(o.ax * 0.0007, -0.035, 0.018);
+        o.body.position.y = Math.abs(kerb);
+      }
       o.tag.visible = showTags && !c.dnf;
       if (o.tag.visible) {
         // tags keep one size on screen, like a broadcast graphic; hide the ones right under the lens
@@ -1245,6 +1265,31 @@ export class World {
       }
       this.sprayPts.geometry.attributes.position.needsUpdate = true;
     }
+    // sparks, on a dry track only
+    const K = this.sparks, dry = race.wet < 0.15 && dt > 0;
+    if (dry) {
+      for (const c of race.cars) {
+        if (c.v < 66 || c.pit || c.dnf || Math.random() > (this.lite ? 0.12 : 0.3)) continue;
+        const N = T.N, ix = Math.floor(((c.dist % N) + N) % N); if (!T.straight[ix]) continue;
+        const o = this.carObjs.get(c.id); if (!o) continue;
+        const gp = o.group.position, ry = o.group.rotation.y, bx = Math.cos(-ry), bz = Math.sin(-ry);
+        for (let j = 0; j < 3; j++) {
+          const k = K.k = (K.k + 1) % K.n;
+          K.p[k * 3] = gp.x - bx * 1.2; K.p[k * 3 + 1] = 0.12; K.p[k * 3 + 2] = gp.z - bz * 1.2;
+          K.v[k * 3] = -bx * (6 + Math.random() * 10) + (Math.random() - 0.5) * 4; K.v[k * 3 + 1] = 1 + Math.random() * 3; K.v[k * 3 + 2] = -bz * (6 + Math.random() * 10) + (Math.random() - 0.5) * 4;
+          K.life[k] = 0.25 + Math.random() * 0.2;
+        }
+      }
+    }
+    let live = 0;
+    for (let k = 0; k < K.n; k++) {
+      if (K.life[k] <= 0) { K.p[k * 3 + 1] = -999; continue; }
+      live++; K.life[k] -= dt;
+      K.v[k * 3 + 1] -= 9.8 * dt;
+      K.p[k * 3] += K.v[k * 3] * dt; K.p[k * 3 + 1] = Math.max(0.05, K.p[k * 3 + 1] + K.v[k * 3 + 1] * dt); K.p[k * 3 + 2] += K.v[k * 3 + 2] * dt;
+    }
+    this.sparkPts.visible = live > 0;
+    if (live) this.sparkPts.geometry.attributes.position.needsUpdate = true;
   }
 
   setLights(n, green) {
