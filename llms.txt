@@ -8,6 +8,7 @@
 - You choose tyres (soft, medium, hard, intermediate, wet), when to pit ("Box, box"), how to use the battery (harvest, balanced, deploy, plus a short boost), pace (save tyres, normal, push) and whether each car attacks, defends or stays neutral.
 - Voice team radio: in browsers with speech recognition (Chrome, Edge, Safari), hold the mic button and talk to your drivers by name ("Nova, push", "Echo, defend", "Strategist, what is our best option?"). Drivers answer in their own voices and push back on calls that look wrong. Each driver has its own personality from its Driver DNA: ask it about its tyres, the gaps or whether it can pass, ask what it thinks, and it recommends a call you can accept. It reads only the real race data and never acts without you.
 - In Team Principal mode you alone command your cars: the race engineer shows race information and gives advice only when you ask. In Autonomous mode the AI strategist runs the cars.
+- Pre-race briefing: before each race your engineer offers Plan A and Plan B for each driver, and the race engine runs the race several times in the background to show where each plan is likely to finish. Accept a plan or customize your starting tyres.
 - Races include changing weather, tyre wear, pit stops with a full crew, safety cars, punctures and mechanical failures.
 - Driver DNA lets you shape each driver's driving style.
 

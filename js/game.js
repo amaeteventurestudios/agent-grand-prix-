@@ -62,14 +62,14 @@ export function raceLaps(track, length = 'short') {
 
 // stage: a Racing Academy scene. { grid: { 'you-0': 6 } (start positions), showers: [{ start, end, peak }]
 // (seconds; [] for a dry race), calm: true (no failures), cues: [{ t, sc: 'SC' }] }. Normal races have none.
-export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null }) {
+export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null, stops = null }) {
   const track = trackFor(venue);
   const L = laps || lapsFor(track);
   const entries = roster(team, withPlayer);
   const cars = car === undefined ? null : teamCars(TEAMS.map((t) => t.id), car || 'falcon');
   for (const e of entries) {
     if (cars) e.team.car = e.car = cars[e.team.id];
-    if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; }
+    if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; if (stops && stops[e.id]) e.stops = stops[e.id]; }
     if (e.team.you && dna) { const p = dna[slotOf(e.id)]; e.dna = simInputs(p); e.dnaProfile = p; }
   }
   let grid = qualify(entries, venue, seed, track);

@@ -144,6 +144,8 @@ export class Race {
       car.sv = driverPlan(T, car.dna, car.spec).v;
       car.latT = car.lat; car.prevDist = car.dist; car.prevLat = car.lat;
       car.plan = this.planStops(car);
+      // the plan you accepted in the pre-race briefing replaces the engineer's own (js/briefing.js)
+      if (e.stops && e.stops.length && isDry(car.tyre.c)) { car.stopsLeft = e.stops.slice(1); car.plan = { lap: e.stops[0].lap, next: e.stops[0].tyre }; }
       return car;
     });
     this.byId = new Map(this.cars.map((c) => [c.id, c]));
@@ -680,6 +682,7 @@ export class Race {
     car.pitReq = null; car.pit.phase = 'out'; car.stopT = 0;
     car.mismatch = 0;
     car.plan = this.lapsLeft(car) > 2 && isDry(c) && !this.ruleMet(car) ? this.planStops(car) : { lap: null, next: null };
+    if (car.stopsLeft && car.stopsLeft.length && isDry(c)) { const s = car.stopsLeft.shift(); if (s.lap > Math.floor(car.dist / this.track.L) && this.lapsLeft(car) > 1) car.plan = { lap: s.lap, next: s.tyre }; }
     car.advised = {};
   }
 
