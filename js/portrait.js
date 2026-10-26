@@ -1,7 +1,9 @@
-// Driver portraits: every driver is an AI agent, so its portrait is its helmet and race suit,
-// drawn here as a small SVG in the team's colours. The design (pattern and visor tint) is seeded
-// from the driver's callsign, so it stays the same everywhere; your own drivers can pick theirs.
-// No images and no faces: all procedural, all ours.
+// Driver portraits. A driver's face is a Personas avatar (Personas by Draftbit, CC BY 4.0, drawn by
+// DiceBear, MIT; vendored in vendor/dicebear) under our own racing layers: a race suit in the team's
+// colours and a radio headset. The helmet is all ours: an SVG in the team's colours with a pattern
+// and visor tint. Both are seeded from the driver's callsign, so they stay the same everywhere, and
+// your own drivers can choose theirs. No images: everything is drawn as SVG.
+import { createAvatar, personas } from '../vendor/dicebear/personas.min.js';
 
 export const HELMET_PATTERNS = [
   { id: 'stripe', name: 'Stripe' }, { id: 'halo', name: 'Halo' }, { id: 'chevron', name: 'Chevron' },
@@ -60,7 +62,7 @@ function star(x, y, r) {
 let uid = 0;
 // d: { name, code, num, helmet? }, team: { c1, c2, glow? }; size in CSS px (the SVG scales)
 // id: a fixed id for a portrait redrawn often in one place, so its markup stays the same
-export function portraitSVG(d, team, { size = 48, num = true, bg = true, id: fixed } = {}) {
+export function helmetSVG(d, team, { size = 48, num = true, bg = true, id: fixed } = {}) {
   const id = fixed || 'pt' + (++uid), h = helmetOf(d), v = VISORS.find((x) => x.id === h.visor);
   const c1 = col(team.c1, '#888888'), c2 = col(team.c2, '#ffffff');
   // the pattern colour has to show on the shell: fall back to dark or light when the two are alike
@@ -86,4 +88,49 @@ export function portraitSVG(d, team, { size = 48, num = true, bg = true, id: fix
     <path d="${HELMET}" fill="none" stroke="#0d0f13" stroke-opacity="0.55" stroke-width="1.6"/>
     ${n ? `<text x="${n.length > 1 ? 30 : 33}" y="76" font-family="system-ui,sans-serif" font-weight="800" font-style="italic" font-size="11" fill="${ink}" stroke="${ink === '#ffffff' ? '#0d0f13' : '#ffffff'}" stroke-width="2.2" paint-order="stroke">${n}</text>` : ''}
   </svg>`;
+}
+
+// ---------- faces ----------
+export const SKINS = ['f2c7b0', 'eeb4a4', 'e5a07e', 'd78774', 'b16a5b', '92594b', '623d36', '4a2c25'];
+export const HAIRS = ['shortCombover', 'curlyHighTop', 'bobCut', 'curly', 'curlyBun', 'buzzcut', 'bobBangs', 'bald', 'balding',
+  'bunUndercut', 'fade', 'straightBun', 'extraLong', 'shortComboverChops', 'sideShave', 'long', 'mohawk', 'pigtails'];
+export const HAIR_COLOURS = ['1c1410', '362c47', '4a3122', '6c4545', 'a55728', 'd6b370', 'dee1f5', 'e15c66'];
+export const BEARDS = ['none', 'shadow', 'goatee', 'beardMustache', 'pyramid', 'walrus', 'soulPatch'];
+export const EYES = ['open', 'happy', 'glasses', 'sunglasses'];
+const MOUTHS = ['smile', 'bigSmile', 'smirk', 'lips'];
+const pick = (list, h, k) => list[(h >>> k) % list.length];
+
+// the face a driver has: its own choices where it made them, otherwise seeded from its callsign
+export function faceOf(d) {
+  const h = hash('face|' + (d.code || '') + '|' + (d.name || '')), f = d.face || {};
+  const ok = (list, v) => (list.includes(v) ? v : null);
+  return {
+    skin: ok(SKINS, f.skin) || pick(SKINS, h, 0), hair: ok(HAIRS, f.hair) || pick(HAIRS, h, 3),
+    hairColor: ok(HAIR_COLOURS, f.hairColor) || pick(HAIR_COLOURS.slice(0, 6), h, 7), beard: ok(BEARDS, f.beard) || (h % 3 ? 'none' : pick(BEARDS.slice(1), h, 11)),
+    eyes: ok(EYES, f.eyes) || pick(['open', 'open', 'happy', 'happy', 'open', 'glasses', 'sunglasses'], h, 14), mouth: pick(MOUTHS, h, 17),
+  };
+}
+
+// d: { name, code, num, face? }, team: { c1, c2 }; the suit and headset are drawn over the avatar
+export function portraitSVG(d, team, { size = 48, bg = true } = {}) {
+  const f = faceOf(d), c1 = col(team.c1, '#888888'), c2 = col(team.c2, '#ffffff');
+  const pc = Math.abs(luma(c1) - luma(c2)) < 0.12 ? (luma(c1) > 0.5 ? '#16181d' : '#ffffff') : c2;
+  let svg = createAvatar(personas, {
+    seed: d.code || d.name || 'driver', randomizeIds: true, skinColor: [f.skin], hair: [f.hair], hairColor: [f.hairColor],
+    facialHair: f.beard === 'none' ? [] : [f.beard], facialHairProbability: f.beard === 'none' ? 0 : 100,
+    eyes: [f.eyes], mouth: [f.mouth], nose: ['mediumRound', 'smallRound'], body: ['rounded'], clothingColor: [c1.slice(1)],
+    backgroundColor: bg ? [shade(c1, 0.8).slice(1)] : [],
+  }).toString().replace(/<metadata[\s\S]*?<\/metadata>/, '');
+  const ink = '#1d1f26', n = d.num != null ? String(d.num).slice(0, 2) : '';
+  // race suit over the shoulders, collar, and the team's stripe; a headset over the head and ears
+  const layers = `<path d="M8,64 C9,55 19,50.5 27,50 L37,50 C45,50.5 55,55 56,64 Z" fill="${c1}"/>
+    <path d="M24,50.6 C26,54 38,54 40,50.6 L38,49.6 C36,51.6 28,51.6 26,49.6 Z" fill="${shade(c1, -0.35)}"/>
+    <path d="M20,64 L23.5,52 L26,51.5 L23.5,64 Z M44,64 L40.5,52 L38,51.5 L40.5,64 Z" fill="${pc}"/>
+    ${n ? `<text x="47" y="61.5" font-family="system-ui,sans-serif" font-weight="800" font-style="italic" font-size="5" fill="${pc}" text-anchor="middle">${n}</text>` : ''}
+    <path d="M16.6,32 C15.5,10.5 48.5,10.5 47.4,32" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    <rect x="13.6" y="27.5" width="6" height="10" rx="2.4" fill="${ink}"/><rect x="44.4" y="27.5" width="6" height="10" rx="2.4" fill="${ink}"/>
+    <rect x="14.9" y="29.3" width="3.4" height="6.4" rx="1.4" fill="${c1}"/><rect x="45.7" y="29.3" width="3.4" height="6.4" rx="1.4" fill="${c1}"/>
+    <path d="M17,37 C18,44 22,45.5 26.5,44.6" stroke="${ink}" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+    <rect x="26" y="43.4" width="3" height="2.4" rx="1.1" fill="${ink}"/>`;
+  return svg.replace(/^<svg /, `<svg class="portrait face" width="${size}" height="${size}" role="img" aria-label="${(d.name || '').replace(/[<>&"]/g, '')}" `).replace(/<\/svg>$/, layers + '</svg>');
 }

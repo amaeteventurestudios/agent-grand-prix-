@@ -123,7 +123,7 @@ export class Race {
       const traits = e.traits;
       const start = e.startCompound || (this.wet > 0.7 ? 'W' : this.wet > 0.17 ? 'I' : this.r.pick(['S', 'M', 'M', 'H']));
       const car = {
-        i, id: e.id, num: e.num, name: e.name, code: e.code, helmet: e.helmet, team: e.team, traits, player: !!e.player,
+        i, id: e.id, num: e.num, name: e.name, code: e.code, helmet: e.helmet, face: e.face, team: e.team, traits, player: !!e.player,
         auto: e.auto !== false,
         grid: i + 1,
         dist: -10 - i * 9, lat: i % 2 ? -2.6 : 2.6, latT: 0, v: 0, prevDist: 0, prevLat: 0,
