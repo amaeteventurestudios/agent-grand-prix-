@@ -22,7 +22,7 @@ sudo tee /etc/systemd/system/spacetimedb.service >/dev/null <<UNIT
 Description=SpacetimeDB (one server, a database per game)
 After=network.target
 [Service]
-ExecStart=$ROOT/spacetime --root-dir=$ROOT start --listen-addr=127.0.0.1:$PORT
+ExecStart=$ROOT/spacetime --root-dir=$ROOT start --listen-addr=127.0.0.1:$PORT --page_pool_max_size 1073741824 --non-interactive
 Restart=always
 User=spacetimedb
 Environment=HOME=$ROOT
