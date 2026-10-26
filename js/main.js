@@ -631,7 +631,7 @@ function addressed(text, cars) {
 }
 // the optional interpreter for what the matcher can't place (off unless our server has a key)
 async function interpret(heard) {
-  const miss = () => { talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'); reply(G.mineSel || 'you-0', 'r_sayagain'); };
+  const miss = () => (G.aiBrain ? aiTalk(heard) : (talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'), reply(G.mineSel || 'you-0', 'r_sayagain')));
   if (!G.interp) return miss();
   const R = G.race, cars = myCars();
   talkSaid('“' + heard.trim() + '” …');
@@ -723,6 +723,37 @@ function radioPlans(R) {
   radioCalls(due.map((p) => p.call));
 }
 const cap1 = (k) => k[0].toUpperCase() + k.slice(1);
+// free talk: what neither the matcher nor the interpreter could place goes to the driver's AI brain on
+// our server (Claude, checked against the race data there); with no answer in time, the rules brain
+// answers. The driver never acts: a call in the reply comes back as an offer for you to accept.
+async function aiTalk(heard) {
+  const R = G.race; if (!R) return;
+  const c = R.byId.get(addressed(heard, myCars())), b = G.brains?.[c.id];
+  if (!c || !b) return;
+  addRadio({ from: 'you', text: heard.trim().replace(/^./, (x) => x.toUpperCase()) });
+  talkSaid('“' + heard.trim() + '” …');
+  const P = b.p, dna = `${P.bold > 0.6 ? 'aggressive racer' : P.bold < 0.4 ? 'patient racer' : 'balanced racer'}, ${P.care > 0.6 ? 'gentle on tyres' : P.care < 0.4 ? 'hard on tyres' : 'average on tyres'}`;
+  const memory = b.mem.slice(0, 6).map((m) => `${m.from}: ${m.text || m.kind || (m.cmd && JSON.stringify(m.cmd)) || ''}`);
+  const asked = R.t;
+  try {
+    const res = await fetch('/api/radio/talk', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(3200),
+      body: JSON.stringify({ driver: { name: c.name, tone: P.tone, dna }, facts: brainRead(R, c), memory, said: heard }) });
+    const r = res.ok ? await res.json() : null;
+    if (!r || !r.text || G.race !== R) throw new Error('no reply');
+    talkSaid('“' + heard.trim() + '”', 'ok');
+    b.remember({ t: Date.now(), from: 'you', kind: 'talk', text: heard.slice(0, 120) });
+    b.remember({ t: Date.now(), from: 'driver', kind: 'talk', text: r.text });
+    // the free words have no recorded clip: the driver's voice says a short ack, the words show on the radio
+    reply(c.id, 'r_copy');
+    addRadio({ from: 'driver', code: c.code, text: r.text });
+    if (r.call && R.t - asked < 10) { talk.offer = { call: r.call, t: R.t, from: c.id }; driverCard(c, { text: r.text, call: r.call }); }
+    G.assisted = true;
+  } catch {
+    talkSaid('“' + heard.trim() + '”', 'ok');
+    driverAsk(c, brainIntent(heard) || (isQuestion(heard) ? 'opinion' : 'why'));
+  }
+  radioDone();
+}
 // ---------- your drivers' brains (js/brain.js) ----------
 // A driver speaks in its own voice: 'br_*' clips from its brain pack, the rest from its main pack.
 function driverSay(c, res) {
@@ -801,7 +832,11 @@ function strategist(c) {
   b.addEventListener('pointerup', talkStop); b.addEventListener('pointercancel', talkStop);
   b.addEventListener('contextmenu', (e) => e.preventDefault());
   // the interpreter is on only when our server says so (it holds the key; the browser never does)
-  fetch('/api/radio/health', { signal: AbortSignal.timeout(3000) }).then((r) => (r.ok ? r.json() : null)).then((j) => { G.interp = !!(j && j.interpreter); }).catch(() => { G.interp = false; });
+  // (asked again a little later if the first try is lost while the page is still busy loading)
+  const health = (again) => fetch('/api/radio/health', { signal: AbortSignal.timeout(4000) }).then((r) => (r.ok ? r.json() : null))
+    .then((j) => { G.interp = !!(j && j.interpreter); G.aiBrain = !!(j && j.brain); })
+    .catch(() => { G.interp = G.aiBrain = false; if (again) setTimeout(() => health(false), 8000); });
+  health(true);
 }
 
 // ---------- race coach ----------
@@ -1118,7 +1153,7 @@ function renderControls(force) {
       ${c.dnf || c.finished ? '' : `<div class="talkto"><p>🎙️ Talk to ${esc(c.name.split(' ')[0])}</p><div class="chips">${TALK.map(([k, l]) => `<button type="button" data-talk="${k}">${l}</button>`).join('')}</div></div>`}
       ${c.auto ? '' : `<label class="assist"><input type="checkbox" data-act="assist" ${c.assist ? 'checked' : ''}><span><b>Engineer calls the stops</b> Beginner assist: your engineer boxes both cars at the right time. You keep pace, battery and battles.</span></label>`}
     </div>
-    <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 10 seconds.' : 'Pick the tyres, then BOX: your driver pits next time round, about 10 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
+    <div class="ctl"><label>Box this lap</label>${box}${c.pit || c.finished || c.dnf ? '' : why(c.pitReq ? 'Your driver pits the next time past the pit entry. A stop costs about 8 seconds (a quarter of a lap).' : 'Pick the tyres, then BOX: your driver pits next time round, about 8 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.')}</div>
     <div class="ctl"><label>Pace</label><div class="opts">${opt('pace', 'save', 'Save tyres')}${opt('pace', 'normal', 'Normal')}${opt('pace', 'push', 'Push')}</div>${why(PACE_WHY[c.pace])}</div>
     <div class="ctl"><label>ERS (battery)</label><div class="opts">${opt('ersMode', 'harvest', 'Harvest')}${opt('ersMode', 'balanced', 'Balanced')}${opt('ersMode', 'deploy', 'Deploy')}</div>${why(ERS_WHY[c.ersMode])}</div>
     <div class="ctl"><label>Battle</label><div class="opts">${opt('battle', 'defend', 'Defend')}${opt('battle', 'neutral', 'Neutral')}${opt('battle', 'attack', 'Attack')}</div>${why(BATTLE_WHY[c.battle])}</div>
@@ -1704,7 +1739,7 @@ function helpSheet(back) {
     <ul class="help">
       <li><b>Tyres.</b> Softs are fastest but wear out quickest. Mediums and Hards last longer. In a dry race you must use two different dry compounds.</li>
       <li><b>Rain.</b> Watch the radar in the top bar. On a damp track switch to Inters (green); on a soaked track, Wets (blue). Back to slicks when it dries.</li>
-      <li><b>Pit stop.</b> Tap a tyre under <i>Box this lap</i>. Your driver pits the next time past the pit entry. A stop costs about 10 seconds.</li>
+      <li><b>Pit stop.</b> Tap a tyre under <i>Box this lap</i>. Your driver pits the next time past the pit entry. A stop costs about 8 seconds (a quarter of a lap).</li>
       <li><b>ERS (battery).</b> Deploy for speed on the straights, Harvest to recharge.</li>
       <li><b>Battle.</b> Attack to go for gaps, Defend to hold position. Both cost a little.</li>
       <li><b>Autonomous.</b> Flip the switch and your AI makes every call. Races you run fully autonomous are marked that way.</li>
@@ -1771,7 +1806,7 @@ function winSheet(back) {
       <li><b>Split your two cars.</b> Put them on different tyres or stop on different laps. If the weather or a safety car goes against one, the other benefits.</li>
       <li><b>The undercut.</b> Stuck behind someone? Box a lap before they do. Fresh tyres are about a second a lap faster, so you can come out ahead when they stop.</li>
       <li><b>Watch tyre life.</b> Under 25%, grip falls off a cliff. Near 0% a tyre can puncture, and a puncture can end your race.</li>
-      <li><b>Safety car means a cheap stop.</b> A normal stop costs about 10 seconds. Under the safety car it costs about half. If your stop was due in the next few laps, box now.</li>
+      <li><b>Safety car means a cheap stop.</b> A normal stop costs about 8 seconds (a quarter of a lap). Under the safety car it costs about half. If your stop was due in the next few laps, box now.</li>
       <li><b>Rain.</b> Damp track: Inters. Soaked: Wets. When it dries, the first car on slicks gains the most. The radar in the top bar warns you a few laps ahead.</li>
       <li><b>ERS (battery).</b> Harvest when you're alone so you have charge for a fight. Then hit BOOST or Deploy when you're within a second of the car ahead, or to defend.</li>
       <li><b>Pace.</b> Save tyres on a long stint and Push in the last two laps. Attack makes passes more likely but risks contact. Defend makes you harder to pass.</li>

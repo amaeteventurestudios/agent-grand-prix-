@@ -70,7 +70,7 @@ export function read(R, car) {
   const shower = R.weather?.showers?.find((s) => s.start > R.t && (s.start - R.t) / lapT < 3);
   return {
     id: car.id, code: car.code, pos: car.pos, out: !!car.dnf, done: !!car.finished, inPit: !!car.pit,
-    tyre: car.tyre.c, tyreLeft: Math.round((1 - car.tyre.wear) * 100), ers: Math.round(car.ers * 100), left,
+    tyre: car.tyre.c, tyreLeft: Math.max(0, Math.round((1 - car.tyre.wear) * 100)), ers: Math.round(car.ers * 100), left,
     ahead: ahead && !ahead.dnf ? { code: ahead.code, gap: +Math.max(0.1, car.interval).toFixed(1), mate: ahead.team.id === car.team.id } : null,
     behind: behind && !behind.dnf && !behind.pit && !behind.lapsDown ? { code: behind.code, gap: +Math.max(0.1, behind.interval).toFixed(1), mate: behind.team.id === car.team.id } : null,
     mate: mate ? { code: mate.code, pos: mate.pos, out: !!mate.dnf } : null,
