@@ -26,6 +26,7 @@ read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
 GAME='root * '"$WEB"'
 	encode zstd gzip
 	reverse_proxy /api/radio/* 127.0.0.1:8140
+	reverse_proxy /api/me 127.0.0.1:8141
 	reverse_proxy /api/me/* 127.0.0.1:8141
 	reverse_proxy /auth/novenique/* 127.0.0.1:8141
 	reverse_proxy /api/board/* 127.0.0.1:8142
@@ -157,6 +158,7 @@ EnvironmentFile=-/etc/agp-session.env
 ExecStart=$NODE_DIR/bin/node $APP/server/leaders.mjs
 WorkingDirectory=$APP
 Environment=BOARD_DIR=/var/lib/agp-board
+Environment=WEEKLY_POT=10000
 Restart=always
 RestartSec=5
 DynamicUser=yes

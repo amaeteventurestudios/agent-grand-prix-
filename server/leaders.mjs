@@ -87,12 +87,48 @@ export function boards(day, me) {
     human: human.slice(0, TOP).map(row), agent: agent.slice(0, TOP).map(row), you: mine, humans: human.length, agents: agent.length };
 }
 
+// ---------- the weekly league: the week's Daily results added up ----------
+// A week is seven Dailies (#1-#7, #8-#14, ...). Each team's points from its checked Daily runs are
+// added up, people and agents apart, and the top of the people's table shares the week's prize pot.
+// The pot is a fixed number set on the server (WEEKLY_POT, in Sora); with none set the table still
+// runs and says prizes come later. Nothing here pays anything: payouts are made by Novenique's
+// wallet once it is connected, from the final table of a finished week.
+export const POT = Math.max(0, Math.floor(+(process.env.WEEKLY_POT || 0)));
+export const SHARES = [25, 18, 13, 10, 8, 7, 6, 5, 4, 4];         // percent of the pot, places 1 to 10
+export const weekOf = (day) => Math.floor((day - 1) / 7) + 1;
+export const daysOf = (week) => Array.from({ length: 7 }, (_, i) => (week - 1) * 7 + 1 + i);
+export function league(week, me, today = Infinity) {
+  const tot = new Map();
+  for (const day of daysOf(week)) {
+    if (day > today) break;
+    for (const [id, e] of Object.entries(read(day).entries)) {
+      const t = tot.get(id) || { id, team: e.team, codes: e.codes, pts: 0, races: 0, best: 99, agent: !!e.agent };
+      t.pts += e.pts; t.races++; t.best = Math.min(t.best, e.best); t.team = e.team; t.codes = e.codes;
+      tot.set(id, t);
+    }
+  }
+  const order = (agent) => [...tot.values()].filter((t) => t.agent === agent).sort((a, b) => b.pts - a.pts || a.best - b.best || b.races - a.races);
+  const human = order(false), agent = order(true);
+  const prize = (i) => (POT && i < SHARES.length ? Math.floor((POT * SHARES[i]) / 100) : 0);
+  const row = (t, i, prizes) => ({ place: i + 1, team: t.team, codes: t.codes, pts: t.pts, races: t.races, best: t.best, ...(prizes ? { prize: prize(i) } : {}) });
+  const hi = human.findIndex((t) => t.id === me), ai = agent.findIndex((t) => t.id === me);
+  const you = hi >= 0 ? { ...row(human[hi], hi, true), you: true } : ai >= 0 ? { ...row(agent[ai], ai, false), you: true, agent: true } : null;
+  const days = daysOf(week);
+  return { week, from: days[0], to: days[6], done: today > days[6], pot: POT, shares: SHARES,
+    human: human.slice(0, TOP).map((t, i) => row(t, i, true)), agent: agent.slice(0, TOP).map((t, i) => row(t, i, false)), you, humans: human.length, agents: agent.length };
+}
+
 export function serve(port = PORT, today = () => Math.floor(Date.now() / 864e5)) {
   return http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
     if (u.pathname === '/api/board/health') return send(res, 200, { board: true });
     const me = who(req);
     try {
+      if (u.pathname === '/api/board/week' && req.method === 'GET') {
+        const week = +u.searchParams.get('week') || 0, today = +u.searchParams.get('today') || Infinity;
+        if (!week) return send(res, 400, { error: 'which week' });
+        return send(res, 200, league(week, me, today));
+      }
       if (u.pathname === '/api/board/daily' && req.method === 'GET') {
         const day = +u.searchParams.get('day') || 0;
         if (!day) return send(res, 400, { error: 'which day' });

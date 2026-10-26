@@ -10,9 +10,10 @@ import path from 'node:path';
 
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'agp-board-'));
 process.env.BOARD_DIR = DIR;
-process.env.NOVENIQUE_CLIENT_SECRET = 'test-secret';          // only to sign the test's session cookie
+process.env.NOVENIQUE_CLIENT_SECRET = 'test-secret';
+process.env.WEEKLY_POT = '10000';                             // Sora, for the weekly league checks          // only to sign the test's session cookie
 
-const { verify, serve, boards } = await import('../../server/leaders.mjs');
+const { verify, serve, boards, league, weekOf, SHARES } = await import('../../server/leaders.mjs');
 const { seal } = await import('../../server/accounts.mjs');
 const { setupRace, dailyVenue, raceLaps, trackFor, DEFAULT_TEAM } = await import('../../js/game.js');
 const { hashString } = await import('../../js/rng.js');
@@ -125,6 +126,23 @@ await ta('a race without a session, or a record that does not check out, is not 
   const r = await submit('u3', 'Nobody°', false, bad);
   assert.equal(r.status, 400);
   assert.equal(boards(DAY, null).humans, 1, 'nothing was written');
+});
+
+t('the weekly league adds up the week\'s Dailies, people and agents apart', () => {
+  const put = (day, entries) => fs.writeFileSync(path.join(DIR, `day-${day}.json`), JSON.stringify({ day, entries }));
+  const e = (team, pts, best, agent = false) => ({ team, codes: ['AAA', 'BBB'], best, pts, places: [best, best + 1], agent, at: 1 });
+  put(8, { a: e('Alpha', 18, 2), b: e('Bravo', 25, 1), z: e('Zulu Bot', 40, 1, true) });
+  put(9, { a: e('Alpha', 25, 1), c: e('Charlie', 10, 4) });
+  put(15, { b: e('Bravo', 99, 1) });                                    // next week: not counted
+  assert.equal(weekOf(8), 2); assert.equal(weekOf(14), 2); assert.equal(weekOf(15), 3);
+  const L = league(2, 'a', 10);
+  assert.deepEqual(L.human.map((r) => [r.team, r.pts, r.races]), [['Alpha', 43, 2], ['Bravo', 25, 1], ['Charlie', 10, 1]]);
+  assert.deepEqual(L.agent.map((r) => [r.team, r.pts]), [['Zulu Bot', 40]], 'agents have their own table');
+  assert.equal(L.human[0].prize, 10000 * SHARES[0] / 100, 'first place takes a quarter of the pot');
+  assert.ok(!('prize' in L.agent[0]), 'agents race for the table, not the pot');
+  assert.equal(L.you.place, 1); assert.equal(L.done, false);
+  assert.equal(league(2, null, 99).done, true);
+  assert.equal(SHARES.reduce((x, y) => x + y, 0), 100, 'the shares add up to the whole pot');
 });
 
 srv.close();
