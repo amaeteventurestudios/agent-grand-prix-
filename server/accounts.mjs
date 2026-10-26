@@ -67,7 +67,7 @@ export function mergeSaves(into, from) {
 
 // ---------- sessions: a signed cookie holding the guest token or the account's user id ----------
 const SIGN = crypto.createHash('sha256').update(SECRET || 'dev').digest();
-const seal = (o) => { const b = Buffer.from(JSON.stringify(o)).toString('base64url'); return b + '.' + crypto.createHmac('sha256', SIGN).update(b).digest('base64url'); };
+export const seal = (o) => { const b = Buffer.from(JSON.stringify(o)).toString('base64url'); return b + '.' + crypto.createHmac('sha256', SIGN).update(b).digest('base64url'); };
 export function open(c) {
   const [b, sig] = String(c || '').split('.');
   if (!b || !sig) return null;

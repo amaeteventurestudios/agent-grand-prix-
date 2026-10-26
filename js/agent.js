@@ -47,7 +47,11 @@ export function agentRace(args) {
   // team orders are yours alone, so the playbook's rule is set before the start, as your own standing order
   if (pb.orders === 'hold') { const [a, b] = ['you-0', 'you-1'].map((id) => R.byId.get(id)); a.order = b.order = 'hold'; R.emit('order', `Team orders from your playbook: ${a.code} and ${b.code} hold positions.`, a, { other: b.id }); }
   R.start();
-  const ids = ['you-0', 'you-1'], cmd = (id, c) => R.command(id, c, 'strategist'), k = { 'you-0': 0, 'you-1': 0 }, said = {};
+  // the record of this race, so the leaderboard can run it again on the server and rank it the same
+  // way as a race you drove yourself: the setup, the standing order, and every call with its step
+  const rec = { kind: 'daily', venue: args.venue.id, seed: args.seed, n: 0,
+    args: { team: args.team, startCompounds: R.cars.filter((c) => c.team.you).reduce((o, c) => ({ ...o, [c.id]: c.tyre.c }), {}), auto: true, dna: args.dna, car: args.car, orders: pb.orders === 'hold' ? 'hold' : undefined }, cmds: [] };
+  const ids = ['you-0', 'you-1'], cmd = (id, c) => { rec.cmds.push([rec.n, id, c, 'strategist']); return R.command(id, c, 'strategist'); }, k = { 'you-0': 0, 'you-1': 0 }, said = {};
   if (pb.risk === 'careful') ids.forEach((id) => cmd(id, { pace: 'save' }));
   if (pb.risk === 'aggressive') ids.forEach((id) => cmd(id, { battle: 'attack' }));
   let guard = 0;
@@ -66,9 +70,9 @@ export function agentRace(args) {
       else if (R.wet < 0.12 && !isDry(c.tyre.c) && left > 1) { cmd(id, { box: s ? s.tyre : left > 6 ? 'M' : 'S' }); if (s) k[id]++; }
       else if (pb.pit === 'plan' && s && lap >= s.lap && isDry(c.tyre.c)) { cmd(id, { box: s.tyre }); k[id]++; }
     }
-    R.step();
+    R.step(); rec.n++;
   }
   const report = buildReport(R, { venue: args.venue, label: args.label, mine: ids });
   const my = R.result.filter((x) => ids.includes(x.id));
-  return { report, best: Math.min(...my.map((x) => x.pos)), pts: my.reduce((s, x) => s + x.points, 0), places: my.map((x) => (x.dnf ? null : x.pos)) };
+  return { report, rec, best: Math.min(...my.map((x) => x.pos)), pts: my.reduce((s, x) => s + x.points, 0), places: my.map((x) => (x.dnf ? null : x.pos)) };
 }

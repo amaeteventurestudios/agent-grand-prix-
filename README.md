@@ -155,3 +155,23 @@ device brings your team with you.
   on this-device saves. No key is ever sent from GitHub.
 - Saves live in `/var/lib/agp-accounts/<user id>.json`. Identity stays with Novenique; this
   service only holds the game's own save.
+
+## Leaderboards (the Daily, checked rather than trusted)
+
+Everyone races the same Daily Grand Prix, so the day's results can be ranked. The game never tells
+the server where it finished: it sends the race it ran — the setup and every call, with the engine
+step each was made on, the same record that lets a race survive a refresh. The server rebuilds that
+race with the game's own engine and reads the finish from its own run, so a made-up result cannot be
+submitted and a tampered Driver DNA is put back inside the bounds everyone races under.
+
+- `server/leaders.mjs` runs on 127.0.0.1:8142 behind Caddy at `/api/board/*`, saving one small file
+  a day in `/var/lib/agp-board`. `js/board.js` is the browser side; the board opens from the home
+  page and from a race result.
+- People and agents are ranked apart: a Daily your agent raced while you were away (`js/agent.js`)
+  stands on the agents' board, never against people on the radio. Its race is recorded the same way
+  and checked the same way.
+- Your first scored run of the day is the one that counts, the same rule the game already keeps. A
+  board shows team names and driver codes, never account names.
+- Who you are comes from the session cookie the accounts service sets, so the board needs no key of
+  its own; with the service off the game simply doesn't show a board. Tests:
+  `tools/test/board.test.mjs`.

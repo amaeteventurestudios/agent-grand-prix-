@@ -21,6 +21,7 @@ import { buildReport, reportHTML, shareText } from './report.js';
 import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
 import { account, start as accountStart, signIn, signOut } from './account.js';
 import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLesson, LESSON_TITLES } from './career.js';
+import { boardOn, fetchBoard, submitDaily, boardHTML } from './board.js';
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
@@ -1361,7 +1362,7 @@ function home() {
     <div class="cards">
       <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
         <p>${done ? `${done.agent ? 'Your agent' : 'You'} finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
-        <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}</div></div>
+        <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}<button class="btn ghost" data-go="board" type="button">Leaderboard</button></div></div>
       <div class="hc"><span class="k">Championship · season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
         <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
         ${standingsPeek()}
@@ -1462,6 +1463,7 @@ function agentCatchUp() {
         S.agent.reports = [{ n, at: Date.now(), report: out.report, places: out.places, pts: out.pts }, ...S.agent.reports.filter((x) => x.n !== n)].slice(0, 7);
         S.agent.unseen = [...new Set([...(S.agent.unseen || []), n])];
         store.save();
+        sendToBoard(n, out.rec, true);          // your agent's race stands on the agents' board
       }
       next();
     };
@@ -1500,6 +1502,34 @@ function agentSheet(back) {
     if (e.target.closest('#pbDone')) { back(); agentCatchUp(); }
   };
 }
+// ---------- the Daily leaderboard (js/board.js, server/leaders.mjs) ----------
+// Your scored run is sent as the race itself: the setup and every call. The server replays it with
+// the game's own engine and ranks what it finds, so nothing a browser claims about a result is read.
+function sendToBoard(day, rec, agent) {
+  if (!rec || rec.kind !== 'daily') return;
+  submitDaily({ day, team: team().name, agent, rec }).then((r) => {
+    if (!r || !r.you) return;
+    G.boardLine = `<p class="lede">On today's leaderboard you are <b>P${r.you.place}</b> of ${r.you.agent ? r.agents : r.humans} ${r.you.agent ? 'agents' : 'teams'}. <button class="btn ghost small" data-r="board" type="button">Leaderboard</button></p>`;
+    if (G.resFor === G.race && !$('#screen').hidden) resultsView();
+  });
+}
+async function boardSheet(day, back, tab = 'human') {
+  const v = dailyVenue(day);
+  const sh = show(`<div class="sub">Daily #${day} · ${v.flag} ${esc(v.city)}</div><h2>Leaderboard</h2>
+    <p class="lede">Today's race is the same for everyone: the same circuit, grid and weather. Every result here was raced, not claimed: the server runs your race again from your own calls before it ranks you.</p>
+    <div class="bbody"><p class="note">Reading today's board…</p></div>
+    <div class="actions"><button class="btn" data-b="race" type="button">${S.daily.days[day] ? 'Race it again' : "Race today's GP"}</button><button class="btn ghost" data-b="back" type="button">Back</button></div>`, 'board');
+  const body = $('.bbody', sh);
+  const draw = async (t) => { const b = await fetchBoard(day); if (body.isConnected) body.innerHTML = boardHTML(b, t); };
+  draw(tab);
+  sh.onclick = (e) => {
+    const t = e.target.closest('[data-bt]'); if (t) return draw(t.dataset.bt);
+    const b = e.target.closest('[data-b]'); if (!b) return;
+    if (b.dataset.b === 'race') return needTeam(() => pre({ kind: 'daily', venue: v, seed: hashString('daily-' + day), day }));
+    back();
+  };
+}
+
 // ---------- a driver's career (js/career.js) ----------
 // What this driver has actually done: the record the race engine kept, the rank that record earned,
 // what it is good at, and what it has been taught. Nothing here is a hidden bonus: every lesson you
@@ -1565,6 +1595,7 @@ function homeClick(e) {
   if (go === 'standings') standings();
   if (go === 'watch') watchRace();
   if (go.startsWith('driver:')) needTeam(() => driverSheet(go.slice(7), home));
+  if (go === 'board') boardSheet(dayNumber(), home);
   if (go === 'agent') agentSheet(home);
   if (go === 'account') accountSheet(home);
   if (go === 'awayok') { S.agent.unseen = []; store.save(); home(); }
@@ -2418,6 +2449,9 @@ const TROPHIES = {
 const TYRE_EMOJI = { S: '🔴', M: '🟡', H: '⚪', I: '🟢', W: '🔵' };
 
 function results() {
+  // the record of the race just run, kept before it is cleared: the leaderboard checks a Daily by
+  // replaying it on the server, so it is sent the race itself rather than a finishing place
+  const ran = live.rec && !live.rec.lesson ? { kind: live.rec.kind, venue: live.rec.venue, seed: live.rec.seed, args: live.rec.args, cmds: live.rec.cmds.slice(), n: live.rec.n } : null;
   live.clear();
   if (G.resFor === G.race) return resultsView();
   G.resFor = G.race;
@@ -2480,12 +2514,15 @@ function results() {
       if (S.daily.streak >= 3) give('streak3');
       const nv = dailyVenue(n + 1), pb = playbookOf(S);
       dailyLine = `Today's result is saved. ${S.daily.streak > 1 ? `🔥 ${S.daily.streak}-day streak.` : ''} Tomorrow's Daily is ${nv.flag} ${esc(nv.city)}.${pb.on ? ` If you're busy, your agent races it at ${pb.cover}:00 and tells you how it went.` : ''}`;
+      // your scored run goes to the day's leaderboard, where the server replays it and ranks it
+      sendToBoard(n, ran, false);
     } else {
       dailyLine = rec.agent ? `Replay only: your agent already raced today's Daily (P${rec.best}).` : `Replay only: your scored run today was P${rec.best}.`;
       if (best < rec.best) { rec.best = best; rec.pts = pts; rec.share = share; dailyLine = `New best today: P${best}.`; }
     }
   }
   // every race is experience for your drivers, whoever made the calls (js/career.js)
+  G.boardLine = '';
   G.xp = null;
   if (G.kind !== 'academy' && G.kind !== 'practice') {
     G.xp = { car1: recordRace(S, 'car1', carMetrics(R, 'you-0'), G.venue.id), car2: recordRace(S, 'car2', carMetrics(R, 'you-1'), G.venue.id) };
@@ -2571,7 +2608,7 @@ function stratClick(e) {
 
 function resultsView() {
   const share = G.resShare, r = reportHTML(G.report, G.resTab, G.resMore);
-  const sh = show(`${G.resHead}${r.tabs}<div class="rbody">${r.body}${G.resTab === 'review' ? strategistHTML() : ''}</div>${G.resActs}`, 'report');
+  const sh = show(`${G.resHead}${G.boardLine || ''}${r.tabs}<div class="rbody">${r.body}${G.resTab === 'review' ? strategistHTML() : ''}</div>${G.resActs}`, 'report');
   sh.onclick = (e) => {
     stratClick(e);
     const t = e.target.closest('[data-rt]'); if (t) { G.resTab = t.dataset.rt; resultsView(); return; }
@@ -2582,6 +2619,7 @@ function resultsView() {
     if (r === 'again') pre({ kind: G.kind === 'season' ? 'quick' : G.kind, venue: G.venue, seed: G.kind === 'daily' ? G.seed : hashString('quick-' + Date.now()), day: G.day }, 'tyres');
     if (r === 'standings') standings();
     if (r.startsWith('dp:')) driverSheet(r.slice(3), resultsView);
+    if (r === 'board') boardSheet(G.day || dayNumber(), resultsView);
     if (r === 'home') attract();
   };
 }
