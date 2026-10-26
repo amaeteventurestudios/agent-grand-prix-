@@ -40,7 +40,13 @@ for i in $(seq 1 30); do curl -sf "http://127.0.0.1:$PORT/v1/ping" >/dev/null &&
 ST() { sudo -u spacetimedb env HOME="$ROOT" PATH="$NODE_DIR/bin:/usr/bin:/bin" "$ROOT/spacetime" --root-dir="$ROOT" "$@"; }
 ST server add --url "http://127.0.0.1:$PORT" --no-fingerprint home 2>/dev/null || true
 ST server set-default home
-ST login --server-issued-login home >/dev/null
+# Log in ONCE and keep that identity: a fresh login is a new identity, and only the first one owns the
+# databases. Its token lives in the CLI config and, as a backup, in /etc/novenique-owner.env.
+CLI_TOML="$ROOT/config/cli.toml"
+have() { sudo grep -q '^spacetimedb_token *= *"..*"' "$CLI_TOML" 2>/dev/null; }
+SAVED=$(sudo sed -n 's/^STDB_TOKEN=//p' /etc/novenique-owner.env 2>/dev/null | head -1)
+if [ -n "$SAVED" ]; then ST login --token "$SAVED" >/dev/null
+elif ! have; then ST login --server-issued-login home >/dev/null; fi
 
 # 4. publish each game into its own database (updates keep the data)
 for g in $GAMES; do
@@ -66,7 +72,6 @@ sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddy
 # 6. the owner's screen: both games on one page, behind the owner's password (OWNER_PASSWORD secret)
 OWNER_SITE="${OWNER_SITE:-owner.129-146-26-28.sslip.io}"
 sudo mkdir -p /opt/novenique-owner && sudo cp /tmp/owner.mjs /opt/novenique-owner/owner.mjs
-CLI_TOML=$(sudo find "$ROOT" -name cli.toml -path '*config*' 2>/dev/null | head -1)
 TOKEN=$(sudo sed -n 's/^spacetimedb_token *= *"\(.*\)"/\1/p' "$CLI_TOML" | head -1)
 sudo install -m 600 /dev/null /etc/novenique-owner.env
 printf 'STDB_TOKEN=%s\nSTDB_URL=http://127.0.0.1:%s\n' "$TOKEN" "$PORT" | sudo tee /etc/novenique-owner.env >/dev/null
