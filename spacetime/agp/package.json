@@ -2,5 +2,10 @@
   "name": "agp-spacetime",
   "private": true,
   "type": "module",
-  "dependencies": { "spacetimedb": "2.13.0" }
+  "dependencies": {
+    "spacetimedb": "2.13.0"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
 }
