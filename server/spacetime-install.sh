@@ -63,5 +63,5 @@ $SITE {
 CADDY
 sudo caddy validate --config /etc/caddy/Caddyfile >/dev/null && sudo systemctl reload caddy
 
-echo "== SpacetimeDB $(ST version 2>/dev/null | head -1)"
+echo "== SpacetimeDB $(ST --version 2>/dev/null | head -1)"
 for g in $GAMES; do echo "== $g"; ST sql --server home "$g" "SELECT * FROM $( [ "$g" = agp ] && echo lobby || echo pulse )" || true; done

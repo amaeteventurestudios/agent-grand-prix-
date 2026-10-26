@@ -22,7 +22,8 @@ jobs:
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
       - name: Start a throwaway server
         run: |
-          spacetime version
+          spacetime --version || true
+          for c in start "server add" publish login sql call; do echo "== spacetime $c --help"; spacetime $c --help 2>&1 | head -40 || true; done
           (spacetime start --listen-addr 127.0.0.1:3010 > stdb.log 2>&1 &)
           for i in $(seq 1 30); do curl -sf http://127.0.0.1:3010/v1/ping && break; sleep 1; done
           spacetime server add --url http://127.0.0.1:3010 --no-fingerprint home || spacetime server add --help
