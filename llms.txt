@@ -15,7 +15,7 @@
 ## Game modes (available now)
 
 - Daily Grand Prix: one race a day, with the same circuit, grid and weather for every player, and a share card for your result.
-- Season: a 25-round championship, from Abuja to Abu Dhabi, saved in your browser.
+- Season: a 25-round championship, from Abu Dhabi to Abuja, saved in your browser.
 - Quick race: any of 46 original circuits in cities around the world, in short, medium or long length.
 - Racing Academy: five short guided lessons on a real race, taught by the race engineer: Meet your team, Command your drivers, Master the circuit (Driver DNA), Strategy (tyres, safety car, rain) and Your first Grand Prix. All five make you an Academy graduate. The Race guide (ten ways to win) is in the Academy.
 - Beginner assist: let the engineer call the pit stops while you run pace, battery and battles. The race coach folds into a small pill.

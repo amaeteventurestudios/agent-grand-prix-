@@ -1475,7 +1475,7 @@ function home() {
         <div class="row"><button class="btn" data-go="season" type="button">${seasonOver ? 'Standings' : S.season.round > 1 ? 'Next round' : 'Start the season'}</button><button class="btn ghost" data-go="standings" type="button">Standings</button></div></div>
       <div class="hc"><span class="k">Quick race</span><h3>Pick any circuit</h3>
         <p>${lr ? `Last time: ${lr.flag} ${esc(lr.city)}. Race again with the same tyres and calls, or pick another.` : `All ${VENUES.length} circuits, any time. No points, just racing.`}</p>
-        <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button><button class="btn ghost" data-go="practice" type="button">Free practice</button></div></div>
+        <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(id === 'monaco' ? v.country : v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button><button class="btn ghost" data-go="practice" type="button">Free practice</button></div></div>
     </div>`;
   // a first visit offers three ways in; nothing is forced, and anyone who has raced skips it
   const choice = `
@@ -1502,7 +1502,7 @@ function home() {
   const sh = show(`
     ${GLANCE.matches && G.attract ? '<button type="button" class="gl-back" data-go="glance">✕ <span>Back to the race</span></button>' : ''}
     <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
-    <p class="tag">${newcomer ? 'Your AI agents race, and run the team when you’re away. When you’re here, the calls are yours: tyres, pit stops, battery and the weather. 25 Grands Prix from Abuja to Anchorage.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
+    <p class="tag">${newcomer ? 'Your AI agents race, and run the team when you’re away. When you’re here, the calls are yours: tyres, pit stops, battery and the weather. 25 Grands Prix from Abu Dhabi to Abuja.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
     ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
       <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button>${first ? '' : ' <button data-go="agent" type="button">My agent</button>'}${account.signin ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
@@ -2317,7 +2317,7 @@ function winSheet(back) {
 }
 
 
-const FEATURED = ['sakhir', 'singapore'];
+const FEATURED = ['monaco', 'singapore'];
 const venueById = (id) => VENUES.find((v) => v.id === id);
 const quickO = (v) => ({ kind: 'quick', venue: v, seed: hashString('quick-' + v.id + '-' + Date.now()) });
 function quickPick() { pre({ kind: 'quick' }, 'circuit'); }
@@ -3054,7 +3054,7 @@ function standings(over) {
   const teams = [...TEAMS.map((t) => ({ id: t.id, name: t.name, c: t.c1 })), { id: 'you', name: team().name, c: team().c1, you: true }]
     .map((t) => ({ ...t, pts: S.season.teamPts[t.id] || 0 })).sort((a, b) => b.pts - a.pts);
   const done = S.season.round - 1;
-  const sh = show(`<h2>Season ${S.season.no}</h2><p class="lede">${done ? `After ${done} of ${CALENDAR.length} rounds.` : 'The season starts in Abuja.'}</p>
+  const sh = show(`<h2>Season ${S.season.no}</h2><p class="lede">${done ? `After ${done} of ${CALENDAR.length} rounds.` : 'The season starts in Abu Dhabi.'}</p>
     <div class="grid2">
       <div><div class="sub">Drivers</div><table class="res"><tbody>${drivers.map((d, i) => `<tr class="${d.you ? 'mine' : ''}"><td>${i + 1}</td><td class="pn">${portraitSVG(d.d, d.tm, { size: 26, bg: false })}${esc(d.name)}</td><td class="m">${esc(d.team)}</td><td class="r">${d.pts}</td></tr>`).join('')}</tbody></table></div>
       <div><div class="sub">Teams</div><table class="res"><tbody>${teams.map((t, i) => `<tr class="${t.you ? 'mine' : ''}"><td>${i + 1}</td><td><span class="sw" style="display:inline-block;width:5px;height:14px;border-radius:2px;background:${t.c};margin-right:6px"></span>${esc(t.name)}</td><td class="r">${t.pts}</td></tr>`).join('')}</tbody></table></div>

@@ -4,7 +4,7 @@ A free browser racing game. Your two AI drivers race; you are the team principal
 tyres, pit stops, battery, attack or defend, and the rain call. Static site, Three.js r160 vendored, no build step.
 
 - **Daily Grand Prix**: one race a day, same circuit, grid and weather for everyone (seeded by date; #1 = 23 Oct 2026, Abuja). Share card.
-- **Season**: 25 rounds, Abuja to Abu Dhabi, saved in the browser.
+- **Season**: 25 rounds, Abu Dhabi to Abuja, saved in the browser.
 - **Quick race**: any venue, Short, Medium or Long (`LENGTHS` in `js/game.js`); Sakhir and Singapore are the featured picks, and Race again repeats the last one.
 
 **Racing Academy** (`js/academy.js`, wired up in `js/main.js`): five short lessons on a real race. Each step is taught by the
