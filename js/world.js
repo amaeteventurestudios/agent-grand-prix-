@@ -1154,7 +1154,9 @@ export class World {
       }
     }
     if (tags.length) this.declutter(tags, camera, this.viewH() * camera.aspect, this.viewH());
-    this.ring.visible = this.halo.visible = !!selectedId && showRing;
+    // no ring on an empty patch of track once the marshals have taken a stopped car away
+    const selCar = selectedId && race.byId.get(selectedId);
+    this.ring.visible = this.halo.visible = !!selCar && showRing && !(selCar.dnf && selCar.cleared);
     for (let i = mr; i < 2; i++) this.mineRings[i].r.visible = this.mineRings[i].h.visible = false;
     if (mr) { const k = 0.5 + 0.5 * Math.sin(performance.now() / 260); for (const { r, h } of this.mineRings) { r.material.opacity = 0.62 + 0.3 * k; h.material.opacity = 0.1 + 0.08 * k; } }
     // safety car on track, lights flashing
