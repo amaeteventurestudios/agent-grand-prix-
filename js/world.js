@@ -7,7 +7,7 @@ import { rng, clamp, hashString } from './rng.js';
 import { sampleTrack } from './track.js';
 import { COMPOUNDS } from './data.js';
 import { Paddock } from './paddock.js';
-import { Fleet, loadCar } from './cars.js';
+import { Fleet, loadCar, loadGLB } from './cars.js';
 import { Stands, sweep } from './env.js';
 import { towerShapes, facadeMaterial, streetLamps } from './kit.js';
 import { treeGeo, mountainGeo, Boats, Clouds, rocks } from './nature.js';
@@ -955,6 +955,25 @@ export class World {
     l1.position.set(-0.3, 1.58, 0.42); l2.position.set(-0.3, 1.58, -0.42);
     this.scCar.add(scBody, l1, l2); this.scCar.scale.setScalar(S); this.scCar.visible = false;
     this.scene.add(this.scCar);
+    // the modelled safety car (art/cars/safety.py, a luxury grand tourer) replaces the box once loaded:
+    // it keeps its own colours, and its two roof lamps flash with the same materials
+    loadGLB('vehicles/safety/safety').then((root) => {
+      if (this.disposed) return;
+      root.updateMatrixWorld(true);
+      const L = root.getObjectByName(`safety_LOD${this.lite ? 1 : 0}`);
+      if (!L) return;
+      const inv = L.matrixWorld.clone().invert(), paint = new THREE.MeshPhongMaterial({ vertexColors: true, shininess: 110, specular: '#8a9099' });
+      const g = new THREE.Group();
+      L.traverse((o) => {
+        if (!o.isMesh) return;
+        const lamp = /lamp_(L|R)/.exec(o.name)?.[1];
+        const m = new THREE.Mesh(o.geometry, lamp ? this.scLamps[lamp === 'L' ? 0 : 1] : paint);
+        m.applyMatrix4(inv.clone().multiply(o.matrixWorld)); m.castShadow = !lamp;
+        g.add(m);
+      });
+      scBody.visible = l1.visible = l2.visible = false;
+      this.scCar.add(g);
+    }).catch(() => {});
   }
 
   setCars(cars) {
