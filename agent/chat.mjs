@@ -6,7 +6,7 @@ const AKEY = process.env.ANTHROPIC_API_KEY || '';
 const MODEL = process.env.BRAIN_MODEL || 'claude-haiku-5-5';
 export const NAME = process.env.AGENT_NAME || 'Teague';
 
-export const ACTIONS = ['none', 'today', 'race', 'circuits', 'results', 'help', 'auto', 'take over', 'team',
+export const ACTIONS = ['none', 'today', 'race', 'circuits', 'results', 'help', 'auto', 'quiet', 'take over', 'team', 'answer 1', 'answer 2', 'answer 3',
   'box', 'stay out', 'push', 'save', 'normal', 'attack', 'defend', 'boost', 'status', 'stop'];
 
 export function system() {
@@ -19,6 +19,8 @@ export function system() {
     '- For anything about the player, their races or a live race, use ONLY the facts given. Never invent a result, position, gap, tyre or number. If a fact is missing, say you do not know.',
     '- You may talk about racing, strategy and the game in general. For things far outside the game, answer in a sentence and steer back to racing.',
     '- "action" runs a game command for the player. Pick one ONLY when the player clearly asks for it (e.g. "start today\'s race", "pit for mediums", "you take over"). For advice or questions, "action" is "none". Race actions (box, stay out, push, save, normal, attack, defend, boost, status, stop) only during a live race.',
+    '- If the facts show a question waiting for the player\'s answer and the player answers it in words ("yes box", "stay out", "go for it"), pick "answer 1", "answer 2" or "answer 3" for the option they chose.',
+    '- "auto" hands the race to the agents (they check in before big calls); "quiet" lets them decide everything; "take over" gives the player every call.',
     '- "city" is set only for action "race"; "tyre" (S, M, H, I or W) only for "box"; "car" (1 or 2) only when the player names one car; "team" only for action "team" (the new team name).',
     '- Never mention real drivers, teams, brands or people, and never name the people who made the game.',
   ].join('\n');
@@ -37,7 +39,7 @@ export const SCHEMA = {
 };
 
 const TYRE_WORD = { S: 'softs', M: 'mediums', H: 'hards', I: 'inters', W: 'wets' };
-const RACE_ONLY = new Set(['box', 'stay out', 'push', 'save', 'normal', 'attack', 'defend', 'boost', 'status', 'stop']);
+const RACE_ONLY = new Set(['answer 1', 'answer 2', 'answer 3', 'box', 'stay out', 'push', 'save', 'normal', 'attack', 'defend', 'boost', 'status', 'stop']);
 
 // a model's raw text in, a checked { say, command } out (or null); command is the text the handler runs
 export function accept(raw, { racing = false, venues = [] } = {}) {
@@ -54,6 +56,7 @@ export function accept(raw, { racing = false, venues = [] } = {}) {
     command = v ? `race ${v.city.toLowerCase()}` : null;
   } else if (a === 'box') command = ['box', r.car === '1' || r.car === '2' ? r.car : '', TYRE_WORD[r.tyre] || ''].filter(Boolean).join(' ');
   else if (a === 'team') { const n = String(r.team || '').replace(/[^\p{L}\p{N} '-]/gu, '').trim().slice(0, 24); command = n.length >= 2 ? `team ${n}` : null; }
+  else if (a.startsWith('answer ')) command = a.slice(7);
   else if (a !== 'none') command = a;
   return { say, command };
 }
