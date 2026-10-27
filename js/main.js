@@ -638,9 +638,27 @@ function talkSaid(text, kind) {
 }
 // timings for each step of one transmission, in ms from pressing the button
 function mark(k) { const m = talk.m; if (m && m[k] == null) m[k] = Math.round(performance.now() - m.t0); }
+// iPhone Safari shows "Microphone access allowed" each time the mic opens. Holding one mic stream for
+// the race keeps it open between holds, so the note shows once; it's let go when the race is paused,
+// hidden or over, or after two quiet minutes. Speech is still only listened to while you hold.
+const isIOS = typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+const keepMic = { stream: null, asking: false, at: 0 };
+function micKeep() {
+  keepMic.at = performance.now();
+  if (!isIOS || keepMic.stream || keepMic.asking || !navigator.mediaDevices?.getUserMedia) return;
+  keepMic.asking = true;
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then((s) => { keepMic.asking = false; if (micWanted()) keepMic.stream = s; else s.getTracks().forEach((t) => t.stop()); })
+    .catch(() => { keepMic.asking = false; });
+}
+function micWanted() {
+  const R = G.race;
+  return !!(R && !G.attract && !G.paused && !document.hidden && performance.now() - keepMic.at < 120000 && myCars().some((c) => c && !c.dnf && !c.finished));
+}
+setInterval(() => { if (keepMic.stream && !micWanted()) { keepMic.stream.getTracks().forEach((t) => t.stop()); keepMic.stream = null; } }, 1000);
 function talkStart() {
   if (talk.rec || !G.race || G.attract || !radioSupported()) return;
-  freeStop();
+  freeStop(); micKeep();
   talk.done = false; talk.heard = ''; talk.n++;
   talk.m = { t0: performance.now(), id: talk.n };
   voice.stop(); sound.duck(true);
@@ -1685,7 +1703,7 @@ function waPanel(box, code = null) {
   } else {
     const hi = open('hi');
     box.innerHTML = `<div class="wa-card"><b>📱 Connect your AI agent</b>
-      <p>Link ${esc(wa.name)}, your race engineer on WhatsApp, and it follows every race you run here: Abu Dhabi, Monaco, three at once. Hand the team to your agents and make the big calls by text.</p>
+      <p>Link ${esc(wa.name)}, your race engineer on WhatsApp, and it follows the race you run here, one at a time. Hand the team to your agents and make the big calls by text.</p>
       <div class="actions"><button class="btn" type="button" data-wa="code">Connect WhatsApp</button></div>
       <p class="note">No agent yet? ${hi ? `<a href="${hi}" target="_blank" rel="noopener">Say hi to ${esc(wa.name)}</a> and it sets you up, then connect here.` : `Say hi to ${esc(wa.name)} on WhatsApp and it sets you up, then connect here.`}</p></div>`;
   }
