@@ -30,6 +30,19 @@ must(/Lagos it is/.test(out) && /LAGOS GRAND PRIX/.test(out), 'free talk starts 
 W.races.clear();
 console.log('chat ok');
 
+// words as answers
+const PW = await import('./pitwall.mjs');
+const q = { pick: 0, opts: [{ box: 'H' }, { box: null }, { box: 'M' }] };
+for (const [w, k] of [['yes', 0], ['do it', 0], ['no', 1], ['stay out', 1], ['mediums', 2], ['hards', 0]]) must(PW.wordsToOption(w, q) === k, 'words: ' + w, String(PW.wordsToOption(w, q)));
+
+// Team Principal mode: the engineer never speaks unasked
+W.handle('t3', 'take over'); W.handle('t3', 'race singapore'); said();
+const L3 = W.races.get('t3'); L3.R.start();
+let tp = '';
+for (let i = 0; i < 20000 && W.races.has('t3'); i++) { W.tickRaces(0.25); tp += said(); }
+must(!/engineer|Box .* now\?/.test(tp), 'silent engineer in Team Principal mode', tp.slice(0, 2000));
+console.log('team principal ok');
+
 // check-ins: with the race handed over, a pit call comes as a card; a number answers it
 W.setChatModel(null);
 W.handle('t2', 'auto'); W.handle('t2', 'race singapore'); said();
@@ -38,7 +51,8 @@ let card = null, got = '';
 for (let i = 0; i < 40000 && W.races.has('t2') && !card; i++) { W.tickRaces(0.25); got = said(); if (/\*Box .* now\?\*/.test(got)) card = got; }
 if (card) {
   must(/Lap \d+\/\d+/.test(card) && /Battery/.test(card) && /🛞/.test(card) && /1️⃣/.test(card), 'decision card', card);
-  W.handle('t2', '2'); out = said(); must(/stays? out/.test(out), 'answer a card', out);
+  must(/Teague's pick/.test(card) && /Confidence/.test(card) && /No reply by/.test(card), 'pick, confidence and deadline', card);
+  W.handle('t2', 'stay out'); out = said(); must(/stays? out/.test(out), 'answer a card in words', out);
   console.log('check-ins ok');
 } else console.log('check-ins: no pit call this race (fine)');
 W.races.clear();

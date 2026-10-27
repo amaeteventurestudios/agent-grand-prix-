@@ -129,6 +129,18 @@ Commands: `today`, `race <city>`, `auto`, `take over`, `team <name>`, `results`,
 race `box softs` (mediums, hards, inters, wets), `stay out`, `boost`, `harvest`, `push`, `save`,
 `normal`, `attack`, `defend`, `car 2`, `status`, `stop`.
 
+**Check-ins** (`agent/pitwall.mjs`): after `auto`, your agents run the race and Teague only messages
+you at a real decision (pit window, worn tyres, rain, a drying track, a safety car, the compound
+rule). Each card shows the lap, position, gaps, tyres and grip left, battery and the forecast; three
+options, each with what it leads to ("out about P9, 1 car gets by"); Teague's pick with a confidence
+and its reasons, and a track record of how often its rejoin projections were right. Answer with 1, 2,
+3 or in words ("yes", "stay out", "mediums"). A card expires when the race moves on (the safety car
+goes in, the rain stops), and at its deadline Teague's pick runs, or the safe call if the pick would
+leave a car on dead tyres. The same answer three times for one kind of call becomes Teague's pick.
+`quiet` lets the agents decide everything; `updates every 3 laps` / `updates off` sets how often you
+hear from Teague. In Team Principal mode (`take over`) the engineer never speaks unasked: you get race
+control (safety car, weather, your incidents) and your drivers' replies, and `status` when you ask.
+
 Anything else is free conversation (`agent/chat.mjs`): with `ANTHROPIC_API_KEY` set (the same key
 as the drivers' brain), a small model answers as the team's agent (`AGENT_NAME`, default Teague)
 from the game's own facts (your team, your last races, today's race, the race you're in), and when
