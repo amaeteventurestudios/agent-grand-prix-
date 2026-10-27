@@ -190,7 +190,11 @@ export function racePut(id, rec, after) {
 export function raceFor(phone) {
   const l = links(), ids = Object.keys(l.byId).filter((k) => l.byId[k] === phone);
   let best = null;
-  for (const id of ids) { const r = races.get(id); if (r && r.rec && (!best || r.at > best.r.at)) best = { id, r }; }
+  for (const id of ids) {
+    const r = races.get(id);
+    if (r && Date.now() - r.at > 6 * 3600e3) { races.delete(id); continue; }   // a race left open for hours is over
+    if (r && r.rec && (!best || r.at > best.r.at)) best = { id, r };
+  }
   if (!best) return { linked: ids.length > 0 };
   best.r.agentAt = Date.now();
   return { linked: true, id: best.id, rec: best.r.rec, at: best.r.at, age: Date.now() - best.r.at, team: (readSave(best.id) || {}).team || null };
