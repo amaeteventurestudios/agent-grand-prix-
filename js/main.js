@@ -1914,7 +1914,7 @@ function accountSheet(back, o = {}) {
       ${w.google && w.email ? '<div class="ac-or"><span>or</span></div>' : ''}
       ${w.email ? `<form id="acMail" class="ac-form"><label for="acEmail">Email</label><input id="acEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required value="${esc(o.email || '')}"><button class="btn${w.google ? ' ghost' : ''}" type="submit">Email me a code</button></form>` : ''}
       ${!w.google && !w.email ? '<p class="note"><b>Sign-in opens very soon</b> with Google or your email. Until then your team and progress are saved on this device.</p>' : ''}
-      ${w.google || w.email ? '<p class="small ac-fine">We only use your email to sign you in and to tell you about your account. No spam.</p>' : ''}
+      ${w.google || w.email ? '<p class="small ac-fine">We only use your email to sign you in and to tell you about your account. No spam. By signing in you agree to the <a href="terms.html" target="_blank" rel="noopener">Terms</a> and <a href="privacy.html" target="_blank" rel="noopener">Privacy</a>.</p>' : ''}
       <div class="actions"><button class="btn ghost" id="acBack" type="button">${o.gate ? 'Not now' : 'Back'}</button></div>`);
     const g = $('#acG'); if (g) g.addEventListener('click', async () => { g.disabled = true; g.lastChild.textContent = 'Opening Google…'; if (!(await signIn())) { g.disabled = false; g.lastChild.textContent = 'Continue with Google'; toast('Could not reach the game server. Your progress is safe on this device.'); } });
     const f = $('#acMail'); if (f) f.addEventListener('submit', async (e) => {
