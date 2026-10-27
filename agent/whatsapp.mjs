@@ -341,7 +341,9 @@ function handle(from, text, name, { noChat = false } = {}) {
     const n = t.replace(/1️⃣/, '1').replace(/2️⃣/, '2').replace(/3️⃣/, '3').match(/^(?:option\s*)?([123])$/);
     const k = n ? +n[1] - 1 : PW.wordsToOption(t.replace(/^(?:box|pit)\s+(?:for\s+)?/, 'box ').replace(/^box (soft|medium|hard|inter|wet)/, '$1'), q);
     if (k !== null && k !== undefined) return send(from, answer(L, id, k, 'you'));
-  } else if (L && /^(?:option\s*)?[123]$|^[1-3]️⃣$/.test(t)) {
+  } else if (L && (/^(?:option\s*)?[123]$|^[1-3]️⃣$/.test(t) || (L.cards && L.cards.length && PW.wordsToOption(t, { pick: 0, opts: [{}, {}, {}] }) !== null && !/\b(soft|medium|hard|inter|wet)|^stay out$/.test(t)))) {
+    const last = L.cards && L.cards[L.cards.length - 1];
+    if (last && last.how && last.how !== 'you') return send(from, last.how === 'expired' ? `That call expired on lap ${last.lap}. I'll message you when there's another one.` : 'Too late for that one: the deadline passed and I made the call. I\'ll message you when there\'s another.');
     const ex = L.expired && Object.values(L.expired).pop();
     return send(from, ex ? `That call expired on lap ${ex}. I'll message you when there's another one.` : "Nothing to answer right now. I'll message you when there's a call to make.");
   }
