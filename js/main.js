@@ -158,7 +158,8 @@ function agentSync(R) {
   const rec = live.rec, now = performance.now();
   const racing = rec && R && !G.attract && R.started && G.kind !== 'live' && G.kind !== 'academy';
   if (!racing) {
-    if (wa.sent) { wa.sent = null; fetch('/api/me/race', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {}); }
+    // not racing here: clear what the agent follows (also a race left open by an earlier visit, once per page)
+    if (wa.sent || !wa.cleared) { wa.sent = null; wa.cleared = true; fetch('/api/me/race', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {}); }
     return;
   }
   if (now - wa.at < 2000 || (wa.sent === rec.id && wa.doneSent)) return;

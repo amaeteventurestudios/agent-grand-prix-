@@ -93,4 +93,30 @@ W.races.clear();
   must(M.R.result[0].id === B.result[0].id && M.R.result.map((x) => x.id).join() === B.result.map((x) => x.id).join(), 'same result as the browser', '');
   console.log('follow ok' + (card ? ', with a check-in' : ''));
 }
+
+// a race left open in the game (closed mid-race): after 10 minutes it is no longer "your race", and Teague says so
+{
+  const v = VENUES.find((x) => x.id === 'sakhir') || VENUES[0], args = { team: undefined, startCompounds: {}, auto: false };
+  const B = setupRace({ venue: v, seed: 9, ...args }).make();
+  const rec = { id: 'r2', kind: 'quick', venue: v.id, seed: 9, args, cmds: [], n: 0 };
+  const step = B.step.bind(B); B.step = () => { step(); rec.n++; };
+  let age = 0;
+  W.setAccounts(async (method, route) => (route.startsWith('/agent/race') ? { linked: true, id: 'acct1', rec: JSON.parse(JSON.stringify(rec)), age } : {}));
+  B.start(); for (let i = 0; i < 200; i++) B.step();
+  await W.followAll(); said(); must(W.races.has('t4'), 'following the new race', '');
+  age = 700000; await W.followAll(); out = said();
+  must(!W.races.has('t4') && /stopped on lap/.test(out), 'a closed game stops the race here', out);
+  await W.followAll(); must(!W.races.has('t4') && !said(), 'and it is not picked up again while closed', '');
+  let seen = null;
+  W.setChatModel(async (sys, user) => { seen = user; return JSON.stringify({ say: 'You are not racing right now.', action: 'none', city: null, tyre: null, car: null, team: null }); });
+  await W.handle('t4', 'what are we doing right now'); said();
+  must(seen && /"racingNow":false/.test(seen) && !/"liveRace"/.test(seen) && /"stoppedRace"/.test(seen), 'Teague is told there is no race running', seen);
+  // a model that wrongly reaches for "today" on a question starts nothing
+  W.setChatModel(async () => JSON.stringify({ say: "Today's Daily is at Sakhir.", action: 'today', city: null, tyre: null, car: null, team: null }));
+  await W.handle('t4', 'hey, what are we doing today?'); said();
+  must(!W.races.has('t4'), 'a question never starts a race', '');
+  W.setChatModel(null);
+  age = 0; await W.followAll(); out = said(); must(W.races.has('t4') && /Following your race/.test(out), 'picked up again when the game is back', out);
+  console.log('stale race ok');
+}
 process.exit(0);

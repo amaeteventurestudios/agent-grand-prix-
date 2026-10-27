@@ -421,7 +421,10 @@ function facts(p, L) {
     today: { daily: n, city: v.city, country: v.country, circuit: v.circuit, tempC: v.temp, about: v.note },
     lastRaces: p.results.slice(-5).reverse().map((x) => ({ city: VENUES.find((q) => q.id === x.venue)?.city, daily: x.day, finished: x.pos.map((q) => (q === 'DNF' ? 'DNF' : 'P' + q)), points: x.pts })),
     circuits: VENUES.length, web: SITE || null,
+    // the only truth on whether the player is racing: liveRace is there only while a race is actually running
+    racingNow: !!L,
   };
+  if (!L && p.pausedWeb) f.stoppedRace = { city: p.pausedWeb.city, lap: p.pausedWeb.lap, laps: p.pausedWeb.laps, note: 'not running: the game was closed mid-race; it continues only if the player opens the game again' };
   if (L) {
     const R = L.R, lead = R.order[0];
     f.liveRace = {
@@ -503,6 +506,7 @@ function follow(to, p, r) {
     if (!L.R.done) send(to, `🏳️ You left the ${L.venue.flag} ${L.venue.city} race on the web on lap ${L.R.leaderLap()} of ${L.R.laps}.`);
     races.delete(to); L = null;
   }
+  if (p.pausedWeb && (!rec || rec.id !== p.pausedWeb.id || Date.now() - p.pausedWeb.at > 864e5)) { delete p.pausedWeb; save(); }
   if (!rec || rec.kind === 'live' || rec.kind === 'academy' || p.muted === rec.id) return;
   if (L && !L.mirror) {
     if (L.webNote !== rec.id) { L.webNote = rec.id; const v = VENUES.find((x) => x.id === rec.venue); send(to, `👀 You've started ${v ? v.flag + ' ' + v.city : 'a race'} in the game. I'll follow it when this race ends, or reply *stop* to end this one now.`); }
@@ -511,8 +515,15 @@ function follow(to, p, r) {
   const fresh = !L;
   if (fresh) { if (r.age > 60000 || rec.done) return; L = adopt(to, p, rec, r.id); if (!L) return; }
   const M = L.mirror, R = L.R;
-  if (r.age > 600000) { if (!M.paused) { M.paused = true; send(to, `⏸️ Your ${L.venue.city} race is paused on lap ${R.leaderLap()} (the game is closed). I'll pick it up when you're back.`); } return; }
-  M.paused = false; M.seen = Date.now();
+  // the game has been closed for 10 minutes: that race is not running, so it's not "your race" any more. It is
+  // let go here (and picked up again from its record if the game comes back to it)
+  if (r.age > 600000) {
+    if (!R.done) send(to, `⏸️ Your ${L.venue.flag} ${L.venue.city} race stopped on lap ${R.leaderLap()} of ${R.laps} (the game is closed). Open it again and I'll pick it up.`);
+    p.pausedWeb = { id: rec.id, city: L.venue.city, lap: R.leaderLap(), laps: R.laps, at: Date.now() }; save();
+    races.delete(to); return;
+  }
+  M.seen = Date.now();
+  if (fresh && p.pausedWeb) { delete p.pausedWeb; save(); }
   advance(L, rec);
   if (fresh) {
     L.evIdx = R.events.length; L.lastLap = R.leaderLap();

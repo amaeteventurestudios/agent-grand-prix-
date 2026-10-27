@@ -17,9 +17,11 @@ export function system() {
     '- Be warm, natural and brief: one to three short sentences, at most 60 words. Plain chat, no headings, no lists, at most one emoji.',
     '- WhatsApp formatting only: *bold* for a command the player can type. No markdown links or # headings.',
     '- For anything about the player, their races or a live race, use ONLY the facts given. Never invent a result, position, gap, tyre or number. If a fact is missing, say you do not know.',
+    '- The player is in a race ONLY when the facts have "liveRace" ("racingNow": true). Otherwise they are not racing: never say or suggest they are. "today" is just today\'s Daily circuit, not a race they are in; "stoppedRace" is a race they left, which is not running.',
     '- You may talk about racing, strategy and the game in general. For things far outside the game, answer in a sentence and steer back to racing.',
     '- "action" runs a game command for the player. Pick one ONLY when the player clearly asks for it (e.g. "start today\'s race", "pit for mediums", "you take over"). For advice or questions, "action" is "none". Race actions (box, stay out, push, save, normal, attack, defend, boost, status, stop) only during a live race.',
     '- If the facts show a question waiting for the player\'s answer and the player answers it in words ("yes box", "stay out", "go for it"), pick "answer 1", "answer 2" or "answer 3" for the option they chose.',
+    '- "today" STARTS today\'s Daily race and "race" starts a race: pick them only when the player asks you to start one. A question about today, the plan or what is going on is never a reason to start a race.',
     '- "auto" hands the race to the agents (they check in before big calls); "quiet" lets them decide everything; "take over" gives the player every call.',
     '- "city" is set only for action "race"; "tyre" (S, M, H, I or W) only for "box"; "car" (1 or 2) only when the player names one car; "team" only for action "team" (the new team name).',
     '- Never mention real drivers, teams, brands or people, and never name the people who made the game.',
@@ -42,14 +44,16 @@ const TYRE_WORD = { S: 'softs', M: 'mediums', H: 'hards', I: 'inters', W: 'wets'
 const RACE_ONLY = new Set(['answer 1', 'answer 2', 'answer 3', 'box', 'stay out', 'push', 'save', 'normal', 'attack', 'defend', 'boost', 'status', 'stop']);
 
 // a model's raw text in, a checked { say, command } out (or null); command is the text the handler runs
-export function accept(raw, { racing = false, venues = [] } = {}) {
+// starting a race is never a guess: the player's own words must ask for one ("start today's race", "let's race in Lagos")
+const START = /\b(start|begin|launch|kick(\s+it)?\s+off|let'?s\s+(go|race|run|do\s+it)|race\s+(me\s+)?(in|at|today|now)|go\s+race|run\s+(it|today|the))\b/i;
+export function accept(raw, { racing = false, venues = [], said = null } = {}) {
   let r;
   try { r = typeof raw === 'string' ? JSON.parse(raw.replace(/^```(?:json)?\s*|\s*```$/g, '')) : raw; } catch { return null; }
   if (!r || typeof r.say !== 'string' || !r.say.trim()) return null;
   const say = r.say.trim().replace(/^#+\s*/gm, '').slice(0, 600);
   let a = ACTIONS.includes(r.action) ? r.action : 'none', command = null;
   if (RACE_ONLY.has(a) && !racing) a = 'none';
-  if ((a === 'today' || a === 'race') && racing) a = 'none';
+  if ((a === 'today' || a === 'race') && (racing || (said != null && !START.test(said)))) a = 'none';
   if (a === 'race') {
     const q = String(r.city || '').toLowerCase().replace(/[^a-z ]/g, '').trim();
     const v = q && venues.find((x) => x.id === q.replace(/ /g, '') || x.city.toLowerCase() === q || x.country.toLowerCase() === q);
@@ -86,5 +90,5 @@ export async function chat(facts, history, said, { fetchModel, racing, venues } 
     });
     raw = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
   }
-  return accept(raw, { racing, venues });
+  return accept(raw, { racing, venues, said });
 }
