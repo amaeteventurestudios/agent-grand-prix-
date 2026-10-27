@@ -138,33 +138,38 @@ export class Paddock {
     this.group.add(solid, ground);
     geos.concat(flat, glass).forEach((g) => g.dispose());
 
-    // your garage's race screen: live timing for your two cars, and the place you just gained
+    // every garage has two screens at the front: live timing for the team's own two cars, and the race
+    // itself (one shared feed, main.js renders it every few frames when a garage is close to the camera)
     this.mineTeam = teams.find((t) => t.you) || null;
-    if (this.mineTeam) {
-      const sB = P.box[this.mineTeam.box];
-      const cv = document.createElement('canvas'); cv.width = 512; cv.height = 288;
-      this.scr = { cv, g: cv.getContext('2d'), tex: new THREE.CanvasTexture(cv), at: -1, flash: null };
-      this.scr.tex.colorSpace = THREE.SRGBColorSpace;
-      // the race itself, as the TV shows it (main.js renders into it every few frames when you're near)
-      const rt = new THREE.WebGLRenderTarget(world.lite ? 256 : 384, world.lite ? 144 : 216, { depthBuffer: true });
-      this.feed = { rt, cam: new THREE.PerspectiveCamera(42, 16 / 9, 1, 2500), pos: new THREE.Vector3() };
-      const fmat = new THREE.MeshBasicMaterial({ map: rt.texture });
-      const frameMat = new THREE.MeshLambertMaterial({ color: '#15181e' });
-      [[SCR[0] + SCRW, new THREE.MeshBasicMaterial({ map: this.scr.tex, toneMapped: false })], [SCR[0] - SCRW, fmat]].forEach(([al, m]) => {
+    const rt = new THREE.WebGLRenderTarget(world.lite ? 256 : 384, world.lite ? 144 : 216, { depthBuffer: true });
+    this.feed = { rt, cam: new THREE.PerspectiveCamera(42, 16 / 9, 1, 2500), pos: new THREE.Vector3(), all: [] };
+    const fmat = new THREE.MeshBasicMaterial({ map: rt.texture });
+    const frameMat = new THREE.MeshLambertMaterial({ color: '#15181e' });
+    const faceGeo = new THREE.PlaneGeometry(3.2, 1.8), frameGeo = new THREE.BoxGeometry(3.4, 2.0, 0.12), poleGeo = new THREE.BoxGeometry(0.14, 1.6, 0.14);
+    this.scrs = new Map();
+    for (const t of teams) {
+      const sB = P.box[t.box], mine = t === this.mineTeam;
+      const cv = document.createElement('canvas'); cv.width = mine || !world.lite ? 512 : 256; cv.height = cv.width * 9 / 16;
+      const scr = { cv, g: cv.getContext('2d'), tex: new THREE.CanvasTexture(cv), at: -9, flash: null, team: t };
+      scr.tex.colorSpace = THREE.SRGBColorSpace;
+      [[SCR[0] + SCRW, new THREE.MeshBasicMaterial({ map: scr.tex, toneMapped: false })], [SCR[0] - SCRW, fmat]].forEach(([al, m]) => {
         const a = sampleTrack(T, sB + al, P.lat + sd * SCR[1], {}), b = sampleTrack(T, sB + al, P.lat + sd * (SCR[1] - 1), {});
         const ny = Math.atan2(b.x - a.x, b.z - a.z);
-        const face = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 1.8), m);
+        const face = new THREE.Mesh(faceGeo, m);
         face.position.set(a.x + (b.x - a.x) * 0.07, 2.55, a.z + (b.z - a.z) * 0.07); face.rotation.y = ny;
-        const frame = new THREE.Mesh(new THREE.BoxGeometry(3.4, 2.0, 0.12), frameMat);
+        const frame = new THREE.Mesh(frameGeo, frameMat);
         frame.position.set(a.x, 2.55, a.z); frame.rotation.y = ny;
-        const pole = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.6, 0.14), frameMat);
+        const pole = new THREE.Mesh(poleGeo, frameMat);
         pole.position.set(a.x, 0.8, a.z);
-        frame.castShadow = pole.castShadow = true;
+        frame.castShadow = pole.castShadow = !world.lite || mine;
         this.group.add(face, frame, pole);
-        if (m === fmat) this.feed.pos.set(a.x, 2.5, a.z);
+        if (m === fmat) { scr.pos = new THREE.Vector3(a.x, 2.5, a.z); this.feed.all.push(scr.pos); if (mine || !this.feed.pos.lengthSq()) this.feed.pos.copy(scr.pos); }
       });
-      this.drawScreen(null);
+      this.scrs.set(t.id, scr);
+      this.drawScreen(null, scr);
     }
+    this.scr = this.mineTeam ? this.scrs.get(this.mineTeam.id) : null;
+    this.moods = new Map(); this.places = new Map();
 
     // spare cars inside the garages, nose out
     this.spares = [];
@@ -304,17 +309,29 @@ export class Paddock {
         if ((c.pit && c.pit.phase === 'in') || (c.pitReq && !c.pit && d > -450 && d < 0)) phase = 'ready';
         if (c.pit && c.pit.phase === 'out' && d < 25 && phase === 'idle') phase = 'ready';
       }
-      if (phase === 'idle' && t === this.mineTeam) phase = 'watch';
+      if (phase === 'idle') phase = 'watch';
       state.set(t.id, [phase, a0]);
     }
     const step = Math.min(1, dt * speed * 3.2);
-    const mood = this.mood && this.t < this.mood.until ? this.mood.kind : null;
-    if (this.scr && (this.t - this.scr.at > 0.4 || this.scr.dirty)) { this.scr.at = this.t; this.scr.dirty = false; this.drawScreen(race); }
+    // the other crews cheer their own cars' overtakes too (yours cheer through celebrate(), from main.js)
+    if (race && race.started) for (const t of this.teams) {
+      if (t === this.mineTeam) continue;
+      const best = Math.min(...race.cars.filter((c) => c.team.id === t.id && !c.dnf).map((c) => c.pos)), was = this.places.get(t.id);
+      this.places.set(t.id, best);
+      if (was !== undefined && isFinite(best) && best !== was) this.moods.set(t.id, { kind: best < was ? 'cheer' : 'despair', until: this.t + 3.5 });
+    }
+    const cam = this.w.camera;
+    for (const scr of this.scrs.values()) {
+      const near = !cam || cam.position.distanceToSquared(scr.pos) < 200 ** 2;
+      if (scr.dirty || (near && this.t - scr.at > (scr === this.scr ? 0.4 : 0.9))) { scr.at = this.t; scr.dirty = false; this.drawScreen(race, scr); }
+      if (near && cam && cam.position.distanceToSquared(scr.pos) < cam.position.distanceToSquared(this.feed.pos)) this.feed.pos.copy(scr.pos);
+    }
     const F = this.figs;
     if (F) for (const im of Object.values(F)) im.count = 0;
     this.c ||= new THREE.Color();
     this.crew.forEach((m, i) => {
       const [phase, a0] = state.get(m.team.id);
+      const md = this.moods.get(m.team.id), mood = md && this.t < md.until ? md.kind : null;
       const [ta, tl] = this.slot(phase, m.j, a0);
       const da = ta - m.a, dl = tl - m.l, dist = Math.hypot(da, dl);
       const mv = Math.min(dist, dt * speed * 7);
@@ -336,7 +353,14 @@ export class Paddock {
           // they turn round from the screen to celebrate (towards the director's camera), and to each other
           face = Math.atan2(sd * (CAM[1] - m.l), CAM[0] - m.a) + Math.sin(this.t * 3.1 + m.j * 2.1) * 0.6;
         } else if (mood === 'despair') pose = m.j % 2 ? 'despair' : 'watch';
-        else pose = m.j % 3 === 0 ? 'watch' : 'stand';
+        else {
+          // between the moments: arms folded watching, or standing; now and then one turns to talk to the
+          // next one along, and back to the screen
+          pose = Math.sin(this.t * 0.23 + m.j * 2.3) > -0.2 ? 'watch' : 'stand';
+          const chat = Math.sin(this.t * 0.17 + m.j * 1.9 + m.team.box);
+          if (chat > 0.82) face += (m.j % 2 ? 1 : -1) * 1.3;
+          else face += Math.sin(this.t * 0.5 + m.j) * 0.12;
+        }
       }
       else face = Math.atan2(-sd * m.l, a0 - m.a);
       m.face += Math.atan2(Math.sin(face - m.face), Math.cos(face - m.face)) * Math.min(1, step * 2);
@@ -453,7 +477,7 @@ export class Paddock {
   // your crew reacts to a place gained ('cheer') or lost ('despair') for a few seconds
   celebrate(kind, info = null, sec = 4.5) {
     if (!this.mineTeam) return;
-    this.mood = { kind, until: this.t + sec };
+    this.moods.set(this.mineTeam.id, { kind, until: this.t + sec });
     if (this.scr) { this.scr.flash = info && { ...info, kind, until: this.t + sec }; this.scr.dirty = true; }
   }
   // the director's shot of your crew: where the camera stands, the screen and the middle of the crew
@@ -463,14 +487,18 @@ export class Paddock {
     const at = (a, l, y) => { sampleTrack(T, s + a, P.lat + sd * l, tmp); return new THREE.Vector3(tmp.x, y, tmp.z); };
     return { cam: at(CAM[0], CAM[1], CAM[2]), screen: at(SCR[0], SCR[1], 2.5), crew: at(SCR[0] - 2.4, SCR[1] - 3.9, 1.3) };
   }
-  drawScreen(race) {
-    const { g, cv, tex } = this.scr, W = cv.width, H = cv.height, t = this.mineTeam;
+  drawScreen(race, scr = this.scr) {
+    const { g, cv, tex } = scr, W = cv.width, H = cv.height, t = scr.team;
+    g.setTransform(W / 512, 0, 0, W / 512, 0, 0);   // drawn at 512 wide, scaled to the canvas
+    return this.drawTiming(race, scr, g, 512, 288, t, tex);
+  }
+  drawTiming(race, scr, g, W, H, t, tex) {
     g.fillStyle = '#0b0e14'; g.fillRect(0, 0, W, H);
     g.fillStyle = t.c1; g.fillRect(0, 0, W, 46);
     g.fillStyle = '#ffffff'; g.font = 'bold 26px system-ui, sans-serif'; g.textBaseline = 'middle';
-    g.fillText('LIVE TIMING', 18, 24);
+    g.fillText(`${String(t.short || t.name || '').toUpperCase()} · LIVE TIMING`, 18, 24);
     g.fillStyle = '#ff3b3b'; g.beginPath(); g.arc(W - 30, 23, 8, 0, Math.PI * 2); g.fill();
-    const f = this.scr.flash && this.t < this.scr.flash.until ? this.scr.flash : null;
+    const f = scr.flash && this.t < scr.flash.until ? scr.flash : null;
     if (f) {
       const up = f.kind === 'cheer';
       g.fillStyle = up ? '#1f9d4c' : '#b3262e'; g.fillRect(0, 46, W, H - 46);
@@ -493,5 +521,5 @@ export class Paddock {
     tex.needsUpdate = true;
   }
 
-  dispose() { this.disposed = true; this.feed?.rt.dispose(); this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
+  dispose() { this.disposed = true; this.feed?.rt.dispose(); for (const s of this.scrs?.values() || []) s.tex.dispose(); this.w.scene.remove(this.group); this.group.traverse((o) => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
 }

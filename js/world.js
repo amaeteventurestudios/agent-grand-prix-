@@ -749,16 +749,18 @@ export class World {
       const yachty = V.landmark === 'yachts';
       const nS = Math.round((this.lite ? 8 : 16) * (yachty ? 0.5 : 1)), nY = (this.lite ? 5 : 10) * (yachty ? 4 : 1);
       const spots = [];
+      // open water: well off the shore, clear of the circuit, the ring road and the pit area
+      const ok = (x, z, l = this.land(x, z)) => l < -20 && l > -650 && this.dist(x, z) > T.half + 45 && !this.kept(x, z) && !(this.onRoad && this.onRoad(x, z, 20));
       let guard = 0;
       while (spots.length < nS + nY && guard++ < 6000) {
         const a = r() * Math.PI * 2, d = r.range(this.radius * 0.3, this.radius + 900);
         const x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, l = this.land(x, z);
         const yacht = spots.length >= nS;
-        if (l > (yacht && yachty ? -14 : -30) || l < -600) continue;
+        if (l > (yacht && yachty ? -14 : -30) || l < -600 || !ok(x, z, Math.min(l, -21))) continue;
         if (spots.some(([px, pz]) => Math.hypot(px - x, pz - z) < 30)) continue;
         spots.push([x, z, r() * Math.PI * 2, yacht ? 1 : 0]);
       }
-      this.boats = new Boats(spots, this.lite);
+      this.boats = new Boats(spots, this.lite, ok);
       this.scene.add(this.boats.group);
     }
     if (V.water === 'coast' || V.water === 'harbour') {
@@ -977,7 +979,7 @@ export class World {
   }
 
   setCars(cars) {
-    for (const o of this.carObjs.values()) { this.carGroup.remove(o.group); o.tag.material.map.dispose(); o.tag.material.dispose(); }
+    for (const o of this.carObjs.values()) { this.carGroup.remove(o.group); this.scene.remove(o.tag); o.tag.material.map.dispose(); o.tag.material.dispose(); }
     this.carObjs.clear();
     for (const c of cars) {
       const g = new THREE.Group();
@@ -1146,12 +1148,23 @@ export class World {
     const tags = [];
     for (const c of race.cars) {
       const o = this.carObjs.get(c.id); if (!o) continue;
-      const d = c.prevDist + (c.dist - c.prevDist) * alpha, lat = c.prevLat + (c.lat - c.prevLat) * alpha;
+      let d = c.prevDist + (c.dist - c.prevDist) * alpha, lat = c.prevLat + (c.lat - c.prevLat) * alpha, stopYaw = 0;
+      // a stopped car: the engine leaves its last step's positions behind (and a crash puts it in the
+      // wall in one step), so blending between them would rock it back and forth for good. Slide it
+      // once from where it was drawn to where it stopped, then hold it still.
+      if (c.dnf) {
+        const st = o.stop ||= { lat0: o.lastLat ?? c.lat, k: o.lastLat === undefined ? 1 : 0, side: Math.sign(c.lat - (o.lastLat ?? c.lat)) || 1 };
+        st.k = Math.min(1, st.k + dt * Math.max(1, speed) * 1.5);
+        const e = 1 - (1 - st.k) ** 3;
+        d = c.dist; lat = st.lat0 + (c.lat - st.lat0) * e;
+        if (c.out === 'crash') stopYaw = st.side * 0.55 * e;
+      } else o.stop = null;
+      o.lastLat = lat;
       sampleTrack(T, d, lat, tmp);
       const g = o.group;
       g.visible = !(c.dnf && c.cleared); // marshals have taken it away
       g.position.set(tmp.x, c.stopT > 0 ? 0.11 : 0.02, tmp.z);   // up on the jacks during a stop
-      const dl = (c.lat - c.prevLat) / 0.05, yaw = Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
+      const dl = (c.lat - c.prevLat) / 0.05, yaw = c.dnf ? stopYaw : Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
       g.rotation.y = -Math.atan2(tmp.tz, tmp.tx) - yaw;
       // the body on its springs: it leans out of a corner, dips its nose under braking and squats
       // as it accelerates, and skips a little over the kerbs (looks only: the race engine decides)
