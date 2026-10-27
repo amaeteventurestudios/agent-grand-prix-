@@ -29,6 +29,7 @@ GAME='root * '"$WEB"'
 	reverse_proxy /api/me 127.0.0.1:8141
 	reverse_proxy /api/me/* 127.0.0.1:8141
 	reverse_proxy /auth/novenique/* 127.0.0.1:8141
+	reverse_proxy /auth/google/* 127.0.0.1:8141
 	reverse_proxy /api/board/* 127.0.0.1:8142
 	reverse_proxy /api/live/* 127.0.0.1:8143
 	file_server

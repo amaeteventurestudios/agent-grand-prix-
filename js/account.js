@@ -11,7 +11,7 @@ async function ask(route, opts) {
   catch { return null; } finally { clearTimeout(t); }
 }
 
-export const account = { on: false, me: null, signin: false };   // signin: Novenique Core is connected
+export const account = { on: false, me: null, signin: false, ways: { google: false, email: false, need: false } };   // signin: the account service is connected
 
 // Called once at startup. Answers with the server's save when it is further along than this
 // device's, so a new phone picks up where you left off; otherwise this device's save is sent up.
@@ -19,6 +19,7 @@ export async function start(local) {
   const h = await ask('/health'); if (!h || !(h.accounts || h.sessions)) return null;
   const r = await ask(''); if (!r) return null;
   account.on = true; account.me = r.me; account.signin = !!h.accounts;
+  if (account.signin) { const w = await ask('/signin/ways'); if (w) account.ways = w; }
   const mine = (x) => (x && x.stats && x.stats.starts) || 0;
   if (r.save && mine(r.save) > mine(local)) return r.save;
   if (mine(local)) push(local);
@@ -42,8 +43,9 @@ export function pushNow(save) {
   else ask('/save', { method: 'PUT', headers: { 'content-type': 'application/json' }, body });
 }
 
-export async function signIn(back = location.pathname) {
-  const r = await ask('/signin?back=' + encodeURIComponent(back));
+// Google: the page goes to Google and comes straight back to the game
+export async function signIn(back = location.pathname, via = 'google') {
+  const r = await ask('/signin?via=' + via + '&back=' + encodeURIComponent(back));
   if (r && r.url) location.href = r.url; else return false;
   return true;
 }
@@ -52,3 +54,20 @@ export async function signOut() {
   if (r) account.me = r.me;
   return !!r;
 }
+
+// The email code and the steps after it stay on the game's own screen. Each answers { ok, ...body } or
+// { ok: false, error } with a message that can be shown as it is.
+async function step(route, body) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), 20000);
+  try {
+    const r = await fetch(API + '/signin/' + route, { method: 'POST', credentials: 'same-origin', signal: c.signal, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.me) account.me = j.me;
+    return r.ok ? { ok: true, ...j } : { ok: false, error: j.error || 'Something went wrong. Please try again.' };
+  } catch { return { ok: false, error: 'Could not reach the game server. Check your connection and try again.' }; }
+  finally { clearTimeout(t); }
+}
+export const emailStart = (email) => step('email/start', { email });
+export const emailVerify = (email, code) => step('email/verify', { email, code });
+export const mergeAnswer = (yes) => step('merge', { choice: yes ? 'merge' : 'cancel' });
+export const setProfile = (display_name, handle) => step('profile', { display_name, handle });

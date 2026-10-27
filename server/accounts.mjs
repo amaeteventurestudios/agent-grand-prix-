@@ -8,8 +8,16 @@
 // Browser endpoints, all under /api/me/*:
 //   GET  /api/me                 who you are now (a guest is made on the first visit) + your save
 //   PUT  /api/me/save            store this device's save (last write wins; the game sends it)
-//   GET  /api/me/signin          start signing in: answers with the Novenique address to open
-//   GET  /api/me/callback        Novenique sends the player back here; finishes and goes home
+//   GET  /api/me/signin          start signing in: answers with the address to open (?via=google goes
+//                                straight to Google; Google comes back to /auth/google/callback, which is
+//                                passed on to Core, then Core comes back to /auth/novenique/callback)
+//   GET  /api/me/signin/ways     which ways in are open now: { google, email, need } (need: racing needs an account)
+//   POST /api/me/signin/email/start  { email }        sends a 6-digit code
+//   POST /api/me/signin/email/verify { email, code }  signs in; this device's guest comes along
+//   POST /api/me/signin/merge    { choice }           yes or no to moving a guest's progress into an account
+//   POST /api/me/signin/profile  { display_name, handle }  a new player's name and @handle
+// Signing in never leaves the game's own screen: the player sees Agent Grand Prix, never Novenique. A
+// half-finished sign-in (a name to pick, a merge to agree to) waits in the short-lived agp.here cookie.
 //   POST /api/me/signout         back to a guest on this device
 //   POST /api/me/here            "I'm here, on this screen": passed on to the game's SpacetimeDB, so the
 //                                owner's screen shows who is online and racing (works with accounts off)
@@ -37,6 +45,22 @@ export const sessions = () => !!(KEY || SECRET);
 const basic = 'Basic ' + Buffer.from(`${ID}:${SECRET}`).toString('base64');
 // on the same server Core is reached directly; the public address is only for the browser's redirects
 const CORE_IN = (process.env.NOVENIQUE_INTERNAL_URL || '').replace(/\/$/, '') || CORE;
+// like core(), but answers { status, body } so the player can be shown Core's own message
+async function coreTry(route, body) {
+  try {
+    const r = await fetch(CORE_IN + route, { method: 'POST', headers: { authorization: basic, 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(15000) });
+    let j = null; try { j = await r.json(); } catch {}
+    return { status: r.status, body: j || {} };
+  } catch { return { status: 502, body: { error: { code: 'UNAVAILABLE', message: 'Sign-in is not available right now. Please try again soon.' } } }; }
+}
+let ways = { at: 0, google: false, email: false };
+async function signinWays() {
+  if (Date.now() - ways.at > 60000) {
+    try { const h = await (await fetch(CORE_IN + '/health', { signal: AbortSignal.timeout(3000) })).json(); ways = { at: Date.now(), google: !!h.google, email: !!h.email }; }
+    catch { ways = { ...ways, at: Date.now() - 50000 }; }
+  }
+  return { google: ways.google, email: ways.email, need: process.env.SIGNIN_REQUIRED === '1' && (ways.google || ways.email) };
+}
 async function core(route, body, method = 'POST') {
   const r = await fetch(CORE_IN + route, { method, headers: { authorization: basic, 'content-type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
   const text = await r.text();
@@ -198,7 +222,18 @@ async function whoever(req) {
   const r = await core('/v1/guests', {});
   return { sess: { guest: r.guest_token, user: r.user }, fresh: true };
 }
-const me = (s) => ({ id: (s.user && (s.user.id || s.user.user_id)) || s.uid, name: (s.user && s.user.display_name) || null, guest: !s.uid });
+const me = (s) => ({ id: (s.user && (s.user.id || s.user.user_id)) || s.uid, name: (s.user && s.user.display_name) || null, handle: (s.user && s.user.handle) || null, guest: !s.uid });
+const ipOf = (req) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+// Core has said who this is: the session becomes the account, a merged guest's save and agent link move into it,
+// and a name still to pick (or a merge still to agree to) waits in agp.here
+function signedInAs(req, r) {
+  const uid = r.user && (r.user.id || r.user.user_id);
+  for (const g of r.merged_from || []) { mergeSaves(uid, g); moveLink(uid, g); }
+  const was = open(cookies(req)['agp.sid']); if (was && was.user && me(was).id !== uid) moveLink(uid, me(was).id);
+  const sess = { uid, user: r.user, roles: r.roles || [] };
+  return { sess, cookies: [setCookie('agp.sid', seal(sess), 400 * 86400), setCookie('agp.here', r.needs_profile && r.ticket ? seal({ t: r.ticket }) : '', r.needs_profile ? 1800 : 0)] };
+}
+const fail = (res, r) => send(res, r.status >= 400 && r.status < 500 ? r.status : 502, { error: (r.body && r.body.error && r.body.error.message) || 'Sign-in is not available right now. Please try again soon.', code: r.body && r.body.error && r.body.error.code });
 
 export function serve(port = PORT) {
   return http.createServer(async (req, res) => {
@@ -248,6 +283,41 @@ export function serve(port = PORT) {
           catch { send(res, 400, { error: 'bad save' }); }
         });
       }
+      if (u.pathname === '/api/me/signin/ways') return send(res, 200, await signinWays());
+      if (u.pathname.startsWith('/api/me/signin/') && req.method === 'POST') {
+        const b = await body(req, 2048) || {}, ip = ipOf(req);
+        if (u.pathname === '/api/me/signin/email/start') {
+          const r = await coreTry('/v1/signin/email/start', { email: String(b.email || '').slice(0, 200), ip });
+          return r.status === 200 ? send(res, 200, { masked: r.body.masked }) : fail(res, r);
+        }
+        if (u.pathname === '/api/me/signin/email/verify') {
+          const s = open(cookies(req)['agp.sid']);
+          const r = await coreTry('/v1/signin/email/verify', { email: String(b.email || '').slice(0, 200), code: String(b.code || '').slice(0, 12), ip, ...(s && s.guest ? { guest_token: s.guest } : {}) });
+          if (r.status !== 200) return fail(res, r);
+          if (r.body.merge_needed) return send(res, 200, { merge: true, who: r.body.who }, { 'set-cookie': setCookie('agp.here', seal({ m: r.body.ticket }), 1800) });
+          const d = signedInAs(req, r.body);
+          return send(res, 200, { me: me(d.sess), needs_profile: !!r.body.needs_profile, save: readSave(me(d.sess).id) }, { 'set-cookie': d.cookies });
+        }
+        const h = open(cookies(req)['agp.here']);
+        if (u.pathname === '/api/me/signin/merge') {
+          if (!h || !h.m) return send(res, 400, { error: 'That sign-in expired. Please start again.' });
+          if (b.choice !== 'merge') return send(res, 200, { merged: false }, { 'set-cookie': setCookie('agp.here', '', 0) });
+          const r = await coreTry('/v1/signin/merge', { ticket: h.m, choice: 'merge' });
+          if (r.status !== 200) return fail(res, r);
+          const d = signedInAs(req, r.body);
+          return send(res, 200, { me: me(d.sess), needs_profile: !!r.body.needs_profile, save: readSave(me(d.sess).id) }, { 'set-cookie': d.cookies });
+        }
+        if (u.pathname === '/api/me/signin/profile') {
+          if (!h || !h.t) return send(res, 400, { error: 'That sign-in expired. Please start again.' });
+          const r = await coreTry('/v1/signin/profile', { ticket: h.t, display_name: String(b.display_name || '').slice(0, 40), handle: String(b.handle || '').slice(0, 40) });
+          if (r.status !== 200) return fail(res, r);
+          const d = signedInAs(req, r.body);
+          return send(res, 200, { me: me(d.sess), needs_profile: false }, { 'set-cookie': d.cookies });
+        }
+        return send(res, 404, {});
+      }
+      // Google comes back to the game's own address; Core finishes it (its cookie is on its own address)
+      if (u.pathname === '/auth/google/callback') { res.writeHead(302, { location: CORE + '/google/callback' + u.search }); return res.end(); }
       if (u.pathname === '/api/me/signin') {
         const { sess } = await whoever(req);
         const verifier = crypto.randomBytes(32).toString('base64url'), state = crypto.randomBytes(16).toString('base64url');
@@ -255,18 +325,27 @@ export function serve(port = PORT) {
         if (sess.guest) { try { link = (await core('/v1/link-intents', { guest_token: sess.guest })).link; } catch {} }
         const q = new URLSearchParams({ response_type: 'code', client_id: ID, redirect_uri: SITE + '/auth/novenique/callback', state, code_challenge: S256(verifier), code_challenge_method: 'S256' });
         if (link) q.set('link', link);
+        if (u.searchParams.get('via') === 'google') q.set('via', 'google');
         const flow = seal({ v: verifier, state, back: u.searchParams.get('back') || '/' });
         return send(res, 200, { url: CORE + '/authorize?' + q }, { 'set-cookie': [setCookie('agp.sid', seal(sess), 400 * 86400), setCookie('agp.flow', flow, 600)] });
       }
       if (u.pathname === '/auth/novenique/callback') {
         const f = open(cookies(req)['agp.flow']), code = u.searchParams.get('code');
         const home = (q) => { res.writeHead(302, { location: (f && f.back) || '/', 'set-cookie': setCookie('agp.flow', '', 0) }); res.end(); return q; };
+        const back = (f && f.back) || '/';
+        if (f && u.searchParams.get('merge') && u.searchParams.get('state') === f.state) {
+          // this Google account already has a team: the game asks before the guest's progress moves into it
+          res.writeHead(302, { location: back + '?signin=merge&who=' + encodeURIComponent(u.searchParams.get('who') || ''), 'set-cookie': [setCookie('agp.flow', '', 0), setCookie('agp.here', seal({ m: u.searchParams.get('merge') }), 1800)] });
+          return res.end();
+        }
+        if (f && u.searchParams.get('error') && u.searchParams.get('state') === f.state) {
+          res.writeHead(302, { location: back + '?signin=' + (u.searchParams.get('error') === 'access_denied' ? 'cancelled' : 'failed'), 'set-cookie': setCookie('agp.flow', '', 0) });
+          return res.end();
+        }
         if (!f || !code || u.searchParams.get('state') !== f.state) return home();
         const r = await core('/token', { grant_type: 'authorization_code', code, client_id: ID, redirect_uri: SITE + '/auth/novenique/callback', code_verifier: f.v });
-        const uid = r.user && (r.user.id || r.user.user_id);
-        for (const g of r.merged_from || []) { mergeSaves(uid, g); moveLink(uid, g); }
-        const was = open(cookies(req)['agp.sid']); if (was && was.user) moveLink(uid, me(was).id);
-        res.writeHead(302, { location: (f.back || '/') + '?signedin=1', 'set-cookie': [setCookie('agp.sid', seal({ uid, user: r.user, roles: r.roles || [] }), 400 * 86400), setCookie('agp.flow', '', 0)] });
+        const d = signedInAs(req, r);
+        res.writeHead(302, { location: back + (r.needs_profile ? '?signin=profile' : '?signedin=1'), 'set-cookie': [...d.cookies, setCookie('agp.flow', '', 0)] });
         return res.end();
       }
       if (u.pathname === '/api/me/signout' && req.method === 'POST') {
