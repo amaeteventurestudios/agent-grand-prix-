@@ -1875,7 +1875,7 @@ function driverSheet(slot, back) {
 // Sign in, so your team follows you to another device, all on the game's own screen: Google, or a
 // 6-digit code by email. The account itself is kept by the shared account service behind the game;
 // players only ever see Agent Grand Prix. Signing in keeps what this device has built.
-const canSignIn = () => account.signin && (account.ways.google || account.ways.email);
+const canSignIn = () => account.signin;   // until Google or email is switched on, the sheet says sign-in opens soon
 const signedIn = () => !!(account.me && !account.me.guest);
 // top right of the home screen: Sign in, then your team's badge once you're in
 function acChip() {
@@ -1913,8 +1913,8 @@ function accountSheet(back, o = {}) {
       ${w.google ? '<button class="btn ac-google" id="acG" type="button"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 5.9-2.2l-2.9-2.2c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H1v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M4 10.8a5.4 5.4 0 0 1 0-3.5V5H1a9 9 0 0 0 0 8.1l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 1 5l3 2.3c.7-2.1 2.7-3.7 5-3.7z"/></svg>Continue with Google</button>' : ''}
       ${w.google && w.email ? '<div class="ac-or"><span>or</span></div>' : ''}
       ${w.email ? `<form id="acMail" class="ac-form"><label for="acEmail">Email</label><input id="acEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required value="${esc(o.email || '')}"><button class="btn${w.google ? ' ghost' : ''}" type="submit">Email me a code</button></form>` : ''}
-      ${!w.google && !w.email ? '<p class="note">Sign-in opens very soon. Until then your progress is saved on this device.</p>' : ''}
-      <p class="small ac-fine">We only use your email to sign you in and to tell you about your account. No spam.</p>
+      ${!w.google && !w.email ? '<p class="note"><b>Sign-in opens very soon</b> with Google or your email. Until then your team and progress are saved on this device.</p>' : ''}
+      ${w.google || w.email ? '<p class="small ac-fine">We only use your email to sign you in and to tell you about your account. No spam.</p>' : ''}
       <div class="actions"><button class="btn ghost" id="acBack" type="button">${o.gate ? 'Not now' : 'Back'}</button></div>`);
     const g = $('#acG'); if (g) g.addEventListener('click', async () => { g.disabled = true; g.lastChild.textContent = 'Opening Google…'; if (!(await signIn())) { g.disabled = false; g.lastChild.textContent = 'Continue with Google'; toast('Could not reach the game server. Your progress is safe on this device.'); } });
     const f = $('#acMail'); if (f) f.addEventListener('submit', async (e) => {
