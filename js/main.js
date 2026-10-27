@@ -1151,6 +1151,7 @@ function buildCard() {
     <div class="top"><span class="sw" style="background:${c.team.c1}"></span><div class="pos" data-k="pos"></div>${portraitSVG(c, c.team, { size: 44 })}
       <div class="who"><b>${esc(c.name)}</b><span>${esc(c.team.name)}${c.player ? '' : ' · AI agent'}</span></div>
       ${isMine ? '' : '<button class="link" type="button" data-act="back">My car</button>'}</div>
+    <p class="why" data-k="why" hidden></p>
     <div class="stats">
       <div><small>Ahead</small><b data-k="ahead"></b></div>
       <div><small>Behind</small><b data-k="behind"></b></div>
@@ -1166,7 +1167,14 @@ function buildCard() {
 function updateCard() {
   const R = G.race, c = R.byId.get(G.sel), el = $('#carCard'); if (!c || !el.firstElementChild) return;
   const k = (n) => el.querySelector(`[data-k="${n}"]`);
-  k('pos').textContent = 'P' + c.pos;
+  k('pos').textContent = c.dnf ? 'OUT' : 'P' + c.pos;
+  // a stopped car says why it is there: the race control message that put it out, and the lap
+  const why = k('why');
+  if (c.dnf && why.hidden) {
+    const ev = [...R.events].reverse().find((e) => e.type === 'dnf' && e.car === c.id);
+    why.textContent = `${ev ? ev.text.replace(/\s*Out( of the race)?\.?$/, '') : `${c.code} has stopped.`}${ev ? ` Lap ${ev.lap}.` : ''} ${c.cleared ? 'The marshals have cleared the car.' : 'Out of the race; the marshals are clearing it.'}`;
+    why.hidden = false;
+  } else if (!c.dnf) why.hidden = true;
   const ahead = R.order[c.pos - 2], behind = R.order[c.pos];
   k('ahead').textContent = ahead && !c.dnf ? `${ahead.code} +${Math.max(0, c.interval).toFixed(1)}` : '–';
   k('behind').textContent = behind && !behind.dnf ? `${behind.code} ${Math.max(0, behind.interval).toFixed(1)}` : '–';

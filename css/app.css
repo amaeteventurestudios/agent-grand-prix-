@@ -163,6 +163,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 .card { background: var(--panel2); border-radius: var(--r); padding: 12px; }
 .sub { font: 700 12px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; color: var(--mute); margin-bottom: 6px; }
 .car-card .top { display: flex; align-items: center; gap: 10px; }
+.car-card .why { margin: 8px 0 0; padding: 8px 10px; border-radius: 8px; background: rgba(255, 70, 70, .12); color: var(--ink, inherit); font-size: 13px; line-height: 1.35; }
 .car-card .pos { font: 800 italic 34px/1 var(--f-display); min-width: 46px; }
 .car-card .who { flex: 1; min-width: 0; }
 .car-card .who b { font: 700 18px var(--f-ui); display: block; }

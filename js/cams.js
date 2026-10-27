@@ -306,6 +306,7 @@ export class Cams {
   pick(x, y, w, h) {
     let best = null, bd = 36 * 36;
     for (const [id, o] of this.world.carObjs) {
+      if (!o.group.visible) continue;
       v1.copy(o.group.position); v1.y += 1; v1.project(this.camera);
       if (v1.z > 1) continue;
       const sx = (v1.x + 1) / 2 * w, sy = (1 - v1.y) / 2 * h, d = (sx - x) ** 2 + (sy - y) ** 2;

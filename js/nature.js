@@ -205,8 +205,9 @@ function yachtGeo() {
 }
 
 export class Boats {
-  // spots: [[x, z, heading, kind(0 sail, 1 yacht)], ...]
-  constructor(spots, lite) {
+  // spots: [[x, z, heading, kind(0 sail, 1 yacht)], ...]; ok(x, z): open water a boat may sail into
+  constructor(spots, lite, ok = () => true) {
+    this.ok = ok;
     this.group = new THREE.Group();
         const mat = [new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }),
       new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide, emissive: '#fffaf0', emissiveIntensity: 0.55 })];
@@ -224,7 +225,12 @@ export class Boats {
     for (const [k, { im, L }] of this.kinds.entries()) {
       L.forEach((b, i) => {
         // sailboats drift slowly along their heading and turn back now and then; everything bobs
-        if (b.v) { b.x += Math.cos(b.h) * b.v * dt; b.z += Math.sin(b.h) * b.v * dt; if (Math.sin(this.t * 0.02 + b.ph) > 0.995) b.h += dt * 0.5; }
+        // (a boat about to run ashore or onto the circuit turns round instead)
+        if (b.v) {
+          const nx = b.x + Math.cos(b.h) * b.v * dt, nz = b.z + Math.sin(b.h) * b.v * dt;
+          if (this.ok(nx + Math.cos(b.h) * 12, nz + Math.sin(b.h) * 12)) { b.x = nx; b.z = nz; } else b.h += Math.PI * (0.75 + 0.5 * ((i * 0.618) % 1));
+          if (Math.sin(this.t * 0.02 + b.ph) > 0.995) b.h += dt * 0.5;
+        }
         const bob = Math.sin(this.t * 0.9 + b.ph) * (k ? 0.12 : 0.18);
         this.e.set(Math.sin(this.t * 0.7 + b.ph) * (k ? 0.01 : 0.06) + (k ? 0 : 0.08), -b.h, Math.sin(this.t * 0.6 + b.ph * 2) * 0.02);
         this.q.setFromEuler(this.e);
