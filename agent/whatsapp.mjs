@@ -119,7 +119,7 @@ function startRace(to, p, kind, venue, length) {
 
 function tickRaces(dtReal) {
   for (const [to, L] of races) {
-    const R = L.R; if (!R.started) continue;
+    const R = L.R; if (!R.started || L.mirror) continue;   // a race on the web runs at the web's pace (follow())
     L.acc += dtReal * SPEED;
     let n = 0;
     while (L.acc >= DT && n < 2000 && !R.done) { R.step(); L.acc -= DT; n++; if (n % 20 === 0) PW.watchStops(L); }
@@ -239,6 +239,7 @@ function summary(L, head) {
 
 function finish(L) {
   races.delete(L.to);
+  if (L.mirror) player(L.to).muted = L.mirror.key;   // don't pick the finished race up again
   const R = L.R, res = R.result, my = res.filter((x) => L.mine.includes(x.id));
   const top = res.slice(0, 3).map((x, k) => `${['🥇', '🥈', '🥉'][k]} ${x.car.code} ${x.gapText}`);
   const pts = my.reduce((a, x) => a + x.points, 0);
@@ -304,6 +305,7 @@ const HELP = [
   '• *quiet* · your agents decide everything, no questions',
   '• *take over* · you make every call',
   '• *results* · your last races',
+  '• *link CODE* · follow your races in the game (code: menu › My agent)',
   '• *updates every 3 laps* · how often I message you (or *updates off*)',
   '',
   '📻 *During a race*',
@@ -363,6 +365,9 @@ function handle(from, text, name, { noChat = false } = {}) {
   if (L && /^(attack|defend|neutral)$/.test(t)) { cmd({ battle: t }); return send(from, `✅ ${car.code}: ${t}.`); }
   if (L && (m = t.match(/^(?:car|follow|switch)\s+(\w+)$/))) { const c = pickCar(L, m[1]); if (c) { L.sel = c.id; return send(from, `Now calling for ${c.code}.`); } }
   if (L && /^(status|gap|where)$/.test(t)) return send(from, summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`));
+  if ((m = t.match(/^link\s+([a-z0-9]{6})$/))) return linkAccount(from, p, m[1]);
+  if (/^unlink$/.test(t)) { accountsApi('POST', '/agent/unlink', { phone: from }).catch(() => {}); p.linked = false; if (L && L.mirror) races.delete(from); save(); return send(from, '🔌 Unlinked. I won\'t follow your races on the web any more. Connect again any time from the game: menu › My agent.'); }
+  if (L && L.mirror && /^(stop|quit|abandon)$/.test(t)) { p.muted = L.mirror.key; races.delete(from); save(); return send(from, `OK, I'll stop following this one. The race carries on in the game.`); }
   if (L && /^(stop|quit|abandon)$/.test(t)) { races.delete(from); return send(from, 'Race stopped. Reply *today* or *race* for another.'); }
   if (/^(auto|autonomous|hand over|handover)$/.test(t)) { p.auto = true; p.ask = true; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: true }); } return send(from, '🤖 Your agents have the race. I\'ll only message you when there\'s a big call, with my pick and a deadline. Reply *quiet* to let them decide everything, or *take over* to make every call yourself.'); }
   if (/^(quiet|full auto|don'?t ask)$/.test(t)) { p.auto = true; p.ask = false; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: false }); L.ask = {}; } return send(from, '🤫 Your agents make every call, no questions. You\'ll get a short update every 5 laps.'); }
@@ -447,6 +452,100 @@ function pickCar(L, w) {
   return L.mine.map((id) => L.R.byId.get(id)).find((c) => c.code.toLowerCase() === w || c.name.toLowerCase() === w) || null;
 }
 
+// ---------- following the races you run on the website (server/accounts.mjs) ----------
+// You link once ("link CODE", the code from the game's My agent screen). Then every couple of
+// seconds the agent asks the game server for your newest race and rebuilds it from its record
+// (setup plus every call at the engine step it landed on), so this race and the one on your screen
+// are the same race. Calls made here go back to the game, which makes them and records them.
+const ACCOUNTS = (process.env.ACCOUNTS_URL || 'http://127.0.0.1:8141').replace(/\/$/, '');
+async function accountsHttp(method, route, body) {
+  const r = await fetch(ACCOUNTS + route, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(5000) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || 'accounts ' + r.status); e.status = r.status; throw e; }
+  return j;
+}
+let accountsApi = accountsHttp;
+export function setAccounts(f) { accountsApi = f; }   // tests hand in a fake server
+
+async function linkAccount(from, p, code) {
+  let r;
+  try { r = await accountsApi('POST', '/agent/claim', { code: code.toUpperCase(), phone: from }); }
+  catch (e) { return send(from, e.status === 404 ? "That code didn't work or has expired. Get a fresh one in the game: menu › *My agent* › *Connect WhatsApp*." : "I couldn't reach the game server just now. Try again in a minute."); }
+  p.linked = true; p.muted = null;
+  if (r.team && r.team.name && Array.isArray(r.team.drivers)) p.team = r.team;
+  save();
+  return send(from, [`🔗 *Linked${r.team && r.team.name ? ` to ${r.team.name}` : ''}*`, '', 'From now on I follow every race you start on the website, on any device signed in to that account.', '', '• Hand the team to your agents in the game and I\'ll text you the big calls, with my pick and a deadline.', '• In Team Principal mode I stay quiet apart from race control.', '', 'Reply *unlink* to stop.'].join('\n'));
+}
+
+function adopt(to, p, rec, acct) {
+  const v = VENUES.find((x) => x.id === rec.venue); if (!v || !rec.args) return null;
+  const setup = setupRace({ venue: v, seed: rec.seed, ...rec.args });
+  const R = setup.make(), orig = R.command.bind(R);
+  // a call made here is sent to the game; it comes back in the race record at the step it landed on
+  R.command = (id, c) => { accountsApi('POST', '/agent/cmd', { id: acct, car: id, cmd: c }).catch((e) => log('web call failed', e.message)); return true; };
+  const L = { R, setup, venue: v, kind: rec.kind, day: rec.day, mine: ['you-0', 'you-1'], evIdx: 0, lastLap: 0, acc: 0, to, lastSummary: 0, ask: {}, snooze: {},
+    mirror: { key: rec.id, acct, orig, n: 0, k: 0, asked: {}, seen: Date.now() } };
+  races.set(to, L);
+  R.start();
+  return L;
+}
+function advance(L, rec) {
+  const M = L.mirror, R = L.R, cmds = rec.cmds || [];
+  const apply = () => { while (M.k < cmds.length && cmds[M.k][0] <= M.n) { const [, id, c, from] = cmds[M.k++]; M.orig(id, c, from); } };
+  let guard = 0;
+  while (M.n < rec.n && !R.done && guard++ < 400000) { apply(); R.step(); M.n++; if (M.n % 20 === 0) PW.watchStops(L); }
+  if (!R.done) apply();
+}
+function follow(to, p, r) {
+  let L = races.get(to);
+  const rec = r && r.rec;
+  if (L && L.mirror && (!rec || rec.id !== L.mirror.key)) {
+    if (!L.R.done) send(to, `🏳️ You left the ${L.venue.flag} ${L.venue.city} race on the web on lap ${L.R.leaderLap()} of ${L.R.laps}.`);
+    races.delete(to); L = null;
+  }
+  if (!rec || rec.kind === 'live' || rec.kind === 'academy' || p.muted === rec.id) return;
+  if (L && !L.mirror) {
+    if (L.webNote !== rec.id) { L.webNote = rec.id; const v = VENUES.find((x) => x.id === rec.venue); send(to, `👀 You've started ${v ? v.flag + ' ' + v.city : 'a race'} in the game. I'll follow it when this race ends, or reply *stop* to end this one now.`); }
+    return;
+  }
+  const fresh = !L;
+  if (fresh) { if (r.age > 60000 || rec.done) return; L = adopt(to, p, rec, r.id); if (!L) return; }
+  const M = L.mirror, R = L.R;
+  if (r.age > 600000) { if (!M.paused) { M.paused = true; send(to, `⏸️ Your ${L.venue.city} race is paused on lap ${R.leaderLap()} (the game is closed). I'll pick it up when you're back.`); } return; }
+  M.paused = false; M.seen = Date.now();
+  advance(L, rec);
+  if (fresh) {
+    L.evIdx = R.events.length; L.lastLap = R.leaderLap();
+    const away = L.mine.every((id) => R.byId.get(id).auto);
+    send(to, [`🔗 *Following your race in the game*`, `🏁 *${L.venue.flag} ${L.venue.city.toUpperCase()} GRAND PRIX*`, '',
+      R.started && M.n > 0 ? summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`) : `🔁 ${R.laps} laps`, '',
+      away ? '🤖 Your agents run the team. I\'ll text you the big calls.' : '🎧 You\'re the Team Principal, so I\'ll stay quiet apart from race control. Hand the team to your agents and I\'ll text you the big calls.'].join('\n'));
+  }
+  // your agents have the cars: they ask you here before a big call (unless you said *quiet*)
+  for (const id of L.mine) {
+    const c = R.byId.get(id);
+    if (c.auto && !c.ask && p.ask !== false && !M.asked[id] && !c.dnf) { M.asked[id] = true; R.command(id, { ask: true }); }
+    if (!c.auto) M.asked[id] = false;
+  }
+  PW.watchStops(L); PW.stints(L);
+  report(L);
+  deadlines(L);
+  if (R.done) finish(L);
+}
+let following = false;
+async function followAll() {
+  if (following) return; following = true;
+  try {
+    for (const [to, p] of Object.entries(state.players)) {
+      if (!p.linked) continue;
+      let r;
+      try { r = await accountsApi('GET', '/agent/race?phone=' + encodeURIComponent(to)); } catch { continue; }
+      if (r && r.linked === false) { p.linked = false; save(); const L = races.get(to); if (L && L.mirror) races.delete(to); continue; }
+      try { follow(to, p, r); } catch (e) { log('follow failed', e.message); }
+    }
+  } finally { following = false; }
+}
+
 // ---------- the poll loop ----------
 async function poll() {
   for (;;) {
@@ -484,7 +583,8 @@ export function main() {
   log(`Agent Grand Prix agent running. ${CALENDAR.length}-round season, ${VENUES.length} circuits. Speed ${SPEED}x.`);
   let last = Date.now();
   setInterval(() => { const now = Date.now(); tickRaces(Math.min(5, (now - last) / 1000)); last = now; }, 250);
+  setInterval(followAll, 2000);
   pump(); poll();
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
-export { handle, races, queue, tickRaces };
+export { handle, races, queue, tickRaces, followAll };

@@ -113,6 +113,72 @@ export async function here(body) {
   return true;
 }
 
+// ---------- your AI agent on WhatsApp follows the races you run here ----------
+// The page asks for a short code (POST /api/me/agent/code) and you text "link CODE" to the agent;
+// the agent claims it over the local-only /agent/* routes (Caddy only passes /api/me/* through).
+// While a race runs, the page sends its race record every couple of seconds (PUT /api/me/race):
+// the setup and every call with the engine step it landed on, the same record that resumes a race
+// after a refresh. The agent rebuilds the same race from it, so it sees exactly what you see, and
+// its calls come back to the page through the same request. Races live in memory only.
+const LINKS = path.join(DIR, 'agent-links.json');
+function links() { try { return { codes: {}, byId: {}, ...JSON.parse(fs.readFileSync(LINKS, 'utf8')) }; } catch { return { codes: {}, byId: {} }; } }
+function saveLinks(l) {
+  fs.mkdirSync(DIR, { recursive: true });
+  const now = Date.now();
+  for (const [c, x] of Object.entries(l.codes)) if (x.exp < now) delete l.codes[c];
+  const tmp = LINKS + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(l)); fs.renameSync(tmp, LINKS);
+}
+export function moveLink(into, from) { const l = links(); if (l.byId[from] && !l.byId[into]) { l.byId[into] = l.byId[from]; delete l.byId[from]; saveLinks(l); } }
+const RACE_MAX = 512 * 1024;
+const races = new Map();   // account id -> { rec, at, cmds: [{ seq, car, cmd }], seq, agentAt }
+const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export function agentCode(id) {
+  const l = links();
+  for (const [c, x] of Object.entries(l.codes)) if (x.id === id) delete l.codes[c];
+  let code = '';
+  for (const b of crypto.randomBytes(6)) code += CODE_CHARS[b % CODE_CHARS.length];
+  l.codes[code] = { id, exp: Date.now() + 30 * 60000 };
+  saveLinks(l);
+  return code;
+}
+export function agentClaim(code, phone) {
+  const l = links(), x = l.codes[String(code || '').toUpperCase()];
+  if (!x || x.exp < Date.now() || !/^\+?[0-9]{6,16}$/.test(String(phone || ''))) return null;
+  delete l.codes[String(code).toUpperCase()];
+  l.byId[x.id] = String(phone);
+  saveLinks(l);
+  return { id: x.id, save: readSave(x.id) };
+}
+export function agentUnlink(id, phone) {
+  const l = links(); let n = 0;
+  for (const [k, v] of Object.entries(l.byId)) if ((id && k === id) || (!id && phone && v === phone)) { delete l.byId[k]; n++; }
+  saveLinks(l); return n;
+}
+export function racePut(id, rec, after) {
+  const r = races.get(id) || { cmds: [], seq: 0, agentAt: 0 };
+  // a new race (another record id) starts with an empty inbox
+  if (!r.rec || r.rec.id !== rec.id) { r.cmds = []; }
+  r.rec = rec; r.at = Date.now();
+  races.set(id, r);
+  r.cmds = r.cmds.filter((c) => c.seq > after);
+  return { follow: !!links().byId[id] && Date.now() - r.agentAt < 15000, cmds: r.cmds, seq: r.seq };
+}
+export function raceFor(phone) {
+  const l = links(), ids = Object.keys(l.byId).filter((k) => l.byId[k] === phone);
+  let best = null;
+  for (const id of ids) { const r = races.get(id); if (r && r.rec && (!best || r.at > best.r.at)) best = { id, r }; }
+  if (!best) return { linked: ids.length > 0 };
+  best.r.agentAt = Date.now();
+  return { linked: true, id: best.id, rec: best.r.rec, at: best.r.at, age: Date.now() - best.r.at, team: (readSave(best.id) || {}).team || null };
+}
+export function raceCmd(id, car, cmd) {
+  const r = races.get(id); if (!r || !/^you-[01]$/.test(car) || !cmd || typeof cmd !== 'object') return false;
+  r.cmds.push({ seq: ++r.seq, car, cmd }); if (r.cmds.length > 200) r.cmds.shift();
+  return true;
+}
+setInterval(() => { const now = Date.now(); for (const [id, r] of races) if (now - r.at > 6 * 3600e3) races.delete(id); }, 600000).unref();
+const body = (req, max) => new Promise((ok, no) => { let b = ''; req.on('data', (d) => { b += d; if (b.length > max) { no(new Error('too big')); req.destroy(); } }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { no(e); } }); });
+
 const send = (res, code, body, headers = {}) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers }); res.end(JSON.stringify(body)); };
 const S256 = (v) => crypto.createHash('sha256').update(v).digest('base64url');
 
@@ -144,7 +210,31 @@ export function serve(port = PORT) {
         try { send(res, 200, { ok: await here(JSON.parse(body || '{}')) }); } catch { send(res, 200, { ok: false }); }
       });
     }
-    if (!on() && !(sessions() && (u.pathname === '/api/me' || u.pathname === '/api/me/save'))) return send(res, 503, { error: 'off' });
+    // the agent's own routes: only from this machine (anything through Caddy carries x-forwarded-for)
+    if (u.pathname.startsWith('/agent/')) {
+      if (req.headers['x-forwarded-for'] || req.headers['x-forwarded-host']) return send(res, 404, {});
+      try {
+        if (u.pathname === '/agent/claim' && req.method === 'POST') { const b = await body(req, 2048), r = agentClaim(b.code, b.phone); return send(res, r ? 200 : 404, r ? { id: r.id, team: (r.save || {}).team || null } : { error: 'unknown or expired code' }); }
+        if (u.pathname === '/agent/unlink' && req.method === 'POST') { const b = await body(req, 2048); return send(res, 200, { n: agentUnlink(null, String(b.phone || '')) }); }
+        if (u.pathname === '/agent/race' && req.method === 'GET') return send(res, 200, raceFor(u.searchParams.get('phone') || ''));
+        if (u.pathname === '/agent/cmd' && req.method === 'POST') { const b = await body(req, 4096); return send(res, raceCmd(String(b.id || ''), String(b.car || ''), b.cmd) ? 200 : 404, {}); }
+      } catch { return send(res, 400, { error: 'bad request' }); }
+      return send(res, 404, {});
+    }
+    const agentPath = u.pathname === '/api/me/agent' || u.pathname === '/api/me/agent/code' || u.pathname === '/api/me/race';
+    if (!on() && !(sessions() && (u.pathname === '/api/me' || u.pathname === '/api/me/save' || agentPath))) return send(res, 503, { error: 'off' });
+    if (agentPath) {
+      const s = open(cookies(req)['agp.sid']); if (!s) return send(res, 401, { error: 'no session' });
+      const id = me(s).id; if (!safe(id)) return send(res, 401, { error: 'no session' });
+      try {
+        if (u.pathname === '/api/me/agent' && req.method === 'GET') return send(res, 200, { linked: !!links().byId[id], name: process.env.AGENT_NAME || 'Teague', wa: (process.env.AGENT_WA_NUMBER || '').replace(/[^0-9]/g, '') || null });
+        if (u.pathname === '/api/me/agent' && req.method === 'DELETE') { agentUnlink(id); return send(res, 200, { linked: false }); }
+        if (u.pathname === '/api/me/agent/code' && req.method === 'POST') return send(res, 200, { code: agentCode(id) });
+        if (u.pathname === '/api/me/race' && req.method === 'PUT') { const rec = await body(req, RACE_MAX); if (!rec || typeof rec.id !== 'string') return send(res, 400, {}); return send(res, 200, racePut(id, rec, +u.searchParams.get('after') || 0)); }
+        if (u.pathname === '/api/me/race' && req.method === 'DELETE') { races.delete(id); return send(res, 200, { ok: true }); }
+      } catch { return send(res, 400, { error: 'bad request' }); }
+      return send(res, 404, {});
+    }
     try {
       if (u.pathname === '/api/me' && req.method === 'GET') {
         const { sess, fresh } = await whoever(req), who = me(sess);
@@ -174,7 +264,8 @@ export function serve(port = PORT) {
         if (!f || !code || u.searchParams.get('state') !== f.state) return home();
         const r = await core('/token', { grant_type: 'authorization_code', code, client_id: ID, redirect_uri: SITE + '/auth/novenique/callback', code_verifier: f.v });
         const uid = r.user && (r.user.id || r.user.user_id);
-        for (const g of r.merged_from || []) mergeSaves(uid, g);
+        for (const g of r.merged_from || []) { mergeSaves(uid, g); moveLink(uid, g); }
+        const was = open(cookies(req)['agp.sid']); if (was && was.user) moveLink(uid, me(was).id);
         res.writeHead(302, { location: (f.back || '/') + '?signedin=1', 'set-cookie': [setCookie('agp.sid', seal({ uid, user: r.user, roles: r.roles || [] }), 400 * 86400), setCookie('agp.flow', '', 0)] });
         return res.end();
       }
