@@ -112,7 +112,7 @@ const LIVE_KEY = 'agp.live.v1';
 const live = {
   rec: null,
   track(R, args, saved) {
-    const rec = this.rec = { kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
+    const rec = this.rec = { id: (saved && saved.id) || Math.random().toString(36).slice(2, 12), kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
     const step = R.step.bind(R), command = R.command.bind(R);
     R.step = () => { step(); rec.n++; };
     R.command = (id, c, from) => { if (!this.replaying) rec.cmds.push(from ? [rec.n, id, c, from] : [rec.n, id, c]); return command(id, c, from); };
@@ -140,6 +140,49 @@ const live = {
   },
   clear() { this.rec = null; try { localStorage.removeItem(LIVE_KEY); } catch (e) { /* ignore */ } },
 };
+// ---------- your AI agent on WhatsApp follows this race (server/accounts.mjs, agent/whatsapp.mjs) ----------
+// Once linked, the race record above goes to the server every two seconds; the agent rebuilds the
+// same race from it and its calls (a box, a handover) come back here, where they're made like any
+// other call. When your agents run the team, the agent asks you on WhatsApp before a big call; if
+// it stops following (the agent is down), your agents go back to deciding for themselves.
+const wa = { linked: false, name: 'Teague', wa: null, seq: 0, follow: false, at: 0, busy: false, sent: null, lost: 0 };
+async function agentStatus() {
+  try { const r = await fetch('/api/me/agent', { credentials: 'same-origin' }); if (r.ok) Object.assign(wa, await r.json()); } catch (e) { /* no server: nothing to follow */ }
+  return wa;
+}
+const callText = (c, cmd) => cmd.box ? `${c.code} boxes for ${COMPOUNDS[cmd.box].name.toLowerCase()}s` : 'box' in cmd ? `${c.code} stays out`
+  : cmd.auto === true ? `${c.code}: your agents have the car` : cmd.auto === false ? `${c.code}: back to you` : cmd.pace ? `${c.code}: ${cmd.pace === 'save' ? 'save tyres' : cmd.pace}`
+  : cmd.ers ? `${c.code}: ${cmd.ers === 'deploy' ? 'boost' : cmd.ers}` : cmd.battle ? `${c.code}: ${cmd.battle}` : null;
+function agentSync(R) {
+  if (!wa.linked || wa.busy || !account.on) return;
+  const rec = live.rec, now = performance.now();
+  const racing = rec && R && !G.attract && R.started && G.kind !== 'live' && G.kind !== 'academy';
+  if (!racing) {
+    if (wa.sent) { wa.sent = null; fetch('/api/me/race', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {}); }
+    return;
+  }
+  if (now - wa.at < 2000 || (wa.sent === rec.id && wa.doneSent)) return;
+  if (wa.sent !== rec.id) { wa.seq = 0; wa.doneSent = false; wa.lost = 0; }
+  wa.at = now; wa.busy = true;
+  const done = R.done;
+  fetch(`/api/me/race?after=${wa.seq}`, { method: 'PUT', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...rec, at: undefined, done }) })
+    .then((x) => (x.ok ? x.json() : null)).catch(() => null).then((r) => {
+      wa.busy = false; wa.sent = rec.id; if (done) wa.doneSent = true;
+      wa.follow = !!(r && r.follow);
+      if (r) for (const c of r.cmds || []) {
+        if (c.seq <= wa.seq) continue;
+        wa.seq = c.seq;
+        const car = G.race === R && !R.done && R.byId.get(c.car); if (!car) continue;
+        R.command(c.car, c.cmd);
+        const t = callText(car, c.cmd);
+        if (t) { addRadio({ from: 'info', text: `📱 ${wa.name} on WhatsApp: ${t}.` }); toast(`📱 ${t}`); }
+        renderControls(true);
+      }
+      // nobody on the other end: cars that were waiting for your answer decide for themselves again
+      if (wa.follow) wa.lost = 0; else wa.lost ||= performance.now();
+      if (wa.lost && performance.now() - wa.lost > 20000 && G.race === R && !R.done) for (const id of mine()) { const c = R.byId.get(id); if (c && c.ask) R.command(id, { ask: false }); }
+    });
+}
 addEventListener('pagehide', () => live.save(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) live.save(true); });
 function resumeRace(saved) {
@@ -159,6 +202,7 @@ function frame(now) {
   cheerBurst *= Math.exp(-dt * 0.5);
   if (G.qs && world) { qualiFrame(dt); return; }
   const R = G.race;
+  if (wa.linked) agentSync(R);
   if (R && R.started && !R.done && G.room && !G.attract) liveCatchUp();
   else if (R && R.started && !G.paused && !R.done) {
     // reduced motion: the race behind the home page holds still, a picture rather than a film
@@ -1513,7 +1557,7 @@ function home() {
     <p class="tag">${newcomer ? 'Your AI agents race, and run the team when you’re away. When you’re here, the calls are yours: tyres, pit stops, battery and the weather. 25 Grands Prix from Abu Dhabi to Abuja.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
     ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button>${first ? '' : ' <button data-go="agent" type="button">My agent</button>'}${account.signin ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <button data-go="agent" type="button">My agent</button>${account.signin ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''} <a href="credits.html">Credits</a></span></div>`, 'home');
   sh.onclick = homeClick;
 }
 // your team on the home page: both drivers' faces, and the last race with its report
@@ -1603,6 +1647,8 @@ function agentSheet(back) {
   const pb = playbookOf(S), n = dayNumber(), nv = dailyVenue(S.daily.days[n] ? n + 1 : n);
   const row = (key, title) => `<div class="sub">${title}</div><div class="vpick pb">${PLAYBOOK_CHOICES[key].map(([v, name, note]) => `<button type="button" data-pb="${key}" data-v="${v}" class="${pb[key] === v ? 'on' : ''}"><b>${name}</b><span>${note}</span></button>`).join('')}</div>`;
   const sh = show(`<h2>My agent</h2>
+    ${account.on ? '<div class="wa-link"></div>' : ''}
+    <div class="sub">Missed Dailies</div>
     <p class="lede">Busy? If you haven't raced the Daily Grand Prix by your cover time, your agent races it for you on Autonomous, with your team, car and Driver DNA, and writes the report. It keeps your streak; its results are marked as the agent's. It can't change your Driver DNA or enter other races.</p>
     <label class="switch-row"><input type="checkbox" id="pbOn" ${pb.on ? 'checked' : ''}><span><b>Race my missed Dailies</b><small>Next: ${nv.flag} ${esc(nv.city)}, at ${pb.cover}:00 your time if you haven't raced it.</small></span></label>
     <div class="sub">Cover time</div><div class="vpick pbt">${[18, 19, 20, 21, 22, 23].map((h) => `<button type="button" data-pb="cover" data-v="${h}" class="${pb.cover === h ? 'on' : ''}"><b>${h}:00</b></button>`).join('')}</div>
@@ -1610,6 +1656,7 @@ function agentSheet(back) {
     ${S.agent.reports.length ? `<div class="sub">Recent agent races</div><ul class="away-list">${S.agent.reports.map((r) => `<li><span>${r.report.venue.flag} ${esc(r.report.venue.city)} · Daily #${r.n}</span><b>${r.places.map((p) => (p ? 'P' + p : 'DNF')).join(' · ')}</b><em>+${r.pts} pts</em><button class="btn ghost" data-ar="${r.n}" type="button">Report</button></li>`).join('')}</ul>` : ''}
     <div class="actions"><button class="btn" id="pbDone" type="button">Done</button></div>`);
   const set = (k, v) => { S.agent.playbook = { ...S.agent.playbook, [k]: v }; store.save(); };
+  waPanel($('.wa-link', sh));
   $('#pbOn').addEventListener('change', (e) => set('on', e.target.checked));
   sh.onclick = (e) => {
     const b = e.target.closest('[data-pb]');
@@ -1617,6 +1664,41 @@ function agentSheet(back) {
     const a = e.target.closest('[data-ar]'); if (a) { const r = S.agent.reports.find((x) => String(x.n) === a.dataset.ar); if (r) reportSheet(r.report, () => agentSheet(back)); }
     if (e.target.closest('#pbDone')) { back(); agentCatchUp(); }
   };
+}
+// Connect your AI agent on WhatsApp: a short code you text to it once, then it follows every race
+// you run on this account
+function waPanel(box, code = null) {
+  if (!box) return;
+  const open = (txt) => wa.wa ? `https://wa.me/${wa.wa}${txt ? '?text=' + encodeURIComponent(txt) : ''}` : null;
+  if (wa.linked) {
+    box.innerHTML = `<div class="wa-card on"><b>✅ ${esc(wa.name)} is connected on WhatsApp</b>
+      <p>${esc(wa.name)} follows every race you start here, on any device signed in to this account. When you hand the team to your agents, ${esc(wa.name)} texts you the big calls with a pick and a deadline; in Team Principal mode it stays quiet apart from race control.</p>
+      <div class="actions"><button class="btn ghost" type="button" data-wa="off">Disconnect</button></div></div>`;
+  } else if (code) {
+    const link = open('link ' + code);
+    box.innerHTML = `<div class="wa-card"><b>Send this to ${esc(wa.name)} on WhatsApp</b>
+      <div class="wa-code">link ${esc(code)}</div>
+      <p>Open your chat with ${esc(wa.name)} and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.</p>
+      <div class="actions">${link ? `<a class="btn" href="${link}" target="_blank" rel="noopener">Open WhatsApp</a>` : ''}<button class="btn ghost" type="button" data-wa="copy">Copy</button></div></div>`;
+    const t = setInterval(async () => { if (!box.isConnected) return clearInterval(t); await agentStatus(); if (wa.linked) { clearInterval(t); toast(`📱 ${wa.name} is connected`); waPanel(box); } }, 3000);
+  } else {
+    const hi = open('hi');
+    box.innerHTML = `<div class="wa-card"><b>📱 Connect your AI agent</b>
+      <p>Link ${esc(wa.name)}, your race engineer on WhatsApp, and it follows every race you run here: Abu Dhabi, Monaco, three at once. Hand the team to your agents and make the big calls by text.</p>
+      <div class="actions"><button class="btn" type="button" data-wa="code">Connect WhatsApp</button></div>
+      <p class="note">No agent yet? ${hi ? `<a href="${hi}" target="_blank" rel="noopener">Say hi to ${esc(wa.name)}</a> and it sets you up, then connect here.` : `Say hi to ${esc(wa.name)} on WhatsApp and it sets you up, then connect here.`}</p></div>`;
+  }
+  box.onclick = async (e) => {
+    const b = e.target.closest('[data-wa]'); if (!b) return;
+    if (b.dataset.wa === 'code') {
+      b.disabled = true;
+      const r = await fetch('/api/me/agent/code', { method: 'POST', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+      if (r && r.code) waPanel(box, r.code); else { b.disabled = false; toast('Could not reach the server. Try again in a moment.'); }
+    }
+    if (b.dataset.wa === 'copy') { try { await navigator.clipboard.writeText('link ' + code); toast('Copied'); } catch (err) { toast('link ' + code); } }
+    if (b.dataset.wa === 'off') { await fetch('/api/me/agent', { method: 'DELETE', credentials: 'same-origin' }).catch(() => null); wa.linked = false; waPanel(box); }
+  };
+  if (!code) agentStatus().then(() => { if (box.isConnected && !box.querySelector('.wa-code') && wa.linked !== box.classList.contains('was-on')) { box.classList.toggle('was-on', wa.linked); waPanel(box); } });
 }
 // ---------- Live Grand Prix (js/live.js, server/live.mjs): up to ten teams on one grid ----------
 // Every browser runs the whole race; the room only seats people and gives every call the engine step
@@ -3100,6 +3182,7 @@ window.__agp = {
 { const saved = live.load(); if (!(saved && resumeRace(saved))) attract(); agentCatchUp(); }
 // an account, when the service is running: a guest at first, so nothing is asked of a new player
 accountStart(S).then((fromServer) => {
+  if (account.on) agentStatus();
   if (fromServer) { store.adopt(fromServer); if (G.attract && !$('#screen').hidden) home(); }
   else if (account.on && G.attract && !$('#screen').hidden) home();
   if (new URLSearchParams(location.search).get('signedin')) { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); history.replaceState(null, '', location.pathname); }

@@ -489,7 +489,8 @@ export class Race {
       }
       if (car.finished) latT = T.ideal[i] * 0.5;
       if (car.pit) latT = car.pitLat;   // a car that takes the flag in the pit lane stays in it
-      const rate = car.pit ? Math.min(Math.abs(latT - car.lat) > 7 ? 12 : 9, (car.pit.phase === 'out' ? 4 : 1.6) + car.v * 0.45) : car.offT > 0 || car.failing ? 6 : car.pass ? 3.6 : 2.6;
+      // (in the pit lane a car only moves across as fast as it rolls forward: it steers, it never crabs)
+      const rate = car.pit ? (car.pit.path ? 0.6 + car.v * 1.2 : Math.min(Math.abs(latT - car.lat) > 7 ? 12 : 9, 1.6 + car.v * 0.45, 0.15 + car.v * 0.55)) : car.offT > 0 || car.failing ? 6 : car.pass ? 3.6 : 2.6;
       const nl = car.lat + clamp(latT - car.lat, -rate * dt, rate * dt);
       // in the pit lane, never slide sideways into a car alongside: wait for it to pass
       // on track too: never slide sideways into a car alongside (a spinning or crashing car aside)
@@ -611,9 +612,16 @@ export class Race {
       // stay in the fast lane past every other team's box, and only turn in at your own
       // slowing for the box, move halfway across first (clear of the cars in the boxes and of the
       // fast lane), so the cars behind can carry on past at the limit
-      car.pitLat = !stacked && rel > box - turn ? P.lat : rel > box - 40 ? (P.lat + P.fast) / 2 : P.fast;
+      // the turn into the box is a path, not a slide: from where the car starts turning to the box it
+      // eases across as it rolls forward, so it drives in at an angle instead of drifting sideways
+      // (a car still crossing from the track, at a box right by the entry, starts turning sooner)
+      if (!stacked && ((car.pit.p0 && !car.pit.p0.out) || rel > box - Math.max(turn, Math.abs(car.lat - P.lat) * 2.6))) {
+        const p0 = car.pit.p0 ||= [Math.min(rel, box - 0.5), car.lat];
+        const k = clamp((rel - p0[0]) / (box - p0[0]), 0, 1);
+        car.pitLat = p0[1] + (P.lat - p0[1]) * k * k * (3 - 2 * k); car.pit.path = true;
+      } else { car.pit.p0 = null; car.pit.path = false; car.pitLat = rel > box - 40 ? (P.lat + P.fast) / 2 : P.fast; }
       // two cars diving in side by side: the one behind holds its line and tucks in behind
-      if (rel < P.inS + 60 && rel < box - 45) {
+      if (rel < P.inS + 60 && rel < box - 45 && !car.pit.path) {
         for (const o of this.cars) {
           if (o === car || !o.pit || o.dnf || o.pit.phase !== 'in') continue;
           let r = ((o.dist % L) + L) % L; if (r > L / 2) r -= L;
@@ -640,7 +648,10 @@ export class Race {
       if (rel > teamBox - 25) vt = Math.min(vt, Math.max(3, (teamBox - rel) * 3.2));
     } else if (car.pit.phase === 'out') {
       vt = Math.min(vt, P.speed);
-      car.pitLat = P.fast;
+      // out of the box the same way: across to the fast lane over the first 16 m it rolls
+      const p0 = car.pit.p0 = car.pit.p0 && car.pit.p0.out ? car.pit.p0 : Object.assign([rel, car.lat], { out: true });
+      const k = clamp((rel - p0[0]) / 16, 0, 1);
+      car.pitLat = p0[1] + (P.fast - p0[1]) * k * k * (3 - 2 * k); car.pit.path = k < 1;
       if (!car.pit.looked && rel > P.box[car.team.box] + 4) { car.pit.looked = true; this.exitBattle(car, rel); }
       if (rel > P.outS - 40) car.pitLat = 0;
       if (rel > P.outS) { car.pit = null; car.pitLat = 0; }

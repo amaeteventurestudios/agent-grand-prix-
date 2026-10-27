@@ -1164,7 +1164,16 @@ export class World {
       const g = o.group;
       g.visible = !(c.dnf && c.cleared); // marshals have taken it away
       g.position.set(tmp.x, c.stopT > 0 ? 0.11 : 0.02, tmp.z);   // up on the jacks during a stop
-      const dl = (c.lat - c.prevLat) / 0.05, yaw = c.dnf ? stopYaw : Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
+      const dl = (c.lat - c.prevLat) / 0.05;
+      let yaw = c.dnf ? stopYaw : Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
+      if (c.pit && !c.dnf) {
+        // in the pit lane the nose points where the car is going, so turning into the box and out of it
+        // reads as driving; standing still, it settles straight
+        const dd = c.dist - c.prevDist, dla = c.lat - c.prevLat;
+        const want = Math.hypot(dd, dla) > 0.004 ? clamp(Math.atan2(dla, Math.max(dd, 0.0001)), -1.2, 1.2) : 0;
+        o.pyaw = (o.pyaw ?? want) + (want - (o.pyaw ?? want)) * Math.min(1, dt * Math.max(1, speed) * 7);
+        yaw = o.pyaw;
+      } else o.pyaw = undefined;
       g.rotation.y = -Math.atan2(tmp.tz, tmp.tx) - yaw;
       // the body on its springs: it leans out of a corner, dips its nose under braking and squats
       // as it accelerates, and skips a little over the kerbs (looks only: the race engine decides)

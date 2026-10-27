@@ -1142,3 +1142,13 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
   .qrow button { padding: 2px 8px; font-size: 12px; }
   .qhelp { display: none; }
 }
+
+/* My agent: connect the WhatsApp agent */
+.wa-card { margin: 4px 0 14px; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(37, 211, 102, .45); background: rgba(37, 211, 102, .08); }
+.wa-card > b { display: block; font-size: 16px; margin-bottom: 4px; }
+.wa-card p { margin: 6px 0; font-size: 14px; line-height: 1.45; }
+.wa-card .note { font-size: 13px; opacity: .8; }
+.wa-card .actions { margin-top: 10px; }
+.wa-card a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.wa-code { margin: 8px 0; padding: 10px 14px; border-radius: 10px; background: rgba(0, 0, 0, .06); font: 800 26px/1.2 var(--f-display, inherit); letter-spacing: .06em; text-align: center; user-select: all; }
+@media (prefers-color-scheme: dark) { .wa-code { background: rgba(255, 255, 255, .08); } }

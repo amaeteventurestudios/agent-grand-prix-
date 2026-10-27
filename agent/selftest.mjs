@@ -56,4 +56,41 @@ if (card) {
   console.log('check-ins ok');
 } else console.log('check-ins: no pit call this race (fine)');
 W.races.clear();
+
+// following a race in the game: a fake game server and a fake browser that records its race the way
+// js/main.js does; the agent's calls go back to the browser, and both races stay the same race
+{
+  const v = VENUES.find((x) => x.id === 'abudhabi'), args = { team: undefined, startCompounds: {}, auto: false };
+  const B = setupRace({ venue: v, seed: 7, ...args }).make();
+  const rec = { id: 'r1', kind: 'quick', venue: v.id, seed: 7, args, cmds: [], n: 0 };
+  const step = B.step.bind(B), command = B.command.bind(B);
+  B.step = () => { step(); rec.n++; }; B.command = (id, c, from) => { rec.cmds.push(from ? [rec.n, id, c, from] : [rec.n, id, c]); return command(id, c, from); };
+  const inbox = []; let codeOk = false;
+  W.setAccounts(async (method, route, body) => {
+    if (route === '/agent/claim') { if (body.code !== 'ABC234') { const e = new Error('no'); e.status = 404; throw e; } codeOk = true; return { id: 'acct1', team: null }; }
+    if (route.startsWith('/agent/race')) return codeOk ? { linked: true, id: 'acct1', rec: JSON.parse(JSON.stringify(rec)), age: 0 } : { linked: false };
+    if (route === '/agent/cmd') { inbox.push(body); return {}; }
+    return {};
+  });
+  await W.handle('t4', 'link abc234'); out = said(); must(/Linked/.test(out), 'link with a code', out);
+  B.start();
+  for (let i = 0; i < 200; i++) B.step();
+  await W.followAll(); out = said(); must(/Following your race/.test(out) && /ABU DHABI/.test(out), 'follow a web race', out);
+  const M = W.races.get('t4'); must(M && M.mirror && M.R.byId.get('you-0').dist === B.byId.get('you-0').dist, 'same race as the browser', '');
+  // hand the team to the agents in the game: the agent asks for check-ins, the browser makes that call
+  B.command('you-0', { auto: true }); B.command('you-1', { auto: true });
+  let card = null;
+  for (let k = 0; k < 4000 && !B.done; k++) {
+    for (let i = 0; i < 40 && !B.done; i++) B.step();
+    await W.followAll();
+    for (const c of inbox.splice(0)) B.command(c.car, c.cmd);
+    const o = said(); if (/\*Box .* now\?\*/.test(o)) { card = o; await W.handle('t4', '1'); said(); }
+  }
+  for (const c of inbox.splice(0)) B.command(c.car, c.cmd);
+  await W.followAll(); out = said();
+  must(B.byId.get('you-0').ask, 'agent turned on check-ins in the browser race', '');
+  must(!W.races.has('t4') && B.done, 'web race finished and the result was sent', out);
+  must(M.R.result[0].id === B.result[0].id && M.R.result.map((x) => x.id).join() === B.result.map((x) => x.id).join(), 'same result as the browser', '');
+  console.log('follow ok' + (card ? ', with a check-in' : ''));
+}
 process.exit(0);
