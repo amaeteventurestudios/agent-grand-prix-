@@ -191,7 +191,7 @@ export class Race {
   // own brain) comes through here, so the rule holds whatever asks.
   may(car, from, cmd) {
     if (!car.player || from === 'principal') return true;
-    if ('auto' in cmd || 'assist' in cmd || cmd.order) return false;
+    if ('auto' in cmd || 'assist' in cmd || 'ask' in cmd || cmd.order) return false;
     if (car.auto) return from === 'strategist';
     return from === 'engineer' && car.assist && Object.keys(cmd).every((k) => k === 'box');
   }
@@ -213,6 +213,9 @@ export class Race {
     }
     // beginner assist: the engineer makes the pit calls, you keep pace, battery and battles
     if ('assist' in cmd) car.assist = !!cmd.assist;
+    // check-ins (the WhatsApp agent): the strategist still runs pace, battery and fights, but asks you
+    // before a pit stop instead of making it; your agent answers for you if you don't
+    if ('ask' in cmd) car.ask = !!cmd.ask;
     if (cmd.order) this.teamOrder(car, cmd.order);
     return true;
   }
@@ -981,7 +984,7 @@ export class Race {
     }
     // a box call you made yourself is never replaced by the strategist's, even after a handover
     if (call && (!car.pitReq || car.pitReq !== call) && !(car.pitReq && car.pitBy === 'principal')) {
-      if (car.player && !car.auto && !car.assist) {
+      if (car.player && (!car.auto || car.ask) && !car.assist) {
         const key = call + ':' + Math.floor(car.dist / this.track.L);
         if (!car.advised[key]) {
           car.advised[key] = true;

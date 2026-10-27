@@ -29,4 +29,17 @@ await W.handle('t1', "let's race in lagos please"); out = said();
 must(/Lagos it is/.test(out) && /LAGOS GRAND PRIX/.test(out), 'free talk starts a race', out);
 W.races.clear();
 console.log('chat ok');
+
+// check-ins: with the race handed over, a pit call comes as a card; a number answers it
+W.setChatModel(null);
+W.handle('t2', 'auto'); W.handle('t2', 'race singapore'); said();
+const L2 = W.races.get('t2'); L2.R.start();
+let card = null, got = '';
+for (let i = 0; i < 40000 && W.races.has('t2') && !card; i++) { W.tickRaces(0.25); got = said(); if (/\*Box .* now\?\*/.test(got)) card = got; }
+if (card) {
+  must(/Lap \d+\/\d+/.test(card) && /Battery/.test(card) && /🛞/.test(card) && /1️⃣/.test(card), 'decision card', card);
+  W.handle('t2', '2'); out = said(); must(/stays? out/.test(out), 'answer a card', out);
+  console.log('check-ins ok');
+} else console.log('check-ins: no pit call this race (fine)');
+W.races.clear();
 process.exit(0);

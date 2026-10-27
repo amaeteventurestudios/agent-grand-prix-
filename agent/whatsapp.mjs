@@ -11,7 +11,7 @@ import { readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CALENDAR, VENUES, COMPOUNDS } from '../js/data.js';
 import { hashString } from '../js/rng.js';
-import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM } from '../js/game.js';
+import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, raceLaps, trackFor } from '../js/game.js';
 import { DT, fmtTime } from '../js/sim.js';
 import * as Chat from './chat.mjs';
 
@@ -86,20 +86,21 @@ function player(id, name) {
   return p;
 }
 
-function startRace(to, p, kind, venue) {
+function startRace(to, p, kind, venue, length) {
   const n = dayNumber();
   const v = venue || dailyVenue(n);
   const seed = hashString(kind === 'daily' ? 'daily-' + n : 'quick-' + v.id + '-' + Date.now());
-  const setup = setupRace({ venue: v, seed, team: p.team || DEFAULT_TEAM, auto: p.auto });
+  const setup = setupRace({ venue: v, seed, team: p.team || DEFAULT_TEAM, auto: p.auto, ...(length && length !== 'short' ? { laps: raceLaps(trackFor(v), length) } : {}) });
   const R = setup.make();
   const mine = ['you-0', 'you-1'];
-  const live = { R, setup, venue: v, kind, day: n, mine, evIdx: 0, lastLap: 0, acc: 0, to, lastSummary: 0 };
+  const live = { R, setup, venue: v, kind, day: n, mine, evIdx: 0, lastLap: 0, acc: 0, to, lastSummary: 0, ask: {}, snooze: {} };
   races.set(to, live);
+  if (p.auto && p.ask !== false) for (const id of mine) R.command(id, { ask: true });
   const grid = mine.map((id) => R.byId.get(id));
   const W = setup.weather;
   send(to, [
     `🏁 *${v.flag} ${v.city.toUpperCase()} GRAND PRIX*`,
-    kind === 'daily' ? `_Daily Grand Prix #${n}_` : '_Quick race_',
+    kind === 'daily' ? `_Daily Grand Prix #${n}_` : `_Quick race${length && length !== 'short' ? ` · ${length === 'full' ? 'full distance' : length}` : ''}_`,
     '',
     `📍 ${v.circuit}, ${v.country}`,
     `🔁 ${setup.laps} laps`,
@@ -108,7 +109,7 @@ function startRace(to, p, kind, venue) {
     '*Your grid*',
     ...grid.map((c) => `• *${c.code}* starts P${c.grid} on ${tyre(c.tyre.c)}`),
     '',
-    p.auto ? '🤖 Your AI makes the calls. Reply *take over* any time.' : '🎧 You make the calls. Reply *help* for the race commands.',
+    p.auto ? (p.ask !== false ? '🤖 Your agents run the race. I\'ll only message you when there\'s a big call to make.' : '🤖 Your agents run the race and make every call. Reply *take over* any time.') : '🎧 You make the calls. Reply *help* for the race commands.',
     '',
     '🚦 _Lights out in 5 seconds…_',
   ].join('\n'));
@@ -122,33 +123,123 @@ function tickRaces(dtReal) {
     let n = 0;
     while (L.acc >= DT && n < 2000 && !R.done) { R.step(); L.acc -= DT; n++; }
     report(L);
+    deadlines(L);
     if (R.done) finish(L);
   }
 }
 
 // what's worth a message: your cars' radio, safety cars, rain, big moments, and a line each lap
 function report(L) {
-  const R = L.R, out = [];
+  const R = L.R, out = [], asks = [];
+  const away = L.mine.every((id) => R.byId.get(id).auto); // handed over: only what you'd want on your phone
   while (L.evIdx < R.events.length) {
     const e = R.events[L.evIdx++];
     const isMine = e.car && L.mine.includes(e.car), car = e.car && R.byId.get(e.car);
-    if (e.type === 'advice' && isMine) {
+    if (e.type === 'advice' && isMine && car.auto && car.ask) asks.push({ car, e });
+    else if (e.type === 'advice' && isMine) {
       const a = e.action || {};
       out.push(`📻 *${car.code}* engineer: ${e.text}${a.box ? `\nReply *box ${COMPOUNDS[a.box].name.toLowerCase()}* to do it.` : a.ers ? `\nReply *${a.ers}* to do it.` : ''}`);
-    } else if ((e.type === 'radio' || e.type === 'pit') && isMine) out.push(`📻 ${e.text.startsWith(car.code) ? e.text : car.code + ': ' + e.text}`);
+    } else if ((e.type === 'radio' || e.type === 'pit') && isMine) { if (!away || e.type === 'pit') out.push(`📻 ${e.text.startsWith(car.code) ? e.text : car.code + ': ' + e.text}`); }
     else if (e.type === 'sc') out.push((e.phase === 'green' ? '🟢 ' : '🟡 ') + e.text);
     else if (e.type === 'weather') out.push('🌧️ ' + e.text);
-    else if (e.type === 'dnf' || (e.type === 'incident' && (isMine || (car && car.pos <= 5)))) out.push('⚠️ ' + e.text);
+    else if (e.type === 'dnf' || (e.type === 'incident' && (isMine || (!away && car && car.pos <= 5)))) { if (!away || isMine) out.push('⚠️ ' + e.text); }
+    else if (away) continue;
     else if (e.type === 'battle' && (isMine || (e.other && L.mine.includes(e.other)) || e.forPos === 1)) out.push('🔥 ' + e.text);
     else if (e.type === 'pass' && (isMine || (e.other && L.mine.includes(e.other)) || /for P1\b/.test(e.text))) out.push('↗️ ' + e.text);
     else if (e.type === 'lap' && /Final/.test(e.text)) out.push('🏁 Final lap!');
   }
+  const card = decision(L, asks);
+  if (card) out.push(card);
   const lap = R.leaderLap();
   if (lap > L.lastLap && R.started && !R.done) {
     L.lastLap = lap;
-    if (lap > 1) out.push(summary(L, `*Lap ${lap}/${R.laps}*`));
+    if (lap > 1 && (!away || lap % 5 === 0 || lap === R.laps)) out.push(summary(L, `*Lap ${lap}/${R.laps}*`));
   }
   if (out.length) send(L.to, out.join('\n'));
+}
+
+// ---------- check-ins: when your agents run the race, a pit call becomes a question for you ----------
+const NUM = ['1️⃣', '2️⃣', '3️⃣'];
+const lapOf = (R, c) => Math.max(1, Math.min(R.laps, Math.floor(c.dist / R.track.L) + 1));
+function lapSeconds(R) { const lead = R.order[0]; const laps = lead ? lead.dist / R.track.L : 0; return laps > 0.5 ? R.t / laps : null; }
+function weatherLine(L) {
+  const R = L.R, W = L.setup.weather, now = R.rain > 0.05 ? (R.rain > 0.5 ? 'heavy rain' : 'raining') : R.wet > 0.17 ? 'wet track' : 'dry';
+  const ls = lapSeconds(R);
+  let next = '';
+  const coming = W.showers.filter((x) => x.start > R.t).sort((a, b) => a.start - b.start)[0];
+  const ending = W.showers.find((x) => x.start <= R.t && x.end > R.t);
+  if (R.rain <= 0.05 && coming && ls) { const k = Math.max(1, Math.round((coming.start - R.t) / ls)); if (k <= 8) next = ` · rain likely in about ${k} lap${k === 1 ? '' : 's'}`; }
+  else if (R.rain > 0.05 && ending && ls) { const k = Math.max(1, Math.round((ending.end - R.t) / ls)); if (k <= 8) next = ` · drying in about ${k} lap${k === 1 ? '' : 's'}`; }
+  return `🌦️ ${tempTxt(L.venue.temp)}, ${now}${next}`;
+}
+function carCard(L, c) {
+  const R = L.R, i = R.order.indexOf(c), ahead = R.order[i - 1], behind = R.order[i + 1];
+  const life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
+  const perLap = c.tyre.laps > 0 ? c.tyre.wear / c.tyre.laps : 0;
+  const grip = perLap > 0 ? Math.max(0, Math.floor((0.9 - c.tyre.wear) / perLap)) : null;
+  const gaps = [ahead ? `+${(c.gap - ahead.gap).toFixed(1)}s to P${c.pos - 1} (${ahead.code})` : 'leading', behind && !behind.dnf ? `P${c.pos + 1} is ${(behind.gap - c.gap).toFixed(1)}s behind` : null].filter(Boolean).join(' · ');
+  return [
+    `🏁 *${c.code} · Lap ${lapOf(R, c)}/${R.laps} · P${c.pos}*`,
+    `⏱️ ${gaps}`,
+    `🛞 ${tyre(c.tyre.c)} · ${life}% left${grip !== null && COMPOUNDS[c.tyre.c].dry ? (grip < 1 ? ' · grip is going' : ` · about ${grip} lap${grip === 1 ? '' : 's'} of grip`) : ''}`,
+    `⚡ Battery ${Math.round(c.ers * 100)}%`,
+    weatherLine(L),
+  ];
+}
+// one card for the call; when both cars want the same stop, one card covers both
+function decision(L, asks) {
+  const R = L.R, seen = new Set();
+  const due = asks.filter(({ car, e }) => {
+    const lap = lapOf(R, car), call = e.action && e.action.box;
+    if (!call || seen.has(car.id) || L.ask[car.id] || (L.snooze[car.id] || 0) > lap || car.pit || car.pitReq || R.lapsLeft(car) <= 1) return false;
+    seen.add(car.id); return true;
+  });
+  if (!due.length) return null;
+  // the other car already has the same question open: this answer covers both
+  const open = Object.values(L.ask)[0];
+  if (open && due.every((x) => open.opts[0].box === x.e.action.box)) {
+    for (const x of due) { open.cars.push(x.car.id); L.ask[x.car.id] = open; }
+    return `📻 ${due.map((x) => x.car.code).join(' and ')} too: same call. Your answer covers both cars.`;
+  }
+  const call = due[0].e.action.box, cars = due.filter((x) => x.e.action.box === call).map((x) => x.car);
+  const lead = cars[0], lap = lapOf(R, lead), names = cars.map((c) => c.code).join(' and ');
+  const dry = COMPOUNDS[call].dry;
+  const alt = dry ? (call === 'H' ? 'M' : call === 'M' ? 'H' : 'M') : call === 'I' ? 'W' : 'I';
+  const why = due[0].e.text.replace(/\s*Box for \w+s\?$/, '');
+  const urgent = !/Pit window/.test(why);
+  const opts = [
+    { label: `Box for ${COMPOUNDS[call].name.toLowerCase()}s (my pick)`, box: call },
+    { label: 'Stay out for now', box: null },
+    { label: `Box for ${COMPOUNDS[alt].name.toLowerCase()}s instead`, box: alt },
+  ];
+  const q = { opts, cars: cars.map((c) => c.id), due: Math.min(R.laps, lap + (urgent ? 1 : 2)) };
+  for (const c of cars) L.ask[c.id] = q;
+  L.last = lead.id;
+  const head = cars.length > 1 ? [...carCard(L, cars[0]), '', ...carCard(L, cars[1]).slice(0, 4)] : carCard(L, lead);
+  return [...head, '', `📻 _${why}_`, `*Box ${cars.length > 1 ? 'both cars' : lead.code} now?*`, ...opts.map((o, k) => `${NUM[k]} ${o.label}`), '',
+    `_Reply 1, 2 or 3. No reply by ${q.due === lap + 1 ? 'the end of this lap' : `lap ${q.due}`} and I'll do 1._`].join('\n');
+}
+function answer(L, id, k, timedOut) {
+  const q = L.ask[id], R = L.R; if (!q) return null;
+  const o = q.opts[k], names = q.cars.map((c) => R.byId.get(c).code).join(' and '), two = q.cars.length > 1;
+  const said = o.box ? `${names} box${two ? '' : 'es'} for ${tyre(o.box)}` : `${names} stay${two ? '' : 's'} out`;
+  for (const cid of q.cars) {
+    if (L.ask[cid] !== q) continue;
+    delete L.ask[cid];
+    const car = R.byId.get(cid);
+    if (car.dnf || car.finished || car.pit) continue;
+    if (o.box) R.command(cid, { box: o.box });
+    else L.snooze[cid] = lapOf(R, car) + 3; // don't ask again straight away
+  }
+  return timedOut ? `⏱️ No reply, so I made the call: ${said}.` : `✅ ${said}.`;
+}
+function deadlines(L) {
+  const R = L.R;
+  for (const id of Object.keys(L.ask)) {
+    const car = R.byId.get(id), q = L.ask[id];
+    if (!car || car.dnf || car.finished || car.pit || R.done) { delete L.ask[id]; continue; }
+    if (L.ask[id] && lapOf(R, car) >= q.due) send(L.to, answer(L, id, 0, true));
+  }
 }
 
 function summary(L, head) {
@@ -210,12 +301,14 @@ const HELP = [
   '🏁 *Start a race*',
   '• *today* · the Daily Grand Prix',
   '• *race kingston* · race any city',
+  '• *race monaco long* · longer race (medium, long or full)',
   `• *circuits* · all ${VENUES.length} venues`,
   '',
   '👥 *Your team*',
   '• *team Lagos Lions* · name your team',
-  '• *auto* · your AI makes the calls',
-  '• *take over* · you make the calls',
+  '• *auto* · hand the race to your agents (they ask you before big calls)',
+  '• *quiet* · your agents decide everything, no questions',
+  '• *take over* · you make every call',
   '• *results* · your last races',
   '',
   '📻 *During a race*',
@@ -248,6 +341,13 @@ function handle(from, text, name, { noChat = false } = {}) {
   const cmd = (c, id = car && car.id) => { R.command(id, c); if (R.byId.get(id).auto && !('auto' in c)) R.command(id, { auto: false }); };
   let m;
 
+  if (L && (m = t.replace(/1️⃣/, '1').replace(/2️⃣/, '2').replace(/3️⃣/, '3').match(/^(?:(\w{3})\s+)?([123])$/))) {
+    const pend = Object.keys(L.ask);
+    const who = m[1] ? pickCar(L, m[1]) : null;
+    const id = who ? who.id : pend.includes(L.last) ? L.last : pend[0];
+    if (id && L.ask[id]) return send(from, answer(L, id, +m[2] - 1));
+    return send(from, 'Nothing to answer right now. I\'ll message you when there\'s a call to make.');
+  }
   if (L && (m = t.match(/^(?:box|pit)(?:\s+(nov|ech|\w{3}|1|2))?(?:\s+(?:for\s+)?(\w+))?$/))) {
     const who = pickCar(L, m[1]) || car, c = tyreWord[m[2] || ''] || (who.tyre.c === 'S' ? 'M' : 'S');
     cmd({ box: c }, who.id); return send(from, `✅ ${who.code} boxing this lap for ${tyre(c)}.`);
@@ -260,8 +360,9 @@ function handle(from, text, name, { noChat = false } = {}) {
   if (L && (m = t.match(/^(?:car|follow|switch)\s+(\w+)$/))) { const c = pickCar(L, m[1]); if (c) { L.sel = c.id; return send(from, `Now calling for ${c.code}.`); } }
   if (L && /^(status|gap|where)$/.test(t)) return send(from, summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`));
   if (L && /^(stop|quit|abandon)$/.test(t)) { races.delete(from); return send(from, 'Race stopped. Reply *today* or *race* for another.'); }
-  if (/^(auto|autonomous)$/.test(t)) { p.auto = true; save(); if (L) for (const id of L.mine) R.command(id, { auto: true }); return send(from, '🤖 Autonomous: your AI makes every call. Say *take over* to make them yourself.'); }
-  if (/^(take over|manual|principal)$/.test(t)) { p.auto = false; save(); if (L) for (const id of L.mine) R.command(id, { auto: false }); return send(from, '🎧 You have the calls. Your engineer will advise.'); }
+  if (/^(auto|autonomous|hand over|handover)$/.test(t)) { p.auto = true; p.ask = true; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: true }); } return send(from, '🤖 Your agents have the race. I\'ll only message you when there\'s a big call, with my pick and a deadline. Reply *quiet* to let them decide everything, or *take over* to make every call yourself.'); }
+  if (/^(quiet|full auto|don'?t ask)$/.test(t)) { p.auto = true; p.ask = false; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: false }); L.ask = {}; } return send(from, '🤫 Your agents make every call, no questions. You\'ll get a short update every 5 laps.'); }
+  if (/^(take over|manual|principal)$/.test(t)) { p.auto = false; save(); if (L) { for (const id of L.mine) R.command(id, { auto: false }); L.ask = {}; } return send(from, '🎧 You have the calls. Your engineer will advise.'); }
   if ((m = t.match(/^team\s+(.{2,24})$/))) {
     const nm = text.trim().slice(5).trim().slice(0, 24);
     p.team = { ...DEFAULT_TEAM, name: nm, short: nm.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'YOU' }; save();
@@ -282,10 +383,12 @@ function handle(from, text, name, { noChat = false } = {}) {
   }
   if ((m = t.match(/^race\s+(.+)$/))) {
     if (L) return send(from, 'You are already racing. Reply *stop* to end it.');
-    const q = m[1].replace(/[^a-z ]/g, '');
+    let q = m[1].replace(/[^a-z ]/g, '').trim(), len = 'short';
+    const lm = q.match(/^(?:(short|medium|long|full)\s+)?(.+?)(?:\s+(short|medium|long|full))?(?:\s+distance)?$/);
+    if (lm) { q = lm[2]; len = lm[1] || lm[3] || 'short'; }
     const v = VENUES.find((x) => x.id === q.replace(/ /g, '') || x.city.toLowerCase() === q || x.country.toLowerCase().startsWith(q));
     if (!v) return send(from, `I don't know a circuit called "${m[1]}". Reply *circuits* for the list.`);
-    return startRace(from, p, 'quick', v);
+    return startRace(from, p, 'quick', v, len);
   }
   if (/^(hi+|hello|hey|hey there|hiya|yo|good (morning|afternoon|evening)|start|menu)$/.test(t)) return send(from, welcome(p));
   if (!noChat && (Chat.enabled() || chatModel)) return converse(from, p, text);
@@ -314,6 +417,7 @@ function facts(p, L) {
     const R = L.R, lead = R.order[0];
     f.liveRace = {
       city: L.venue.city, kind: L.kind, lap: R.leaderLap(), laps: R.laps, started: !!R.started, leader: lead && lead.code,
+      waitingForYourAnswer: Object.entries(L.ask).map(([id, q]) => ({ car: R.byId.get(id).code, options: q.opts.map((o, k) => `${k + 1}: ${o.label}`), defaultIfNoReplyByLap: q.due })),
       yourCars: L.mine.map((id, k) => { const c = R.byId.get(id); return { car: k + 1, code: c.code, name: c.name, out: !!c.dnf, position: c.pos, gapToLeaderS: +c.gap.toFixed(1), tyre: COMPOUNDS[c.tyre.c].name, tyreLeftPct: Math.round((1 - Math.min(1, c.tyre.wear)) * 100), batteryPct: Math.round(c.ers * 100), inPits: !!c.pit, aiDriving: !!c.auto }; }),
     };
   }
@@ -379,4 +483,4 @@ export function main() {
   pump(); poll();
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
-export { handle, races, queue };
+export { handle, races, queue, tickRaces };
