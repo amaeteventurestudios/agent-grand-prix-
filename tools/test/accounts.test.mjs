@@ -17,11 +17,20 @@ const core = http.createServer((req, res) => {
   req.on('data', (d) => (body += d));
   req.on('end', () => {
     const j = body ? JSON.parse(body) : {};
-    const ok = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const ok = (o, st = 200) => { res.writeHead(st, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+    if (u.pathname === '/health') return ok({ ok: true, google: true, email: true });
     assert.equal(req.headers.authorization, 'Basic ' + Buffer.from('agp:s3cret').toString('base64'), 'client secret is sent');
     if (u.pathname === '/v1/guests') { const n = ++guestN; return ok({ user: { id: 'g' + n, display_name: null }, guest_token: 'gt' + n }); }
     if (u.pathname === '/v1/guests/resume') return ok({ user: { id: j.guest_token.replace('gt', 'g') } });
     if (u.pathname === '/v1/link-intents') return ok({ link: 'li-' + j.guest_token });
+    if (u.pathname === '/v1/signin/email/start') return j.email.includes('@') ? ok({ masked: 'k•••@x.com' }) : ok({ error: { code: 'BAD_EMAIL', message: 'Enter a valid email address' } }, 400);
+    if (u.pathname === '/v1/signin/email/verify') {
+      if (j.code !== '123456') return ok({ error: { code: 'WRONG_CODE', message: 'That code is not right' } }, 400);
+      if (j.email === 'old@x.com') return ok({ merge_needed: true, who: '@old', ticket: 'MT-' + j.guest_token });
+      return ok({ user: { id: j.guest_token.replace('gt', 'g'), display_name: null, kind: 'member' }, roles: [], merged_from: [], needs_profile: true, ticket: 'PT' });
+    }
+    if (u.pathname === '/v1/signin/profile') return j.ticket === 'PT' && j.handle.length > 2 ? ok({ user: { id: 'g2', display_name: j.display_name, handle: j.handle }, roles: [], merged_from: [], needs_profile: false }) : ok({ error: { code: 'BAD_PROFILE', message: 'Pick a longer @handle' } }, 400);
+    if (u.pathname === '/v1/signin/merge') return ok({ user: { id: 'u7', display_name: 'Old' }, roles: [], merged_from: [j.ticket.replace('MT-gt', 'g')], needs_profile: false });
     if (u.pathname === '/token') { const c = codes.get(j.code); return ok(c); }
     res.writeHead(404); res.end('{}');
   });
@@ -87,6 +96,43 @@ await t('signing out gives this device a new guest, and the account keeps its sa
   const r = await call('/api/me');
   assert.equal(r.body.me.guest, true); assert.notEqual(r.body.me.id, 'u9'); assert.equal(r.body.save, null);
   assert.equal(A.readSave('u9').team.name, 'Savanna');
+});
+await t('in-game email sign-in: code, then a name; a wrong code says why', async () => {
+  const post = (r, b) => call('/api/me/signin/' + r, { method: 'POST', body: JSON.stringify(b) });
+  assert.deepEqual((await call('/api/me/signin/ways')).body, { google: true, email: true, need: false });
+  assert.equal((await post('email/start', { email: 'nope' })).body.error, 'Enter a valid email address');
+  assert.equal((await post('email/start', { email: 'kai@x.com' })).body.masked, 'k•••@x.com');
+  const wrong = await post('email/verify', { email: 'kai@x.com', code: '000000' });
+  assert.equal(wrong.status, 400); assert.equal(wrong.body.code, 'WRONG_CODE');
+  const v = await post('email/verify', { email: 'kai@x.com', code: '123456' });
+  assert.equal(v.body.needs_profile, true); assert.equal(v.body.me.guest, false); assert.equal(v.body.me.id, 'g2', 'the guest became the account');
+  assert.ok(jar['agp.here'], 'the name step waits in a cookie');
+  assert.equal((await post('profile', { display_name: 'Kai', handle: 'k' })).body.error, 'Pick a longer @handle');
+  const p = await post('profile', { display_name: 'Kai', handle: 'kai_racing' });
+  assert.equal(p.body.me.name, 'Kai'); assert.equal(p.body.me.handle, 'kai_racing');
+  assert.equal((await call('/api/me')).body.me.name, 'Kai');
+});
+await t('in-game sign-in into an account that exists: asked first, then the guest\'s save moves in', async () => {
+  const post = (r, b) => call('/api/me/signin/' + r, { method: 'POST', body: JSON.stringify(b) });
+  await call('/api/me/signout', { method: 'POST' });
+  const g = (await call('/api/me')).body.me.id;
+  await call('/api/me/save', { method: 'PUT', body: JSON.stringify({ stats: { starts: 2 }, team: { name: 'Harmattan' } }) });
+  const v = await post('email/verify', { email: 'old@x.com', code: '123456' });
+  assert.equal(v.body.merge, true); assert.equal(v.body.who, '@old');
+  assert.equal((await call('/api/me')).body.me.guest, true, 'nothing changes before the yes');
+  const yes = await post('merge', { choice: 'merge' });
+  assert.equal(yes.body.me.id, 'u7'); assert.equal(yes.body.save.team.name, 'Harmattan');
+  assert.ok(!fs.existsSync(path.join(DIR, g + '.json')));
+  assert.equal((await post('merge', { choice: 'merge' })).status, 400, 'a merge is agreed once');
+});
+await t('Google from the game: straight to Google, and Google\'s answer is passed on to Core', async () => {
+  const r = await call('/api/me/signin?via=google&back=/');
+  assert.equal(new URL(r.body.url).searchParams.get('via'), 'google');
+  const g = await call('/auth/google/callback?code=abc&state=xyz');
+  assert.equal(g.loc, process.env.NOVENIQUE_URL + '/google/callback?code=abc&state=xyz');
+  const st = new URL(r.body.url).searchParams.get('state');
+  const m = await call('/auth/novenique/callback?merge=MT&who=%40old&state=' + encodeURIComponent(st));
+  assert.equal(m.loc, '/?signin=merge&who=%40old');
 });
 srv.close(); core.close(); fs.rmSync(DIR, { recursive: true, force: true });
 console.log(`accounts: ${ok} checks passed`);

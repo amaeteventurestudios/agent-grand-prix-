@@ -21,7 +21,7 @@ import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
 import { buildReport, reportHTML, shareText } from './report.js';
 import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
-import { account, start as accountStart, signIn, signOut } from './account.js';
+import { account, start as accountStart, signIn, signOut, emailStart, emailVerify, mergeAnswer, setProfile as saveProfile } from './account.js';
 import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLesson, LESSON_TITLES } from './career.js';
 import { fetchBoard, fetchWeek, submitDaily, boardHTML, leagueHTML } from './board.js';
 import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as stopListening, stepAt, secondsToStart, applyDue } from './live.js';
@@ -1505,7 +1505,7 @@ function glanceHome(start, first) {
       <p class="gl-line">${first ? `Today: Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)}` : line}</p>
       ${first ? `<p class="gl-sub">${line}</p>` : ''}
       <div class="row"><button class="btn big" data-go="${first ? 'just' : start.go}" type="button">Start racing</button><button class="btn ghost big" data-go="menu" type="button">Menu</button></div>
-    </div>`, 'home glance');
+    </div>${acChip()}`, 'home glance');
   sh.onclick = homeClick;
 }
 function home() {
@@ -1557,7 +1557,7 @@ function home() {
     <p class="tag">${newcomer ? 'Your AI agents race, and run the team when you’re away. When you’re here, the calls are yours: tyres, pit stops, battery and the weather. 25 Grands Prix from Abu Dhabi to Abuja.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
     ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
     <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <button data-go="agent" type="button">My agent</button>${account.signin ? ` <button data-go="account" type="button">${account.me && !account.me.guest ? esc(account.me.name || 'My account') : 'Sign in'}</button>` : ''}</span></div>`, 'home');
+      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <button data-go="agent" type="button">My agent</button></span></div>${acChip()}`, 'home');
   sh.onclick = homeClick;
 }
 // your team on the home page: both drivers' faces, and the last race with its report
@@ -1871,23 +1871,119 @@ function driverSheet(slot, back) {
     back();
   };
 }
-// Sign in, so your team follows you to another device. Identity lives on Novenique, the account
-// shared across Novenique's games; the game only keeps your save under it.
-function accountSheet(back) {
-  const me = account.me || {}, named = !me.guest;
-  const sh = show(`<h2>${named ? 'Your account' : 'Sign in'}</h2>
-    <p class="lede">${named ? `Signed in as <b>${esc(me.name || 'your Novenique account')}</b>. Your team, season, Academy progress and agent settings are kept with your account, so they follow you to any device.`
-      : 'Right now your progress is saved on this device only. Sign in with your Novenique account and it follows you to any device, and keeps the same team you have built here.'}</p>
-    ${named ? '' : '<p class="note">Novenique is the account shared across Novenique\'s games. Nothing you have built here is lost: this device\'s progress is attached to the account you sign in to.</p>'}
-    <div class="actions">${named ? '<button class="btn ghost" id="acOut" type="button">Sign out of this device</button>' : '<button class="btn" id="acIn" type="button">Continue with Novenique</button>'}
-      <button class="btn ghost" id="acBack" type="button">Back</button></div>`);
-  const i = $('#acIn'); if (i) i.addEventListener('click', async () => { i.disabled = true; i.textContent = 'Opening…'; if (!(await signIn())) { i.disabled = false; i.textContent = 'Continue with Novenique'; toast('Could not reach the account service. Your progress is safe on this device.'); } });
-  const o = $('#acOut'); if (o) o.addEventListener('click', async () => { await signOut(); toast('Signed out on this device. Your progress stays with your account.'); back(); });
-  $('#acBack').addEventListener('click', back);
+// Sign in, so your team follows you to another device, all on the game's own screen: Google, or a
+// 6-digit code by email. The account itself is kept by the shared account service behind the game;
+// players only ever see Agent Grand Prix. Signing in keeps what this device has built.
+const canSignIn = () => account.signin && (account.ways.google || account.ways.email);
+const signedIn = () => !!(account.me && !account.me.guest);
+// top right of the home screen: Sign in, then your team's badge once you're in
+function acChip() {
+  if (signedIn()) {
+    const t = team(), me = account.me;
+    return `<button class="ac-chip in" data-go="account" type="button" aria-label="Your account"><i style="--c1:${esc(t.c1 || '#0f8a4a')};--c2:${esc(t.c2 || '#fff')}">${esc(t.short || 'YOU')}</i><span>${esc(firstVisit() ? me.name || 'My account' : t.name)}</span></button>`;
+  }
+  if (!canSignIn()) return '';
+  return '<button class="ac-chip" data-go="account" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.6"/><path d="M3.2 17.4c.9-3.4 3.6-5.2 6.8-5.2s5.9 1.8 6.8 5.2"/></svg><span>Sign in</span></button>';
 }
+// o.gate: they tried to race, and racing needs an account; o.then runs once they're signed in
+function accountSheet(back, o = {}) {
+  const done = () => { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); agentStatus(); if (o.then) o.then(); else back(); };
+  const after = (r) => {   // what Core asks next after the code or a merge
+    if (r.save && (r.save.stats || {}).starts > (S.stats.starts || 0)) store.adopt(r.save); else store.save();
+    if (r.needs_profile) return accountSheet(back, { ...o, step: 'profile', error: null });
+    done();
+  };
+  const step = o.step || (signedIn() ? 'me' : 'choose'), me = account.me || {};
+  const err = o.error ? `<p class="ac-err" role="alert">${esc(o.error)}</p>` : '';
+  const shell = (body) => show(`<div class="ac">${body}</div>`, 'acsheet');
+  if (step === 'me') {
+    const sh = shell(`<h2>Your account</h2>
+      <p class="lede">Signed in as <b>${esc(me.name || 'you')}</b>${me.handle ? ` · @${esc(me.handle)}` : ''}. Your team, season, Academy progress and agent settings follow you to any device you sign in on.</p>
+      <div class="actions"><button class="btn ghost" id="acOut" type="button">Sign out of this device</button><button class="btn ghost" id="acBack" type="button">Back</button></div>`);
+    $('#acOut').addEventListener('click', async () => { await signOut(); toast('Signed out on this device. Your progress stays with your account.'); back(); });
+    $('#acBack').addEventListener('click', back);
+    return sh;
+  }
+  if (step === 'choose') {
+    const w = account.ways;
+    const sh = shell(`<h2>${o.gate ? 'Sign in to race' : 'Sign in to Agent Grand Prix'}</h2>
+      <p class="lede">${o.gate ? 'Racing is free. Sign in first, so your team, results and agent follow you to any device.' : 'It’s free. Your team, season, Academy progress and agent follow you to any device, and nothing you’ve built here is lost.'}</p>
+      ${err}
+      ${w.google ? '<button class="btn ac-google" id="acG" type="button"><svg viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.6 9.2c0-.6-.1-1.2-.2-1.7H9v3.3h4.8a4.1 4.1 0 0 1-1.8 2.7v2.2h2.9c1.7-1.6 2.7-3.9 2.7-6.5z"/><path fill="#34A853" d="M9 18c2.4 0 4.5-.8 5.9-2.2l-2.9-2.2c-.8.5-1.8.9-3 .9-2.3 0-4.3-1.6-5-3.7H1v2.3A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M4 10.8a5.4 5.4 0 0 1 0-3.5V5H1a9 9 0 0 0 0 8.1l3-2.3z"/><path fill="#EA4335" d="M9 3.6c1.3 0 2.5.5 3.4 1.3l2.6-2.6A9 9 0 0 0 1 5l3 2.3c.7-2.1 2.7-3.7 5-3.7z"/></svg>Continue with Google</button>' : ''}
+      ${w.google && w.email ? '<div class="ac-or"><span>or</span></div>' : ''}
+      ${w.email ? `<form id="acMail" class="ac-form"><label for="acEmail">Email</label><input id="acEmail" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required value="${esc(o.email || '')}"><button class="btn${w.google ? ' ghost' : ''}" type="submit">Email me a code</button></form>` : ''}
+      ${!w.google && !w.email ? '<p class="note">Sign-in opens very soon. Until then your progress is saved on this device.</p>' : ''}
+      <p class="small ac-fine">We only use your email to sign you in and to tell you about your account. No spam.</p>
+      <div class="actions"><button class="btn ghost" id="acBack" type="button">${o.gate ? 'Not now' : 'Back'}</button></div>`);
+    const g = $('#acG'); if (g) g.addEventListener('click', async () => { g.disabled = true; g.lastChild.textContent = 'Opening Google…'; if (!(await signIn())) { g.disabled = false; g.lastChild.textContent = 'Continue with Google'; toast('Could not reach the game server. Your progress is safe on this device.'); } });
+    const f = $('#acMail'); if (f) f.addEventListener('submit', async (e) => {
+      e.preventDefault(); const email = $('#acEmail').value.trim(), btn = f.querySelector('button');
+      btn.disabled = true; btn.textContent = 'Sending…';
+      const r = await emailStart(email);
+      if (!r.ok) return accountSheet(back, { ...o, email, error: r.error });
+      accountSheet(back, { ...o, step: 'code', email, masked: r.masked });
+    });
+    $('#acBack').addEventListener('click', back);
+    return sh;
+  }
+  if (step === 'code') {
+    const sh = shell(`<h2>Check your email</h2>
+      <p class="lede">We sent a 6-digit code to <b>${esc(o.masked || o.email)}</b>. It works for 10 minutes.</p>
+      ${err}
+      <form id="acCode" class="ac-form"><label for="acNum">Code</label><input id="acNum" class="ac-code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" placeholder="123456" required><button class="btn" type="submit">Sign in</button></form>
+      <p class="small"><button type="button" class="link" id="acAgain">Send a new code</button> · <button type="button" class="link" id="acOther">Use a different email</button></p>
+      <div class="actions"><button class="btn ghost" id="acBack" type="button">Back</button></div>`);
+    const num = $('#acNum'); num.focus();
+    let busy = false;
+    const go = async () => {
+      if (busy) return; busy = true;
+      const r = await emailVerify(o.email, num.value);
+      if (!r.ok) return accountSheet(back, { ...o, error: r.error });
+      if (r.merge) return accountSheet(back, { ...o, step: 'merge', who: r.who, error: null });
+      after(r);
+    };
+    num.addEventListener('input', () => { if (num.value.replace(/\D/g, '').length === 6) go(); });
+    $('#acCode').addEventListener('submit', (e) => { e.preventDefault(); go(); });
+    $('#acAgain').addEventListener('click', async () => { const r = await emailStart(o.email); accountSheet(back, { ...o, error: r.ok ? null : r.error, masked: r.masked || o.masked }); if (r.ok) toast('A new code is on its way.'); });
+    $('#acOther').addEventListener('click', () => accountSheet(back, { ...o, step: 'choose', error: null }));
+    $('#acBack').addEventListener('click', () => accountSheet(back, { ...o, step: 'choose', error: null }));
+    return sh;
+  }
+  if (step === 'merge') {
+    const sh = shell(`<h2>You already have a team</h2>
+      <p class="lede">${o.who ? `<b>${esc(o.who)}</b> already` : 'This account already'} has an Agent Grand Prix team. Add what you've done on this device to it?</p>
+      <p class="note">Your races, trophies and Academy lessons from this device join the account. Where both have the same thing, the one that has raced more is kept.</p>
+      ${err}
+      <div class="actions"><button class="btn" id="acYes" type="button">Yes, add it</button><button class="btn ghost" id="acNo" type="button">Not now</button></div>`);
+    $('#acYes').addEventListener('click', async (e) => { e.target.disabled = true; const r = await mergeAnswer(true); if (!r.ok) return accountSheet(back, { ...o, step: 'choose', error: r.error }); after(r); });
+    $('#acNo').addEventListener('click', async () => { await mergeAnswer(false); toast('Nothing changed. You’re still playing on this device only.'); back(); });
+    return sh;
+  }
+  if (step === 'profile') {
+    const t = team(), guess = (me.name || (firstVisit() ? '' : t.name) || '').slice(0, 40);
+    const sh = shell(`<h2>Pick your name</h2>
+      <p class="lede">This is how other players see you on leaderboards and live races. Your @handle is yours across the game.</p>
+      ${err}
+      <form id="acProf" class="ac-form"><label for="acName">Your name</label><input id="acName" autocomplete="nickname" maxlength="40" required value="${esc(o.name ?? guess)}">
+        <label for="acHandle">@handle</label><div class="ac-at"><span>@</span><input id="acHandle" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="speedking" required value="${esc(o.handle || '')}"></div>
+        <p class="small">3 to 24 letters, numbers or _. You can change it once a month.</p>
+        <button class="btn" type="submit">Save and continue</button></form>`);
+    $('#acProf').addEventListener('submit', async (e) => {
+      e.preventDefault(); const name = $('#acName').value.trim(), handle = $('#acHandle').value.trim().replace(/^@/, '');
+      e.target.querySelector('button[type=submit]').disabled = true;
+      const r = await saveProfile(name, handle);
+      if (!r.ok) return accountSheet(back, { ...o, name, handle, error: r.error });
+      done();
+    });
+    return sh;
+  }
+}
+// racing needs an account when the server says so (a guest can still watch and read everything)
+const GATED = new Set(['daily', 'dailyfull', 'season', 'quick', 'just', 'practice', 'again', 'live', 'academy', 'build', 'team']);
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
   const go = b.dataset.go, n = dayNumber();
+  if (account.ways.need && !signedIn() && (GATED.has(go) || go.startsWith('v:'))) return accountSheet(home, { gate: true, then: () => homeClick({ target: b }) });
   if (go === 'menu') { G.homeFull = true; return home(); }
   if (go === 'glance') { G.homeFull = false; return home(); }
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
@@ -3185,7 +3281,14 @@ accountStart(S).then((fromServer) => {
   if (account.on) agentStatus();
   if (fromServer) { store.adopt(fromServer); if (G.attract && !$('#screen').hidden) home(); }
   else if (account.on && G.attract && !$('#screen').hidden) home();
-  if (new URLSearchParams(location.search).get('signedin')) { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); history.replaceState(null, '', location.pathname); }
+  // back from Google: done, or one more step on the game's own screen
+  const q = new URLSearchParams(location.search), sq = q.get('signin');
+  if (q.get('signedin') || sq) history.replaceState(null, '', location.pathname);
+  if (q.get('signedin')) toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`);
+  if (sq === 'profile' && G.attract) accountSheet(home, { step: 'profile' });
+  if (sq === 'merge' && G.attract) accountSheet(home, { step: 'merge', who: q.get('who') || '' });
+  if (sq === 'cancelled') toast('Google sign-in was cancelled. Your progress is safe on this device.');
+  if (sq === 'failed' && G.attract) accountSheet(home, { error: 'Google sign-in did not work. Please try again.' });
 });
 // who is online and where, for the owner's screen (js/here.js)
 startHere(() => ({
