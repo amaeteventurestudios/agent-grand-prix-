@@ -11,7 +11,8 @@ async function ask(route, opts) {
   catch { return null; } finally { clearTimeout(t); }
 }
 
-export const account = { on: false, me: null, signin: false, ways: { google: false, email: false, need: false } };   // signin: the account service is connected
+export const account = { on: false, me: null, signin: false, ways: { google: false, email: false, need: false },
+  pass: { active: false, sell: false, until: null, renews: false, manage: false, plans: [], price: { monthly: '0.50', yearly: '5.99' } } };   // the Anti-Bot Pass; sell is false until payments open   // signin: the account service is connected
 
 // Called once at startup. Answers with the server's save when it is further along than this
 // device's, so a new phone picks up where you left off; otherwise this device's save is sent up.
@@ -20,6 +21,7 @@ export async function start(local) {
   const r = await ask(''); if (!r) return null;
   account.on = true; account.me = r.me; account.signin = !!h.accounts;
   if (account.signin) { const w = await ask('/signin/ways'); if (w) account.ways = w; }
+  await refreshPass();
   const mine = (x) => (x && x.stats && x.stats.starts) || 0;
   if (r.save && mine(r.save) > mine(local)) return r.save;
   if (mine(local)) push(local);
@@ -71,3 +73,18 @@ export const emailStart = (email) => step('email/start', { email });
 export const emailVerify = (email, code) => step('email/verify', { email, code });
 export const mergeAnswer = (yes) => step('merge', { choice: yes ? 'merge' : 'cancel' });
 export const setProfile = (display_name, handle) => step('profile', { display_name, handle });
+
+// The Anti-Bot Pass: a subscription (yearly at launch) taken on Stripe's own page, which comes back to ?pass=ok
+export async function refreshPass() { const p = await ask('/pass'); if (p) account.pass = p; return account.pass; }
+export const passCheckout = (plan = 'year') => stripeGo('/pass/checkout', { plan });
+export const passManage = () => stripeGo('/pass/manage', {});   // Stripe's own page: card, receipts, cancel
+async function stripeGo(route, body) {
+  try {
+    const r = await fetch(API + route, { method: 'POST', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.url) { location.href = j.url; return { ok: true }; }
+    return { ok: false, error: j.error || 'Payments are not available right now. Please try again soon.' };
+  } catch { return { ok: false, error: 'Could not reach the game server. Check your connection and try again.' }; }
+}
+// your Sora: weekly prizes land here
+export const wallet = () => ask('/wallet');

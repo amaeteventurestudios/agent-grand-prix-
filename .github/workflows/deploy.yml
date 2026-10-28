@@ -17,7 +17,7 @@ name: Deploy to server
 on:
   push:
     branches: [main]
-    paths: ['agent/**', 'tools/build-site.sh', 'js/**', 'css/**', 'assets/**', 'vendor/**', 'index.html', 'credits.html', 'privacy.html', 'terms.html', 'favicon.ico', 'robots.txt', 'sitemap.xml', 'llms.txt', 'site.webmanifest', 'server/**', '.github/workflows/deploy.yml']
+    paths: ['agent/**', 'tools/build-site.sh', 'js/**', 'css/**', 'assets/**', 'vendor/**', 'index.html', 'credits.html', 'privacy.html', 'terms.html', 'favicon.ico', 'robots.txt', 'sitemap.xml', 'llms.txt', 'site.webmanifest', 'sw.js', 'server/**', '.github/workflows/deploy.yml']
   workflow_dispatch:
 concurrency: deploy
 jobs:

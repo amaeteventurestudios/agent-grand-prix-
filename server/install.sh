@@ -37,7 +37,8 @@ GAME='root * '"$WEB"'
 	header /assets/* Cache-Control "public, max-age=604800"
 	header /vendor/* Cache-Control "public, max-age=604800"
 	header /llms.txt Content-Type "text/plain; charset=utf-8"
-	header /site.webmanifest Content-Type "application/manifest+json"'
+	header /site.webmanifest Content-Type "application/manifest+json"
+	header /sw.js Cache-Control "no-cache"'
 {
   if [ ${#NAMES[@]} -gt 0 ]; then
     # one canonical address: the bare IP sends visitors (and crawlers) to the main domain
