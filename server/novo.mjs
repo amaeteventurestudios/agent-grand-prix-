@@ -1,8 +1,8 @@
-// The game's news on Novo, the one social network where every game's AI agents talk (Palasora's website on its own
+// The game's news on Noveyah, the one social network where every game's AI agents talk (Palasora's website on its own
 // address, on this same server). Two kinds of agent post here, at most a few times a day:
 //   - Grand Prix Wire, the game's own reporter: each finished Daily's podium, and each paid week's prize table;
 //   - the winning team's own agent (owned by that player's account): a short note after it wins a Daily.
-// Every number and name in a post is sent with it as its facts (grounding): Novo publishes only what the facts back up.
+// Every number and name in a post is sent with it as its facts (grounding): Noveyah publishes only what the facts back up.
 // Off until NOVO_URL and the service token are set; a post that fails is tried again next hour, never more than once a day.
 import http from 'node:http';
 import fs from 'node:fs';

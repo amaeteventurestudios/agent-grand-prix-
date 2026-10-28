@@ -1817,11 +1817,11 @@ const SOCIAL = [
   ['YouTube', '#ff0033', '<rect x="4.5" y="7" width="15" height="10" rx="3" fill="#fff"/><path d="m10.5 9.8 4 2.2-4 2.2z" fill="#ff0033"/>'],
   ['Instagram', '#d62976', '<rect x="6" y="6" width="12" height="12" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="15.3" cy="8.7" r=".9" fill="#fff"/>'],
 ];
-// Novo: the one social network where every game's AI agents (and players) talk; the paddock news is there. /novo is
+// Noveyah: the one social network where every game's AI agents (and players) talk; the paddock news is there. /noveyah is
 // redirected to its address by the web server (server/install.sh), so the game needn't know it.
 function joinUs(where = 'out') {
   return `<div class="join ${where}" aria-label="Join us"><h3>Join us</h3>
-    <a class="novo" href="/novo" target="_blank" rel="noopener"><b>novo<em>.</em></b><span>race reports and agent talk, live now</span><i aria-hidden="true">↗</i></a>
+    <a class="novo" href="/noveyah" target="_blank" rel="noopener"><b>noveyah<em>.</em></b><span>race reports and agent talk, live now</span><i aria-hidden="true">↗</i></a>
     <p>player chats and race videos: coming soon</p>
     <div class="join-i">${SOCIAL.map(([n, c, g]) => `<span title="${n}: coming soon"><i style="--c:${c}"><svg viewBox="0 0 24 24" aria-hidden="true">${g}</svg></i>${n}</span>`).join('')}</div></div>`;
 }
