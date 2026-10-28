@@ -1558,7 +1558,7 @@ function home() {
   const sh = show(`
     <aside class="lp" aria-label="Menu">
       <div class="lp-head"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><p class="lp-tag">racing team management</p>
-        <button type="button" class="lp-hide" data-go="peek" aria-label="Hide the menu and watch the race">Watch ▾</button></div>
+        <button type="button" class="lp-hide" data-go="peek" aria-label="Hide the menu and watch the race">Watch ▾</button><span class="lp-grab" aria-hidden="true"></span></div>
       ${awayCard()}
       ${cont}
       <nav class="lp-list">
@@ -1582,14 +1582,62 @@ function home() {
       ${joinUs('in')}
       <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(true)}</div>
     </aside>
-    <button type="button" class="lp-show" data-go="unpeek">☰ Menu</button>
+    <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
+      <span class="lp-grab" aria-hidden="true"></span>
+      <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div></div>
+      <div class="lp-macts"><button class="btn lp-go" data-go="${newcomer ? 'play' : next.go}" type="button">▶ ${newcomer ? 'Start here' : 'Play'}</button><button type="button" class="lp-mmenu" data-go="unpeek" aria-label="Open the menu">☰ Menu</button></div>
+    </div>
     ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
     ${appCard()}
     ${passCard()}
-    ${joinUs('out')}${acChip()}`, `home nbhome${G.peek ? ' peek' : ''}`);
+    ${joinUs('out')}${acChip()}`, `home nbhome${homePeek() ? ' peek' : ''}`);
   sh.onclick = homeClick;
+  sheetSwipe(sh);
   sh.onchange = langChange;
   bootDone();
+}
+// On a phone the menu starts tucked away, so the race is the first thing you see: a small bar with
+// Play stays at the bottom (at the left when sideways). Tap it or swipe it up for the menu; swipe the
+// menu down (or left, sideways) to put it away. The race behind can be turned and zoomed with a finger.
+const homePeek = () => (G.peek === undefined ? GLANCE.matches : G.peek);
+function setPeek(on) { G.peek = on; $('#screen').classList.toggle('peek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
+function sheetSwipe(sh) {
+  const lp = $('.lp', sh), mini = $('.lp-mini', sh);
+  if (!lp || !mini) return;
+  const side = () => matchMedia('(max-height: 540px)').matches;
+  // drag: follows the finger, and past a third of the way (or a quick flick) it opens or closes
+  const drag = (el, opening) => {
+    let st = null;
+    el.addEventListener('pointerdown', (e) => {
+      if (!GLANCE.matches || e.button > 0) return;
+      if (!opening && lp.scrollTop > 2 && !e.target.closest('.lp-head')) return;   // scrolling the menu, not closing it
+      st = { x: e.clientX, y: e.clientY, t: performance.now(), on: false };
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!st) return;
+      const dx = e.clientX - st.x, dy = e.clientY - st.y, d = side() && !opening ? -dx : opening ? -dy : dy;
+      if (!st.on) {
+        if (Math.hypot(dx, dy) < 10) return;
+        const along = side() && !opening ? Math.abs(dx) > Math.abs(dy) : Math.abs(dy) > Math.abs(dx);
+        if (!along || d < 0) { st = null; return; }
+        st.on = true; el.setPointerCapture?.(e.pointerId); lp.classList.add('drag');
+      }
+      if (!opening) lp.style.transform = side() ? `translateX(${-Math.max(0, d)}px)` : `translateY(${Math.max(0, d)}px)`;
+      st.d = d;
+    });
+    const end = () => {
+      if (!st) return;
+      const was = st; st = null; lp.classList.remove('drag'); lp.style.transform = '';
+      if (!was.on) return;
+      const size = side() ? lp.offsetWidth : lp.offsetHeight, fast = was.d / Math.max(1, performance.now() - was.t) > 0.5;
+      if (was.d > (opening ? 30 : size / 3) || fast) setPeek(!opening);
+      el.dragAt = performance.now();
+    };
+    // a drag is not a tap: the click that ends it is dropped
+    el.addEventListener('click', (e) => { if (performance.now() - (el.dragAt || 0) < 400) { e.stopPropagation(); e.preventDefault(); } }, { capture: true });
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+  };
+  drag(mini, true); drag(lp, false);
 }
 // the Anti-Bot Pass on the home screen's right
 function passCard() {
@@ -2234,8 +2282,8 @@ function homeClick(e) {
   if (go === 'settings') return settingsSheet(back);
   if (go === 'install') return doInstall(back);
   if (go.startsWith('install:')) return doInstall(home, go.slice(8));
-  if (go === 'peek') { G.peek = true; return $('#screen').classList.add('peek'); }
-  if (go === 'unpeek') { G.peek = false; return $('#screen').classList.remove('peek'); }
+  if (go === 'peek') return setPeek(true);
+  if (go === 'unpeek') return setPeek(false);
   if (go === 'signout') return signOut().then(() => { toast('Signed out on this device. Your progress stays with your account.'); home(); });
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
   if (go === 'daily') needTeam(() => pre({ kind: 'daily', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
