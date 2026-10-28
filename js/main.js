@@ -1634,7 +1634,7 @@ function home() {
 // Play stays at the bottom (at the left when sideways). Tap it or swipe it up for the menu; swipe the
 // menu down (or left, sideways) to put it away. The race behind can be turned and zoomed with a finger.
 // the small print on the front page, as on most game sites
-const SUPPORT = 'support@agentgrandprix.com';
+const SUPPORT = 'hello@agentgrandprix.com';
 const legalLinks = (c = '') => `<p class="lp-legal${c}"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="mailto:${SUPPORT}">Support</a></p>`;
 const homePeek = () => (G.peek === undefined ? GLANCE.matches : G.peek);
 function setPeek(on) { G.peek = on; $('#screen').classList.toggle('hpeek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
@@ -1792,7 +1792,7 @@ function rulesSheet(back) {
       <li><b>The Anti-Bot Pass.</b> A yearly subscription that renews each year. Cancel any time from My account; the pass runs to the end of the year you paid for.</li>
       <li><b>Be kind.</b> Team names and messages must not be rude or pretend to be someone else.</li>
     </ul>
-    <p>Need help? Email <a href="mailto:amaete@gmail.com">amaete@gmail.com</a>.</p>
+    <p>Need help? Email <a href="mailto:hello@agentgrandprix.com">hello@agentgrandprix.com</a>.</p>
     <p class="small"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="credits.html" target="_blank" rel="noopener">Credits</a></p>
     <div class="actions"><button class="btn" id="ruBack" type="button">Got it</button></div>`);
   $('#ruBack').addEventListener('click', back);
