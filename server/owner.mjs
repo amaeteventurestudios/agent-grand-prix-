@@ -6,12 +6,20 @@
 //
 //   GET /                the page
 //   GET /api/summary     the same as JSON: per game, who is online, totals, and the game's services
+//   GET /api/players     Agent Grand Prix's signed-up players (name, handle, email, how, when), from its accounts service
+//   GET /players.csv     the same list to open in a spreadsheet
 import http from 'node:http';
 import { execFile } from 'node:child_process';
 
 const PORT = +(process.env.OWNER_PORT || 8150);
 const STDB = (process.env.STDB_URL || 'http://127.0.0.1:3010').replace(/\/$/, '');
 const TOKEN = process.env.STDB_TOKEN || '';
+const AGP_ACCOUNTS = process.env.AGP_ACCOUNTS_URL || 'http://127.0.0.1:8141';
+async function players() {
+  try { return (await (await fetch(AGP_ACCOUNTS + '/agent/players', { signal: AbortSignal.timeout(15000) })).json()).players || []; } catch { return null; }
+}
+// a cell a spreadsheet won't run as a formula
+const csvCell = (v) => { let t = String(v ?? ''); if (/^[=+@-]/.test(t)) t = "'" + t; return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
 
 // one entry per game: its database, its private people table, its public counts, and its services
 const GAMES = [
@@ -77,7 +85,8 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;p
 .svc{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}.svc span{font-size:12px;border-radius:6px;padding:3px 8px;border:1px solid var(--line)}
 .svc .active{color:var(--ok)}.svc span:not(.active){color:var(--bad)}.err{color:var(--bad);font-size:13px}.empty{color:var(--mute);font-size:13px}
 </style></head><body><main><h1>Your games</h1><p class="sub">Live from each game's own database. Refreshes every 15 seconds.</p>
-<div class="tabs" id="tabs"></div><div id="out" class="grid"></div></main>
+<div class="tabs" id="tabs"></div><div id="out" class="grid"></div>
+<section class="card" style="margin-top:16px"><h2>Agent Grand Prix sign-ups</h2><a href="players.csv">Download as a spreadsheet (CSV)</a><div id="plist"><p class="empty">Loading…</p></div></section></main>
 <script>
 let data = [], tab = 'all';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -99,7 +108,17 @@ function draw() {
 }
 document.getElementById('tabs').onclick = (e) => { const b = e.target.closest('button'); if (b) { tab = b.dataset.k; draw(); } };
 async function load() { try { data = await (await fetch('api/summary')).json(); draw(); } catch (e) { document.getElementById('out').innerHTML = '<p class="err">Could not reach the server.</p>'; } }
-load(); setInterval(load, 15000);
+async function loadPlayers() {
+  const el = document.getElementById('plist');
+  try {
+    const p = await (await fetch('api/players')).json();
+    if (!p.players) { el.innerHTML = '<p class="err">The accounts service is not answering.</p>'; return; }
+    el.innerHTML = '<div class="stats"><div class="stat"><b>' + p.players.length + '</b><span>signed up</span></div></div>' + (p.players.length
+      ? '<div style="overflow-x:auto"><table><tr><th>Name</th><th>Email</th><th>How</th><th>Joined</th></tr>' + p.players.map((x) => '<tr><td>' + esc(x.name) + (x.handle ? ' <span class="empty">@' + esc(x.handle) + '</span>' : '') + '</td><td>' + esc(x.email) + '</td><td>' + esc((x.via || []).join(', ') || 'email') + '</td><td>' + ago(x.joined) + '</td></tr>').join('') + '</table></div>'
+      : '<p class="empty">Nobody has signed up yet.</p>');
+  } catch { el.innerHTML = '<p class="err">Could not reach the server.</p>'; }
+}
+load(); setInterval(load, 15000); loadPlayers(); setInterval(loadPlayers, 60000);
 </script></body></html>`;
 
 http.createServer(async (req, res) => {
@@ -107,6 +126,13 @@ http.createServer(async (req, res) => {
   if (url.pathname === '/api/summary') {
     const body = JSON.stringify(await Promise.all(GAMES.map(game)));
     res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(body);
+  }
+  if (url.pathname === '/api/players' || url.pathname === '/players.csv') {
+    const list = await players();
+    if (url.pathname === '/api/players') { res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(JSON.stringify({ players: list })); }
+    const rows = [['name', 'handle', 'email', 'signed in with', 'joined'], ...(list || []).map((p) => [p.name, p.handle, p.email, (p.via || []).join(' ') || 'email', p.joined])];
+    res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': 'attachment; filename="agent-grand-prix-players.csv"', 'cache-control': 'no-store' });
+    return res.end(rows.map((r) => r.map(csvCell).join(',')).join('\r\n') + '\r\n');
   }
   if (url.pathname === '/health') { res.writeHead(200); return res.end(TOKEN ? 'ok' : 'no owner login'); }
   if (url.pathname === '/') { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' }); return res.end(page); }
