@@ -30,6 +30,7 @@ GAME='root * '"$WEB"'
 	reverse_proxy /api/me/* 127.0.0.1:8141
 	reverse_proxy /auth/novenique/* 127.0.0.1:8141
 	reverse_proxy /auth/google/* 127.0.0.1:8141
+	reverse_proxy /api/stripe/* 127.0.0.1:8141
 	reverse_proxy /api/board/* 127.0.0.1:8142
 	reverse_proxy /api/live/* 127.0.0.1:8143
 	file_server
@@ -117,6 +118,11 @@ if [ ! -s /etc/agp-session.env ]; then
   printf 'SESSION_SECRET=%s\n' "$(head -c 32 /dev/urandom | base64 | tr -d '\n=+/')" | sudo tee /etc/agp-session.env >/dev/null
   sudo chmod 0600 /etc/agp-session.env
 fi
+# ---- the Sora wallet: Palasora's economy service on this same server (its address and service token, copied, never sent) ----
+if sudo test -r /etc/palasora.env; then
+  { echo "ECONOMY_URL=$(sudo sed -n 's/^EDITORIAL_URL=//p' /etc/palasora.env | head -1)"; sudo grep '^EDITORIAL_SERVICE_TOKEN=' /etc/palasora.env | head -1; } \
+    | sudo install -m 600 -o root -g root /dev/stdin /etc/agp-economy.env
+fi
 # ---- accounts (always runs; waits for the Novenique client secret) ----
 # the service reads the account service's own secret from Novenique Core's client file, so no key
 # is ever sent from GitHub; the game's save files live in its own state directory.
@@ -134,6 +140,7 @@ EnvironmentFile=-/etc/novenique/clients/agp.env
 EnvironmentFile=-/etc/agp-session.env
 # the SpacetimeDB login for presence (server/spacetime-install.sh writes it)
 EnvironmentFile=-/etc/agp-spacetime.env
+EnvironmentFile=-/etc/agp-economy.env
 ExecStart=$NODE_DIR/bin/node $APP/server/accounts.mjs
 # Core runs on this same server: talk to it directly, keep the public address for the browser
 Environment=NOVENIQUE_INTERNAL_URL=http://127.0.0.1:8200
@@ -158,6 +165,7 @@ EnvironmentFile=/etc/agent-grand-prix.env
 # the same client secret signs the session cookie the accounts service sets, so a board knows who you are
 EnvironmentFile=-/etc/novenique/clients/agp.env
 EnvironmentFile=-/etc/agp-session.env
+EnvironmentFile=-/etc/agp-economy.env
 ExecStart=$NODE_DIR/bin/node $APP/server/leaders.mjs
 WorkingDirectory=$APP
 Environment=BOARD_DIR=/var/lib/agp-board

@@ -22,7 +22,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { open as openSession } from './accounts.mjs';
-import { setupRace, dailyVenue, raceLaps, trackFor } from '../js/game.js';
+import { setupRace, dailyVenue, raceLaps, trackFor, dayNumber } from '../js/game.js';
 import { lockForRace } from '../js/dna.js';
 import { hashString } from '../js/rng.js';
 
@@ -122,6 +122,54 @@ export function league(week, me, today = Infinity) {
     human: human.slice(0, TOP).map((t, i) => row(t, i, true)), agent: agent.slice(0, TOP).map((t, i) => row(t, i, false)), you, humans: human.length, agents: agent.length };
 }
 
+// ---------- paying a finished week ----------
+// Once a week's seventh Daily is over, the people's final table is sent to the Sora ledger (Palasora's economy service,
+// on this same server). It pays each place once into the winner's own Sora account and never more than the week's pot,
+// so sending a week twice is harmless. Only signed-in accounts are paid; an entry from before accounts has no wallet.
+const ECONOMY = (process.env.ECONOMY_URL || '').replace(/\/$/, ''), ECON_TOKEN = process.env.EDITORIAL_SERVICE_TOKEN || '';
+const paidFile = () => path.join(DIR, 'paid.json');
+// while the Anti-Bot Pass is on sale, the pot is shared among pass holders: places are counted among them only
+const ACCOUNTS = process.env.AGP_ACCOUNTS_URL || 'http://127.0.0.1:8141';
+async function eligible(id) {
+  try { const j = await (await fetch(`${ACCOUNTS}/agent/pass?id=${encodeURIComponent(id)}`, { signal: AbortSignal.timeout(5000) })).json(); return !j.sell || !!j.active; }
+  catch { return null; }
+}
+export async function payouts(week, ok = eligible) {
+  const tot = new Map();
+  for (const day of daysOf(week)) for (const [id, e] of Object.entries(read(day).entries)) {
+    if (e.agent) continue;
+    const t = tot.get(id) || { id, pts: 0, races: 0, best: 99 };
+    t.pts += e.pts; t.races++; t.best = Math.min(t.best, e.best); tot.set(id, t);
+  }
+  const order = [...tot.values()].sort((a, b) => b.pts - a.pts || a.best - b.best || b.races - a.races).filter((t) => /^[a-z0-9]{15}$/.test(t.id));
+  const winners = [];
+  for (const t of order) {
+    if (winners.length >= SHARES.length) break;
+    const e = await ok(t.id); if (e === null) throw new Error('accounts service not answering');
+    if (e) winners.push(t);
+  }
+  return winners.map((t, i) => ({ user_id: t.id, place: i + 1, amount: Math.floor((POT * SHARES[i]) / 100) })).filter((p) => p.amount > 0);
+}
+export async function payFinishedWeeks(today = dayNumber()) {
+  if (!ECONOMY || !ECON_TOKEN || !POT) return [];
+  let done = {}; try { done = JSON.parse(fs.readFileSync(paidFile(), 'utf8')); } catch {}
+  const out = [];
+  for (let week = 1; week < weekOf(today); week++) {
+    if (done[week]) continue;
+    try {
+      const lines = await payouts(week);
+      const r = await fetch(`${ECONOMY}/economy/prizes/agp/week`, { method: 'POST', headers: { 'x-service-token': ECON_TOKEN, 'content-type': 'application/json' },
+        body: JSON.stringify({ week, payouts: lines }), signal: AbortSignal.timeout(15000) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) { console.error(`week ${week} payout refused: ${r.status} ${JSON.stringify(j).slice(0, 200)}`); continue; }
+      done[week] = { at: Date.now(), paid: j.paid, lines: lines.length };
+      fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(paidFile(), JSON.stringify(done));
+      out.push(week);
+    } catch (e) { console.error(`week ${week} payout failed: ${e.message}`); }
+  }
+  return out;
+}
+
 export function serve(port = PORT, today = () => Math.floor(Date.now() / 864e5)) {
   return http.createServer(async (req, res) => {
     const u = new URL(req.url, 'http://x');
@@ -156,4 +204,8 @@ export function serve(port = PORT, today = () => Math.floor(Date.now() / 864e5))
   }).listen(port, '127.0.0.1');
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) { serve(); console.log(`leaderboards on 127.0.0.1:${PORT}, saving to ${DIR}`); }
+if (import.meta.url === `file://${process.argv[1]}`) {
+  serve(); console.log(`leaderboards on 127.0.0.1:${PORT}, saving to ${DIR}; weekly prizes ${ECONOMY && ECON_TOKEN && POT ? 'paid in Sora' : 'not connected'}`);
+  const pay = () => payFinishedWeeks().then((w) => w.length && console.log(`paid weeks ${w.join(', ')}`));
+  setTimeout(pay, 30_000); setInterval(pay, 3600_000);
+}
