@@ -2,7 +2,25 @@
 // parseCall() is plain text in, calls out (no browser APIs), so Node can test it; listen() wraps the
 // browser's own speech recognition (free, no download) with push-to-talk.
 
-const WORDS = (s) => ' ' + s.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+import { SAY } from './radio-words.js';
+
+// Other languages: plain letters (no accents, one Arabic alef), then each known phrase becomes the
+// English call it means. setRadioLang() picks the language; English passes through untouched.
+let SAID = null;
+export function setRadioLang(l) {
+  const list = Object.entries(SAY[l] || {}).flatMap(([en, ws]) => ws.map((w) => [plain(w).trim(), en]));
+  SAID = list.length ? list.sort((a, b) => b[0].length - a[0].length) : null;
+}
+const plain = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f\u064b-\u0655]/g, '')
+  .replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/[’']/g, '').replace(/[^\p{L}\p{N} ]+/gu, ' ');
+function inEnglish(s) {
+  if (!SAID) return s;
+  let t = ' ' + plain(s).replace(/\s+/g, ' ').trim() + ' ';
+  for (const [w, en] of SAID) t = t.split(' ' + w + ' ').join(' ' + en + ' ').split(' ' + w + ' ').join(' ' + en + ' ');
+  return t.trim();
+}
+
+const WORDS = (s) => ' ' + inEnglish(s).toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
 const has = (t, list) => list.some((w) => t.includes(' ' + w + ' '));
 
 const TYRES = [['S', ['soft', 'softs', 'reds', 'red']], ['M', ['medium', 'mediums', 'yellows', 'yellow', 'meds']],
@@ -104,6 +122,7 @@ const cap = (k) => ({ boxnow: 'Box', box: 'Box', cancel: 'Stay out' }[k] || k[0]
 // Returns the words after the wake word ('' when it was said alone), or null when it wasn't said.
 const WAKE = /^\s*(?:(?:hey|ok|okay|oi|and)\s+)?(?:team\s+)?(?:radio|radios|raydio)\b[\s,.!:;-]*/i;
 export function wakeSplit(text) {
+  if (SAID) text = inEnglish(text);
   const m = String(text || '').match(WAKE);
   return m ? text.slice(m[0].length).trim() : null;
 }

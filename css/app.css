@@ -1286,12 +1286,12 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
   /* the menu slides away; the Play bar takes its place */
   .lp { transition: transform .32s cubic-bezier(.2, .8, .2, 1), visibility 0s; touch-action: pan-y; }
   .lp.drag { transition: none; }
-  .screen.nbhome.peek .lp { transform: translateY(calc(100% + 40px)); visibility: hidden; transition: transform .28s ease-in, visibility 0s .28s; }
+  .screen.nbhome.hpeek .lp { transform: translateY(calc(100% + 40px)); visibility: hidden; transition: transform .28s ease-in, visibility 0s .28s; }
   .lp-grab { display: block; width: 44px; height: 5px; border-radius: 3px; background: #d6ccb8; margin: 0 auto; }
   .lp-head .lp-grab { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); }
   .lp-mini { display: flex; flex-direction: column; gap: 8px; position: absolute; left: 0; right: 0; bottom: 0; background: #fbf7ee; color: #1d1f24; border: 1.5px solid #e6dcc8; border-radius: 16px; padding: 8px 12px 12px; box-shadow: 0 12px 34px rgba(0, 0, 0, .35); touch-action: none; cursor: pointer;
     transform: translateY(calc(100% + 40px)); transition: transform .28s ease-in; }
-  .screen.nbhome.peek .lp-mini { transform: none; transition: transform .32s cubic-bezier(.2, .8, .2, 1) .08s; }
+  .screen.nbhome.hpeek .lp-mini { transform: none; transition: transform .32s cubic-bezier(.2, .8, .2, 1) .08s; }
   .lp-mrow { display: flex; align-items: center; gap: 10px; }
   .lp-mtxt { min-width: 0; }
   .lp-mini .lp-brand { font-size: 22px; }
@@ -1320,7 +1320,7 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
   .lp-go { min-height: 42px; font-size: 16px; }
   .lp-i { padding: 5px 4px; } .lp-i b { font-size: 15px; }
   .lp { touch-action: pan-y; }
-  .screen.nbhome.peek .lp { transform: translateX(calc(-100% - 40px)); }
+  .screen.nbhome.hpeek .lp { transform: translateX(calc(-100% - 40px)); }
   .lp-head .lp-grab { display: none; }
   .lp-mini { right: auto; top: auto; width: min(330px, 46%); }
   .lp-mini .lp-go { min-height: 42px; }
@@ -1391,3 +1391,15 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .boot-flags { margin-top: 18px; display: flex; justify-content: center; gap: 3px; }
 .boot-flags b { width: 10px; height: 10px; background: #fff; } .boot-flags b:nth-child(even) { background: #111; }
 @media (prefers-reduced-motion: reduce) { .boot, .boot-car i { transition: none; } }
+
+/* ---------- languages ---------- */
+.nb-lang { display: inline-flex; align-items: center; gap: 4px; }
+.nb-lang i { font-style: normal; font-size: 16px; }
+.lang-note { position: absolute; z-index: 5; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 5px 5px 5px 12px; border-radius: 999px; background: rgba(17, 22, 32, .82); color: #fff; font: 700 14px var(--f-ui); white-space: nowrap; box-shadow: 0 6px 20px rgba(0, 0, 0, .3); }
+.lang-note button { border: 0; border-radius: 999px; padding: 6px 12px; background: #fff; color: #1d1f24; font: 800 14px var(--f-ui); }
+.lang-note button:last-child { background: #1267f4; color: #fff; padding: 6px 10px; }
+@media (max-width: 760px) and (min-height: 541px) { .lang-note { top: 96px; } }
+
+/* Arabic reads right to left: the page flips with dir="rtl"; these keep the few placed corners on the right side */
+.rtl .lp-hide { right: auto; left: 0; }
+.rtl .lp-brand, .rtl .brand, .rtl .lang { direction: ltr; unicode-bidi: isolate; }

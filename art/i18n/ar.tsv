@@ -1,0 +1,2531 @@
+id	en	ar
+0	Meet your team	تعرّف على فريقك
+1	What a team principal does: two cars, their calls, the battery and a pit stop.	ما يفعله مدير الفريق: سيارتان، وأوامرهما، والبطارية، وتوقف في الصيانة.
+2	Push is faster but wears the tyres	الضغط أسرع لكنه يستهلك الإطارات
+3	BOOST spends the battery for 12 seconds of speed	BOOST يستهلك البطارية مقابل 12 ثانية من السرعة
+4	Pick tyres, then BOX: the crew does the rest	اختر الإطارات، ثم BOX: والطاقم يتولى الباقي
+5	You can say every call on the radio	يمكنك إعطاء كل أمر عبر الراديو
+6	Next	التالي
+7	Welcome to the pit wall. I'm your race engineer. Your two AI drivers drive the cars.	أهلًا بك على جدار الصيانة. أنا مهندس السباق. سائقاك الآليّان يقودان السيارتين.
+8	You are the team principal: you make the calls.	أنت مدير الفريق: أنت من يصدر الأوامر.
+9	You run	أنت تدير
+10	two cars	سيارتين
+11	to follow your second car.	لمتابعة سيارتك الثانية.
+12	Lights out	انطفاء الأضواء
+13	Each car takes its own calls: whichever car you follow is the one you're talking to. Ready to race?	كل سيارة تتلقى أوامرها الخاصة: السيارة التي تتابعها هي التي تتحدث إليها. هل أنت مستعد للسباق؟
+14	We're racing. Tell your driver to go faster: tap	بدأ السباق. اطلب من سائقك أن يسرع: اضغط
+15	Push	ضغط
+16	Got it	فهمت
+17	is faster, but the tyres wear quicker. Keep an eye on	أسرع، لكن الإطارات تتآكل أسرع. راقب
+18	tyre life	عمر الإطارات
+19	Save tyres	توفير الإطارات
+20	does the opposite.	يفعل العكس.
+21	Now the battery. Tap	والآن البطارية. اضغط
+22	BOOST	BOOST
+23	for 12 seconds of extra electric power.	لـ12 ثانية من القوة الكهربائية الإضافية.
+24	BOOST empties the battery. It fills up again as the car brakes for corners, like regen in an electric car.	BOOST يفرغ البطارية. وتمتلئ من جديد عندما تكبح السيارة في المنعطفات، مثل السيارة الكهربائية.
+25	Time for a pit stop. Pick	حان وقت التوقف في الصيانة. اختر
+26	Soft	ناعم
+27	, then tap	، ثم اضغط
+28	BOX	BOX
+29	Copied: your driver pits at the end of this lap. The pit entry is just before the start line.	تم: سائقك سيدخل الصيانة في نهاية هذه اللفة. مدخل الصيانة قبل خط الانطلاق مباشرة.
+30	Watch the crew. Your car drives down the fast lane to its own box. New tyres in about three seconds.	راقب الطاقم. سيارتك تسير في المسار السريع إلى مكانها. إطارات جديدة في نحو ثلاث ثوانٍ.
+31	Fresh tyres, and back out on the fast lane. A whole stop costs about 8 seconds (a quarter of a lap).	إطارات جديدة، والعودة عبر المسار السريع. التوقف الكامل يكلّف نحو 8 ثوانٍ (ربع لفة).
+32	Skip	تخطَّ
+33	You can say every call.	يمكنك قول كل أمر.
+34	Hold the mic	اضغط مطولًا على الميكروفون
+35	and say "	وقل «
+36	" or "	» أو «
+37	Box box	Box box
+38	". Let go when you've said it.	». ارفع إصبعك بعد أن تنتهي.
+39	That's the job: pace, battery, tyres and pit stops, for two cars.	هذه هي المهمة: الإيقاع، والبطارية، والإطارات، والتوقفات، لسيارتين.
+40	Lesson 1 complete.	اكتمل الدرس 1.
+41	Command your drivers	قُد سائقيك
+42	Attack, defend, and team orders between your two cars.	الهجوم، والدفاع، وأوامر الفريق بين سيارتيك.
+43	Attack makes a driver go for gaps, and costs a little tyre	الهجوم يجعل السائق يبحث عن الفجوات، مقابل بعض الإطارات
+44	BOOST helps a pass when you are within a second	BOOST يساعد على التجاوز عندما تكون على بعد أقل من ثانية
+45	Defend makes your car about half as easy to pass	الدفاع يجعل تجاوز سيارتك أصعب بمرتين
+46	Hold positions stops your two cars fighting each other	الحفاظ على المراكز يمنع سيارتيك من التقاتل
+47	Swap places lets a faster teammate through	تبديل المراكز يسمح بمرور زميل أسرع
+48	Your drivers race everyone, including each other.	سائقاك يتسابقان مع الجميع، حتى مع بعضهما.
+49	You decide when they fight.	أنت تقرر متى يتقاتلان.
+50	Attack	هجوم
+51	Attack makes a pass more likely, but wears the tyres a little faster and risks contact. Within a second of the car ahead? Add	الهجوم يجعل التجاوز أكثر احتمالًا، لكنه يستهلك الإطارات أكثر قليلًا ويخاطر بالتلامس. على بعد أقل من ثانية من السيارة الأمامية؟ أضف
+52	Defend	دفاع
+53	Neutral	محايد
+54	when the fight is over.	عندما تنتهي المعركة.
+55	Your own two cars can fight each other and lose time. Tap	سيارتاك قد تتقاتلان وتخسران الوقت. اضغط
+56	Hold positions	الحفاظ على المراكز
+57	to stop that.	لمنع ذلك.
+58	When the car behind is faster (fresher tyres, say),	عندما تكون السيارة الخلفية أسرع (بإطارات أحدث مثلًا)،
+59	Swap places	تبديل المراكز
+60	tells the one in front to let it by. It works when your cars run nose to tail.	يطلب من الأمامية أن تفسح لها الطريق. يعمل عندما تسير سيارتاك متلاصقتين.
+61	All of these work on the radio: hold the mic and say "	كل هذا يعمل عبر الراديو: اضغط على الميكروفون وقل «
+62	hold positions	الحفاظ على المراكز
+63	Attack, defend, hold and swap:	هجوم، دفاع، حفاظ وتبديل:
+64	Lesson 2 complete.	اكتمل الدرس 2.
+65	Master the circuit	أتقن الحلبة
+66	How Driver DNA changes what your drivers do on track.	كيف يغيّر الحمض النووي للسائق ما يفعله سائقاك على الحلبة.
+67	Driver DNA is how each driver drives: brakes, corners, passing, tyres	الحمض النووي للسائق هو أسلوب قيادته: الكبح، المنعطفات، التجاوز، الإطارات
+68	Late braking gains time but can lock the wheels	الكبح المتأخر يكسب الوقت لكنه قد يقفل العجلات
+69	Tyre care makes a set last longer	العناية بالإطارات تُطيل عمر الطقم
+70	You tune DNA between races, not during one	تضبط الحمض النووي بين السباقات، لا أثناءها
+71	The Proving Ground tests a change over many races first	ميدان الاختبار يجرّب التغيير على سباقات كثيرة أولًا
+72	Every driver has a	لكل سائق
+73	Driver DNA	حمض نووي للسائق
+74	: how late they brake, how hard they take corners, how eager they are to pass, how kind they are to tyres. It changes what they do on track.	: متى يكبح، وكيف يدخل المنعطفات، ومدى رغبته في التجاوز، ومدى رفقه بالإطارات. وهذا يغيّر ما يفعله على الحلبة.
+75	Attacker	المهاجم
+76	Tyre Whisperer	صديق الإطارات
+77	: gentle, and makes a set last.	: لطيف، ويُطيل عمر الطقم.
+78	Open Driver DNA	افتح الحمض النووي للسائق
+79	You set DNA between races in	تضبط الحمض النووي بين السباقات في
+80	Proving Ground	ميدان الاختبار
+81	tests a change over many races before you use it.	يجرّب التغيير على سباقات كثيرة قبل أن تستخدمه.
+82	Back to the race	العودة إلى السباق
+83	These are your drivers' own saved styles: the Attacker and the Tyre Whisperer were only lent for this lesson. Have a look round, then tap	هذه أساليب سائقيك المحفوظة: المهاجم وصديق الإطارات كانا مُعارين لهذا الدرس فقط. ألقِ نظرة، ثم اضغط
+84	Done	تم
+85	Your drivers' DNA, tuned to the circuit:	الحمض النووي لسائقيك، مضبوط على الحلبة:
+86	Lesson 3 complete.	اكتمل الدرس 3.
+87	Strategy	الاستراتيجية
+88	Tyres, the two-compound rule, the safety car and rain.	الإطارات، وقاعدة النوعين، وسيارة الأمان، والمطر.
+89	In a dry race you must use two dry compounds, or take 20 seconds	في السباق الجاف يجب استخدام نوعين جافين، وإلا 20 ثانية عقوبة
+90	A stop under the safety car costs about half	التوقف تحت سيارة الأمان يكلّف نحو النصف
+91	Damp track: Inters. Soaked: Wets	حلبة رطبة: وسيطة. غارقة: مطرية
+92	The weather chip warns you before the rain	مؤشر الطقس ينبهك قبل المطر
+93	Races are won on strategy.	السباقات تُكسب بالاستراتيجية.
+94	tyres are fastest and wear quickest,	هي الأسرع والأكثر تآكلًا،
+95	Medium	متوسط
+96	is the all-rounder,	هو الأكثر توازنًا،
+97	Hard	صلب
+98	is slowest and lasts longest.	هو الأبطأ والأطول عمرًا.
+99	In a dry race every car must use	في السباق الجاف يجب على كل سيارة استخدام
+100	two different dry compounds	نوعين جافين مختلفين
+101	, or take a 20-second penalty. So everyone stops at least once.	، وإلا عقوبة 20 ثانية. لذا يتوقف الجميع مرة واحدة على الأقل.
+102	A normal stop costs about 8 seconds (a quarter of a lap). The trick is	التوقف العادي يكلّف نحو 8 ثوانٍ (ربع لفة). السر هو
+103	Safety car!	سيارة الأمان!
+104	The field slows down, so a stop now costs about half. Pick a different dry tyre (	تبطئ السيارات، فالتوقف الآن يكلّف نحو النصف. اختر إطارًا جافًا مختلفًا (
+105	), then	)، ثم
+106	Boxing under the safety car: the cheapest stop of the race.	التوقف تحت سيارة الأمان: أرخص توقف في السباق.
+107	Watch the stop. The field is bunched up behind the safety car, so you drop places now, but every car ahead still has a full-price stop to make. And with a second compound fitted, the tyre rule is done.	راقب التوقف. السيارات متجمعة خلف سيارة الأمان، فتخسر مراكز الآن، لكن كل سيارة أمامك ما زال عليها توقف بالسعر الكامل. ومع تركيب نوع ثانٍ، استوفيت قاعدة الإطارات.
+108	Now look at the	انظر الآن إلى
+109	weather chip	مؤشر الطقس
+110	at the top. Rain is coming. On a wet track, slick tyres have no grip.	في الأعلى. المطر قادم. على الحلبة المبللة لا تتماسك الإطارات الملساء.
+111	It's raining. Pick	إنها تمطر. اختر
+112	Inter	وسيط
+113	, Wets (blue).	، مطرية (أزرق).
+114	Inters on. When the rain stops and a dry line appears, the first car back on slicks gains the most.	الإطارات الوسيطة مركّبة. عندما يتوقف المطر ويظهر خط جاف، أول سيارة تعود للإطارات الملساء تكسب أكثر.
+115	Tyres, the two-compound rule, the safety car and the rain:	الإطارات، وقاعدة النوعين، وسيارة الأمان، والمطر:
+116	Lesson 4 complete.	اكتمل الدرس 4.
+117	Your first Grand Prix	أول جائزة كبرى لك
+118	A full race with the coach beside you, then your summary and Academy badge.	سباق كامل والمدرب بجانبك، ثم ملخصك وشارة الأكاديمية.
+119	You ran a whole Grand Prix from the pit wall	أدرت جائزة كبرى كاملة من جدار الصيانة
+120	Two cars, their pace, battery and battles	سيارتان، وإيقاعهما، والبطارية، والمعارك
+121	A pit stop at the right moment	توقف في اللحظة المناسبة
+122	Push to the flag on the last lap	اضغط حتى العلم في اللفة الأخيرة
+123	will tip you off at the right moments. No championship points: just you and the race.	سينبهك في اللحظات المناسبة. لا نقاط في البطولة: أنت والسباق فقط.
+124	Hide	إخفاء
+125	Run your cars. Keep an eye on tyre life, and box when the pit window opens.	أدِر سيارتيك. راقب عمر الإطارات، وادخل الصيانة عندما تُفتح النافذة.
+126	Racing. The last lap is when it all counts.	السباق جارٍ. اللفة الأخيرة هي الأهم.
+127	Last lap!	اللفة الأخيرة!
+128	Tyre wear doesn't matter now.	تآكل الإطارات لم يعد مهمًا.
+129	both cars.	كلتا السيارتين.
+130	Bring it home.	أوصلها إلى النهاية.
+131	Chequered flag.	العلم المربّع.
+132	You ran a Grand Prix from the pit wall.	أدرت جائزة كبرى من جدار الصيانة.
+133	Something went wrong. Please try again.	حدث خطأ ما. حاول مرة أخرى.
+134	Could not reach the game server. Check your connection and try again.	تعذّر الوصول إلى خادم اللعبة. تحقق من اتصالك وحاول مرة أخرى.
+135	Payments are not available right now. Please try again soon.	الدفع غير متاح الآن. حاول قريبًا.
+136	Follow Plan A	اتبع الخطة أ
+137	The engineer's briefing plan for each car.	خطة المهندس لكل سيارة.
+138	Strategist decides	الاستراتيجي يقرر
+139	Stops when the tyres say so.	يتوقف عندما تقول الإطارات ذلك.
+140	Cautious	حذِر
+141	Rain tyres at the first spots of rain.	إطارات المطر مع أول قطرات.
+142	Normal	عادي
+143	Rain tyres once the track is properly wet.	إطارات المطر عندما تبتل الحلبة جيدًا.
+144	Bold	جريء
+145	Stays on slicks as long as it dares.	يبقى على الإطارات الملساء بقدر ما يجرؤ.
+146	Race freely	سباق حر
+147	Your two cars may fight each other.	سيارتاك قد تتقاتلان.
+148	No fighting between your cars.	لا قتال بين سيارتيك.
+149	Careful	حريص
+150	Saves tyres, avoids fights.	يوفّر الإطارات، ويتجنب المعارك.
+151	Pushes in the last laps.	يضغط في اللفات الأخيرة.
+152	Aggressive	عدواني
+153	Attacks all race, pushes and deploys at the end.	يهاجم طوال السباق، ويضغط ويستخدم البطارية في النهاية.
+154	Verified human: Anti-Bot Pass	إنسان موثَّق: بطاقة مكافحة الروبوتات
+155	✓ Human	✓ إنسان
+156	DNF	انسحاب
+157	Full distance	المسافة الكاملة
+158	This week	هذا الأسبوع
+159	The leaderboard is not reachable right now. Your race is saved on this device either way.	لوحة الصدارة غير متاحة الآن. سباقك محفوظ على هذا الجهاز في كل الأحوال.
+160	No agent has raced today yet.	لم يتسابق أي وكيل اليوم بعد.
+161	Nobody has raced today yet. Be first.	لم يتسابق أحد اليوم بعد. كن الأول.
+162	team has	فريق
+163	teams have	فرق
+164	by agent	بواسطة الوكيل
+165	Daily	اليومي
+166	Dailies	اليوميات
+167	Today is the last Daily of the week.	اليوم آخر سباق يومي في الأسبوع.
+168	Prize pot	مجموع الجوائز
+169	Prizes come later.	الجوائز تأتي لاحقًا.
+170	No one has raced a Daily this week yet.	لم يتسابق أحد في سباق يومي هذا الأسبوع بعد.
+171	Nobody has raced today's full distance yet. Be first.	لم يتسابق أحد في المسافة الكاملة اليوم بعد. كن الأول.
+172	Tyres are at	الإطارات عند
+173	Battery is at	البطارية عند
+174	Gap to the car ahead:	الفارق مع السيارة الأمامية:
+175	Gap to the car behind:	الفارق مع السيارة الخلفية:
+176	Nobody ahead. We're leading.	لا أحد أمامنا. نحن في الصدارة.
+177	Nobody close behind.	لا أحد قريب خلفنا.
+178	We're	نحن في
+179	My teammate is	زميلي في
+180	My teammate is out of the race.	زميلي خرج من السباق.
+181	Plenty of laps to go.	ما زالت لفات كثيرة.
+182	They feel fresh.	إنها جديدة.
+183	Still plenty of grip.	ما زال التماسك جيدًا.
+184	They're starting to go off.	بدأت تفقد أداءها.
+185	They're finished. I'm sliding everywhere.	انتهت. أنزلق في كل مكان.
+186	Track is dry.	الحلبة جافة.
+187	Track is damp.	الحلبة رطبة.
+188	Track is wet.	الحلبة مبللة.
+189	It's soaked out here.	الحلبة غارقة هنا.
+190	Radar shows rain coming.	الرادار يُظهر مطرًا قادمًا.
+191	No rain on the radar.	لا مطر على الرادار.
+192	Safety car is out.	سيارة الأمان على الحلبة.
+193	Car's mega! Let's go and get them.	السيارة رائعة! لنلحق بهم.
+194	Car feels balanced. All under control.	السيارة متوازنة. كل شيء تحت السيطرة.
+195	Car feels good, boss.	السيارة جيدة يا رئيس.
+196	It's hard work out here.	العمل شاق هنا.
+197	Yes! Give me the boost and I'll send it.	نعم! أعطني الـboost وسأنطلق.
+198	I can do it. I'll set it up for the straight.	أستطيع. سأجهّز لذلك في الخط المستقيم.
+199	I think so. I'm close enough.	أظن ذلك. أنا قريب بما يكفي.
+200	He's too far ahead for now. I need to close the gap first.	إنه بعيد جدًا الآن. عليّ أن أقلّص الفارق أولًا.
+201	Not without battery. Let me charge first.	ليس بدون بطارية. دعني أشحن أولًا.
+202	My tyres are too worn to fight him.	إطاراتي متآكلة جدًا للقتال.
+203	There's nobody to pass. We're leading!	لا أحد لأتجاوزه. نحن في الصدارة!
+204	That's my teammate ahead. Your call on team orders.	زميلي هو الذي أمامي. القرار لك في أوامر الفريق.
+205	It's wet and I'm on slicks. Box me?	الحلبة مبللة وأنا على إطارات ملساء. أدخل الصيانة؟
+206	There is a dry line. I want slicks.	هناك خط جاف. أريد إطارات ملساء.
+207	These tyres are done. I'd box now.	هذه الإطارات انتهت. كنت سأدخل الآن.
+208	I can stretch these a few more laps.	أستطيع تمديدها بضع لفات أخرى.
+209	He's right there. Let me attack with the boost.	إنه هناك تمامًا. دعني أهاجم بالـboost.
+210	I'm close. Let me attack on the next straight.	أنا قريب. دعني أهاجم في الخط المستقيم القادم.
+211	I'm close behind. Let me attack.	أنا خلفه مباشرة. دعني أهاجم.
+212	He's all over me. Let me defend.	إنه ملتصق بي. دعني أدافع.
+213	Battery is low. Let me harvest for a lap.	البطارية منخفضة. دعني أشحن لفة.
+214	Tyres are good. Let me push.	الإطارات جيدة. دعني أضغط.
+215	Long way to go. I'd save the tyres for now.	ما زال الطريق طويلًا. كنت سأوفّر الإطارات الآن.
+216	All good. I'd keep it as it is.	كل شيء بخير. كنت سأبقي الأمور كما هي.
+217	We're already boxing, like you called.	نحن ندخل الصيانة بالفعل كما طلبت.
+218	Rain's coming. I'd stay out until it hits.	المطر قادم. كنت سأبقى على الحلبة حتى يهطل.
+219	I'm faster than my teammate. Can we swap?	أنا أسرع من زميلي. هل نتبادل؟
+220	Say do it, and I'll go.	قل «نفّذ» وسأنطلق.
+221	Your call, boss.	القرار لك يا رئيس.
+222	Really? I'm right on his gearbox. Okay, saving.	حقًا؟ أنا ملتصق به تمامًا. حسنًا، أوفّر.
+223	Are you sure? I'm faster. Fine, letting them through.	هل أنت متأكد؟ أنا أسرع. حسنًا، سأفسح له.
+224	Hold? I'm quicker than my teammate. Okay, holding.	أحافظ؟ أنا أسرع من زميلي. حسنًا، أحافظ.
+225	Copy, harvesting. But he's close behind me.	تم، أشحن. لكنه قريب خلفي.
+226	Copy, defending. It will cost me some time.	تم، أدافع. سيكلّفني ذلك بعض الوقت.
+227	Copy. But these tyres won't last long like this.	تم. لكن هذه الإطارات لن تصمد طويلًا هكذا.
+228	Copy. But it's still wet out here.	تم. لكن الحلبة ما زالت مبللة.
+229	Copy. But I think it's too dry for those.	تم. لكنني أظن أنها جافة جدًا لهذه.
+230	No complaints, boss. Just racing.	لا شكاوى يا رئيس. أتسابق فقط.
+231	Like I said:	كما قلت:
+232	My orders:	أوامري:
+233	push,	ضغط،
+234	save tyres,	توفير الإطارات،
+235	normal pace,	إيقاع عادي،
+236	harvest,	شحن،
+237	deploy,	استخدام البطارية،
+238	balanced battery,	بطارية متوازنة،
+239	and attack.	وهجوم.
+240	and defend.	ودفاع.
+241	and race clean.	وسباق نظيف.
+242	And we box this lap.	وندخل الصيانة في هذه اللفة.
+243	Holding position with my teammate.	أحافظ على مركزي مع زميلي.
+244	You haven't changed anything yet.	لم تغيّر شيئًا بعد.
+245	Yes! Let's keep going!	نعم! لنواصل!
+246	Thanks. Focus on the next lap.	شكرًا. ركّز على اللفة القادمة.
+247	Thanks, boss!	شكرًا يا رئيس!
+248	Leave it with me!	اتركها لي!
+249	Copy. I'm doing everything I can.	تم. أفعل كل ما بوسعي.
+250	On it, boss.	حاضر يا رئيس.
+251	Sorry, boss. I know. I will fix it.	آسف يا رئيس. أعرف. سأصلح ذلك.
+252	Boss, the tyres are going. I'll need a stop soon.	يا رئيس، الإطارات تنهار. سأحتاج توقفًا قريبًا.
+253	It's raining and I'm on slicks!	إنها تمطر وأنا على إطارات ملساء!
+254	nearly zero.	تقريبًا صفر.
+255	percent.	بالمئة.
+256	3 seconds.	3 ثوانٍ.
+257	More than fifteen seconds.	أكثر من خمس عشرة ثانية.
+258	Harvesting.	أشحن.
+259	Deploying.	أستخدم البطارية.
+260	SMH	SMH
+261	In the pits now.	في الصيانة الآن.
+262	I'm saving the tyres, like you asked.	أوفّر الإطارات كما طلبت.
+263	tyres:	الإطارات:
+264	rain:	المطر:
+265	Gamble on Inters for the drying track	المراهنة على الإطارات الوسيطة مع جفاف الحلبة
+266	Full Wets for safety in the spray	إطارات مطرية كاملة للأمان وسط الرذاذ
+267	Rookie	مبتدئ
+268	Learning the car and the calendar.	يتعلم السيارة والروزنامة.
+269	Racer	متسابق
+270	Knows the circuits and keeps it clean.	يعرف الحلبات ويقود بنظافة.
+271	Contender	منافس
+272	Reads a race and fights for places.	يقرأ السباق ويقاتل على المراكز.
+273	Veteran	مخضرم
+274	Master	أستاذ
+275	Everything learned, and little left to teach.	تعلّم كل شيء، ولم يبقَ الكثير ليتعلمه.
+276	Laps raced	لفات مقطوعة
+277	Finished	أنهى
+278	Wet race	سباق ممطر
+279	Race win	فوز بسباق
+280	Podium	منصة التتويج
+281	Clean race	سباق نظيف
+282	A new circuit	حلبة جديدة
+283	Braking later costs more than it gains	الكبح المتأخر يكلّف أكثر مما يكسب
+284	Lock-ups a race	قفل العجلات في كل سباق
+285	Steady laps beat spectacular ones	اللفات الثابتة تتفوق على الاستعراضية
+286	Mistakes a race	أخطاء في كل سباق
+287	Looking after the tyres wins more races than raw pace	العناية بالإطارات تكسب سباقات أكثر من السرعة الخام
+288	Pit stops a race	توقفات في كل سباق
+289	Leaving room wheel to wheel	ترك مساحة عجلة بعجلة
+290	Contacts a race	تلامسات في كل سباق
+291	Waiting for the straight makes passes stick	انتظار الخط المستقيم يجعل التجاوز ينجح
+292	Passes that stick	تجاوزات ناجحة
+293	Confidence in the rain, earned	ثقة تحت المطر، عن جدارة
+294	Wet races	سباقات ممطرة
+295	Spins	دوران
+296	Holding a place under pressure	الحفاظ على المركز تحت الضغط
+297	Overtaken a race	مرات تم تجاوزه في كل سباق
+298	Clean enough to take more chances	نظيف بما يكفي ليجازف أكثر
+299	Clean races	سباقات نظيفة
+300	Passes a race	تجاوزات في كل سباق
+301	Races	سباقات
+302	Rank	الرتبة
+303	Kind to the tyres	رفيق بالإطارات
+304	Strong in the rain	قوي تحت المطر
+305	Steady lap after lap	ثابت لفة بعد لفة
+306	An overtaker	بارع في التجاوز
+307	Hard to pass	صعب التجاوز
+308	Keeps it clean	يقود بنظافة
+309	Falcon	فالكون
+310	Wheel pods, big glass canopy	أغطية عجلات، وقبة زجاجية كبيرة
+311	Vortex	فورتكس
+312	Needle nose, open wheels	مقدمة إبرية، عجلات مكشوفة
+313	Spectre	سبيكتر
+314	Graphite wheel pods	أغطية عجلات من الغرافيت
+315	Raptor	رابتور
+316	Hooked fenders, light strips	رفارف معقوفة، وشرائط ضوئية
+317	Arrowhead	أروهيد
+318	Fighter-jet scoop	فتحة هواء كالطائرة المقاتلة
+319	Manta	مانتا
+320	Wing on curved hoops	جناح على أقواس منحنية
+321	Kestrel	كيستريل
+322	Wing-like fenders	رفارف كالأجنحة
+323	Stratos	ستراتوس
+324	Light-framed intakes	فتحات هواء بإطار خفيف
+325	Peregrine	بيريغرين
+326	Built for top speed	مصممة للسرعة القصوى
+327	Tempest	تمبست
+328	Turbine fan, red tunnels	مروحة توربينية، وأنفاق حمراء
+329	Corners	المنعطفات
+330	Braking	الكبح
+331	Straights	الخطوط المستقيمة
+332	Contacts	التلامسات
+333	Passing attempts	محاولات التجاوز
+334	Lock-ups	قفل العجلات
+335	Tyre wear per lap	تآكل الإطارات في كل لفة
+336	Running wide	الخروج عن المسار
+337	Other mistakes	أخطاء أخرى
+338	Mistakes	الأخطاء
+339	Pit stops	التوقفات
+340	Times overtaken	مرات تم تجاوزه
+341	Places lost from the grid	مراكز خسرها منذ الانطلاق
+342	Places gained from the grid	مراكز كسبها منذ الانطلاق
+343	Overtakes made	تجاوزات قام بها
+344	Places lost	مراكز خسرها
+345	Team Strategist	استراتيجي الفريق
+346	AI Strategist	الاستراتيجي الآلي
+347	Coming later	قريبًا
+348	Survival cell	خلية النجاة
+349	The carbon tub the driver sits in.	الهيكل الكربوني الذي يجلس فيه السائق.
+350	Layers of carbon fibre and honeycomb, baked hard. Everything else bolts to it: the engine behind, the suspension at both ends.	طبقات من ألياف الكربون وخلايا النحل، مخبوزة حتى تتصلب. كل شيء آخر يُثبَّت عليها: المحرك خلفها، والتعليق في الطرفين.
+351	It weighs about as much as a child, yet takes crash loads of many tonnes.	تزن تقريبًا وزن طفل، لكنها تتحمل صدمات بأطنان كثيرة.
+352	Driver	السائق
+353	Lying almost flat, feet up in the nose.	شبه مستلقٍ، وقدماه مرفوعتان في المقدمة.
+354	Lying low keeps the weight down and the car narrow. The steering wheel carries the buttons for the battery, the radio and the brakes.	الاستلقاء يُبقي الوزن منخفضًا والسيارة نحيفة. المقود يحمل أزرار البطارية والراديو والفرامل.
+355	Drivers feel up to five times their own weight in fast corners.	يشعر السائقون بما يصل إلى خمسة أضعاف وزنهم في المنعطفات السريعة.
+356	Halo	الهالة
+357	A titanium hoop over the driver's head.	طوق من التيتانيوم فوق رأس السائق.
+358	It sits above the cockpit and deflects a loose wheel or a car that lands on top. The canopy covers it on our cars.	يقع فوق قمرة القيادة ويصدّ عجلة طائشة أو سيارة تسقط فوقها. القبة تغطيه في سياراتنا.
+359	It can hold the weight of a double-decker bus.	يتحمل وزن حافلة بطابقين.
+360	Fuel cell	خزان الوقود
+361	A rubber bag of fuel behind the seat.	كيس مطاطي للوقود خلف المقعد.
+362	A tough, flexible bag inside the tub, so a crash bends it instead of splitting it. Pumps inside keep fuel flowing in every corner.	كيس متين ومرن داخل الهيكل، فينثني عند الاصطدام بدل أن يتمزق. مضخات داخله تُبقي الوقود يتدفق في كل منعطف.
+363	It holds about 100 kg of fuel at the start, enough for the whole race.	يحمل نحو 100 كغ من الوقود عند الانطلاق، ما يكفي السباق كله.
+364	Battery	البطارية
+365	Stores energy saved under braking.	تخزّن الطاقة المستردة عند الكبح.
+366	Under braking, the electric motor turns the car's speed back into electricity and fills this battery. BOOST spends it again.	عند الكبح، يحوّل المحرك الكهربائي سرعة السيارة إلى كهرباء ويملأ هذه البطارية. وBOOST ينفقها من جديد.
+367	It gives back about 160 extra horsepower for a few seconds each lap.	تعطي نحو 160 حصانًا إضافيًا لبضع ثوانٍ في كل لفة.
+368	Power unit	وحدة الطاقة
+369	A small turbo engine plus electric motors.	محرك توربو صغير مع محركات كهربائية.
+370	About 1000 horsepower from an engine smaller than a family car’s.	نحو 1000 حصان من محرك أصغر من محرك سيارة عائلية.
+371	Turbo	التوربو
+372	Exhaust gas spins it to push more air in.	غازات العادم تديره ليدفع مزيدًا من الهواء.
+373	It spins up to 125,000 times a minute.	يدور حتى 125,000 مرة في الدقيقة.
+374	Electric motor	المحرك الكهربائي
+375	Charges the battery, then pushes the car.	يشحن البطارية، ثم يدفع السيارة.
+376	Geared to the engine: it brakes the car and makes electricity, then turns the other way round and helps the engine when you press BOOST.	موصول بالمحرك: يكبح السيارة ويولّد الكهرباء، ثم يدور بالعكس ويساعد المحرك عندما تضغط BOOST.
+377	It can harvest about 2 megajoules a lap, enough to boil a kettle five times.	يستطيع استرداد نحو 2 ميغاجول في اللفة، ما يكفي لغلي إبريق خمس مرات.
+378	Radiators	المشعّات
+379	Air from the side intakes cools everything.	الهواء من الفتحات الجانبية يبرّد كل شيء.
+380	Air enters the side intakes, passes through the radiators' thin fins, and carries away the heat from the water, oil and battery.	يدخل الهواء من الفتحات الجانبية، ويمر عبر زعانف المشعّات الرقيقة، ويحمل حرارة الماء والزيت والبطارية.
+381	The water inside runs at about 120 °C, kept from boiling by pressure.	الماء في الداخل يجري عند نحو 120 °م، ويمنعه الضغط من الغليان.
+382	Gearbox	علبة التروس
+383	Eight gears, shifts in milliseconds.	ثماني سرعات، وتبديل في أجزاء من الثانية.
+384	Bolted to the back of the engine, it also holds the rear suspension and the rear wing. Driveshafts carry the power out to the wheels.	مثبتة خلف المحرك، وتحمل أيضًا التعليق والجناح الخلفيين. أعمدة الإدارة تنقل القوة إلى العجلات.
+385	A gear change takes a few hundredths of a second, faster than a blink.	تبديل السرعة يستغرق أجزاء من مئة من الثانية، أسرع من رمشة عين.
+386	Exhaust	العادم
+387	Hot gas out of the back.	غاز ساخن يخرج من الخلف.
+388	After spinning the turbo, the exhaust leaves through one tailpipe under the rear wing. It glows at full throttle.	بعد إدارة التوربو، يخرج العادم من أنبوب واحد تحت الجناح الخلفي. ويتوهج عند الدواسة الكاملة.
+389	The gas leaves at around 900 °C.	يخرج الغاز عند نحو 900 °م.
+390	Suspension	التعليق
+391	Arms that hold each wheel to the car.	أذرع تثبّت كل عجلة بالسيارة.
+392	The car runs only a few centimetres off the road, so it is set very stiff.	السيارة تسير على بعد سنتيمترات قليلة من الأرض، لذا يُضبط التعليق صلبًا جدًا.
+393	Brakes	الفرامل
+394	Carbon discs that glow red hot.	أقراص كربونية تتوهج احمرارًا.
+395	Six-piston callipers squeeze carbon discs inside each wheel. The electric motor helps at the rear and saves energy while it does.	ملاقط بستة مكابس تضغط أقراصًا كربونية داخل كل عجلة. المحرك الكهربائي يساعد في الخلف ويستردّ الطاقة في الوقت نفسه.
+396	The discs reach about 1000 °C and stop the car from 300 km/h in about 4 seconds.	تصل الأقراص إلى نحو 1000 °م وتوقف السيارة من 300 كم/س في نحو 4 ثوانٍ.
+397	Front wing	الجناح الأمامي
+398	Presses the front tyres into the road.	يضغط الإطارات الأمامية على الطريق.
+399	Shaped like an upside-down aeroplane wing: air pushes it down, giving the front tyres more grip in corners.	على شكل جناح طائرة مقلوب: الهواء يدفعه للأسفل، فيمنح الإطارات الأمامية تماسكًا أكبر في المنعطفات.
+400	At top speed the whole car makes enough downforce to drive upside down.	عند السرعة القصوى تولّد السيارة قوة ضغط تكفي للسير مقلوبة.
+401	Rear wing	الجناح الخلفي
+402	Grip for the rear, with a flap for speed.	تماسك للخلف، مع لوح للسرعة.
+403	Like the front wing, it pushes the rear tyres down. On straights a flap opens to cut drag and add speed.	مثل الجناح الأمامي، يضغط الإطارات الخلفية للأسفل. في الخطوط المستقيمة ينفتح لوح ليقلّل المقاومة ويزيد السرعة.
+404	Opening the flap is worth 10 to 15 km/h on a long straight.	فتح اللوح يساوي 10 إلى 15 كم/س في خط مستقيم طويل.
+405	Floor	الأرضية
+406	Tunnels underneath suck the car down.	أنفاق في الأسفل تشفط السيارة نحو الأرض.
+407	Air speeds up through shaped tunnels under the car, which lowers the pressure there and pulls the car to the track.	يتسارع الهواء عبر أنفاق تحت السيارة، فينخفض الضغط هناك ويشد السيارة إلى الحلبة.
+408	More than half the car's grip comes from the floor.	أكثر من نصف تماسك السيارة يأتي من الأرضية.
+409	Tyres	الإطارات
+410	Soft, medium, hard, and two for rain.	ناعم، متوسط، صلب، واثنان للمطر.
+411	Softer rubber grips more but wears out sooner. Choosing when to change them is the biggest call you make in a race.	المطاط الأنعم يتماسك أكثر لكنه يتآكل أسرع. اختيار وقت تغييرها أكبر قرار تتخذه في السباق.
+412	A pit crew changes all four in about two seconds.	طاقم الصيانة يغيّر الأربعة في نحو ثانيتين.
+413	FL	أ.يس
+414	FR	أ.يم
+415	RL	خ.يس
+416	RR	خ.يم
+417	Abu Dhabi	أبوظبي
+418	UAE	الإمارات
+419	Middle East	الشرق الأوسط
+420	Marina Twilight Circuit	حلبة مارينا الشفق
+421	The season opener. Starts at sunset, finishes under the lights.	افتتاح الموسم. ينطلق عند الغروب وينتهي تحت الأضواء.
+422	Kigali	كيغالي
+423	Rwanda	رواندا
+424	East Africa	شرق أفريقيا
+425	Thousand Hills Circuit	حلبة الألف تلة
+426	Green ridges on every side and 1,500 m of altitude. Showers roll in off the hills.	تلال خضراء من كل جانب وارتفاع 1,500 م. الزخات تتدحرج من التلال.
+427	Abidjan	أبيدجان
+428	Côte d'Ivoire	ساحل العاج
+429	West Africa	غرب أفريقيا
+430	Ébrié Lagoon Circuit	حلبة بحيرة إبريه
+431	Along the lagoon with the Plateau towers across the water. Humid, and rain is never far.	على طول البحيرة وأبراج بلاتو عبر الماء. رطبة، والمطر ليس بعيدًا أبدًا.
+432	Sakhir	الصخير
+433	Bahrain	البحرين
+434	Desert Lights Circuit	حلبة أضواء الصحراء
+435	Floodlit desert night. Abrasive surface: tyres wear fast.	ليلة صحراوية تحت الأضواء. سطح خشن: الإطارات تتآكل بسرعة.
+436	Jeddah	جدة
+437	Saudi Arabia	السعودية
+438	Red Sea Corniche	كورنيش البحر الأحمر
+439	A fast night street circuit on the Red Sea shore. Walls are close.	حلبة شوارع ليلية سريعة على شاطئ البحر الأحمر. الجدران قريبة.
+440	Suzuka	سوزوكا
+441	Japan	اليابان
+442	East Asia	شرق آسيا
+443	Ise Bay Circuit	حلبة خليج إيسه
+444	Flowing corners in green hills, a big wheel over the paddock, and typhoon-season rain.	منعطفات انسيابية بين التلال الخضراء، وعجلة دوّارة كبيرة فوق الحظائر، ومطر موسم الأعاصير.
+445	Shanghai	شنغهاي
+446	China	الصين
+447	Huangpu Circuit	حلبة هوانغبو
+448	Wide riverside layout with the skyline on the far bank.	تصميم واسع على ضفة النهر وناطحات السحاب على الضفة الأخرى.
+449	Kingston	كينغستون
+450	Jamaica	جامايكا
+451	Caribbean	الكاريبي
+452	Port Royal Circuit	حلبة بورت رويال
+453	Harbour-side between the sea and the Blue Mountains. Tropical showers and big crowds.	على الميناء بين البحر والجبال الزرقاء. زخات استوائية وجماهير كبيرة.
+454	Mexico City	مكسيكو سيتي
+455	Mexico	المكسيك
+456	North America	أمريكا الشمالية
+457	Altiplano Circuit	حلبة ألتيبلانو
+458	2,200 m up: thin air means less grip in the corners and more speed on the straights.	على ارتفاع 2,200 م: الهواء الخفيف يعني تماسكًا أقل في المنعطفات وسرعة أكبر في الخطوط المستقيمة.
+459	Montréal	مونتريال
+460	Canada	كندا
+461	St. Lawrence Island Run	حلبة جزيرة سانت لورانس
+462	An island circuit on the river. Walls close by and weather that changes by the lap.	حلبة على جزيرة في النهر. جدران قريبة وطقس يتغير مع كل لفة.
+463	Monte Carlo	مونت كارلو
+464	Monaco	موناكو
+465	Europe	أوروبا
+466	Riviera Harbour Circuit	حلبة ميناء الريفييرا
+467	Tight streets, yachts in the harbour. Overtaking is hard: track position is everything.	شوارع ضيقة، ويخوت في الميناء. التجاوز صعب: المركز على الحلبة هو كل شيء.
+468	Barcelona	برشلونة
+469	Spain	إسبانيا
+470	Catalonia Hills	تلال كتالونيا
+471	Warm rolling hills and long fast corners that eat the front tyres.	تلال دافئة متموجة ومنعطفات طويلة سريعة تأكل الإطارات الأمامية.
+472	Spielberg	شبيلبرغ
+473	Austria	النمسا
+474	Styrian Alps Ring	حلبة جبال الألب الستيرية
+475	A short, quick lap in an alpine bowl. Mountain storms arrive fast.	لفة قصيرة وسريعة في وادٍ جبلي. عواصف الجبال تصل بسرعة.
+476	Northamptonshire	نورثهامبتونشير
+477	Great Britain	بريطانيا العظمى
+478	Midlands Airfield Circuit	حلبة مطار ميدلاندز
+479	Flat old airfield country, high-speed corners and the classic British drizzle.	أرض مطارات قديمة منبسطة، ومنعطفات عالية السرعة، والرذاذ البريطاني المعتاد.
+480	Budapest	بودابست
+481	Hungary	المجر
+482	Danube Valley Ring	حلبة وادي الدانوب
+483	Twisty, hot and dusty. Hard to pass, so strategy wins it.	متعرجة وحارة ومغبرة. التجاوز صعب، فالاستراتيجية هي التي تفوز.
+484	Ardennes	الآردين
+485	Belgium	بلجيكا
+486	Ardennes Forest Circuit	حلبة غابة الآردين
+487	Deep forest and its own weather: it can rain on one side of the track and not the other.	غابة كثيفة لها طقسها الخاص: قد تمطر على جانب من الحلبة دون الآخر.
+488	Zandvoort	زاندفورت
+489	Netherlands	هولندا
+490	North Sea Dunes	كثبان بحر الشمال
+491	Between the dunes and the North Sea. Sand blows onto the track and showers blow in.	بين الكثبان وبحر الشمال. الرمل يتطاير على الحلبة والزخات تهبّ.
+492	Monza	مونزا
+493	Italy	إيطاليا
+494	Lombardy Park Circuit	حلبة حديقة لومبارديا
+495	Royal parkland and the fastest straights of the year. Slipstream is king.	حديقة ملكية وأسرع الخطوط المستقيمة في العام. الانسياب خلف الآخرين هو الملك.
+496	Baku	باكو
+497	Azerbaijan	أذربيجان
+498	Caspian	بحر قزوين
+499	Caspian Boulevard	جادة قزوين
+500	Seafront street circuit at sunset, a huge straight, and three flame-shaped towers.	حلبة شوارع على البحر عند الغروب، وخط مستقيم هائل، وثلاثة أبراج على شكل لهب.
+501	Singapore	سنغافورة
+502	South-East Asia	جنوب شرق آسيا
+503	Marina Night Circuit	حلبة مارينا الليلية
+504	Under the lights in the city. Hot, humid, and the heaviest rain on the calendar.	تحت الأضواء في المدينة. حارة ورطبة، وأغزر مطر في الروزنامة.
+505	Anchorage	أنكوريج
+506	Alaska, USA	ألاسكا، الولايات المتحدة
+507	Midnight Sun Circuit	حلبة شمس منتصف الليل
+508	Racing at 11 pm in broad daylight. Cold track, low wear, snow on the peaks.	سباق في الحادية عشرة ليلًا في وضح النهار. حلبة باردة، وتآكل قليل، وثلج على القمم.
+509	Honolulu	هونولولو
+510	Hawaii, USA	هاواي، الولايات المتحدة
+511	Pacific	المحيط الهادئ
+512	Waikīkī Coast Circuit	حلبة ساحل وايكيكي
+513	Ocean on one side, an old volcano on the other. Trade-wind showers come and go.	المحيط من جهة وبركان قديم من الجهة الأخرى. زخات الرياح التجارية تأتي وتذهب.
+514	São Paulo	ساو باولو
+515	Brazil	البرازيل
+516	South America	أمريكا الجنوبية
+517	Paulista Heights	مرتفعات باوليستا
+518	A bowl in the hills with the city all around. Famous for chaos in the rain.	وادٍ بين التلال والمدينة تحيط به. مشهور بالفوضى تحت المطر.
+519	Buenos Aires	بوينس آيرس
+520	Argentina	الأرجنتين
+521	Río de la Plata Circuit	حلبة ريو دي لا بلاتا
+522	Wide avenues by the great river, and a strong wind off the water.	جادات واسعة بجوار النهر العظيم، ورياح قوية من الماء.
+523	Abuja	أبوجا
+524	Nigeria	نيجيريا
+525	Aso Rock Ring	حلبة صخرة أسو
+526	The season finale in the green capital, under the granite face of Aso Rock with the city skyline beyond. Hot track, sudden storms.	ختام الموسم في العاصمة الخضراء، تحت واجهة صخرة أسو الغرانيتية وأفق المدينة خلفها. حلبة حارة وعواصف مفاجئة.
+527	Lagos	لاغوس
+528	Lagoon City Circuit	حلبة مدينة البحيرة
+529	Golden hour on the lagoon: a white cable-stayed bridge, the causeway traffic and the island towers across the water.	الساعة الذهبية على البحيرة: جسر أبيض معلّق بالكابلات، وزحام الطريق المرتفع، وأبراج الجزيرة عبر الماء.
+530	Dakar	داكار
+531	Senegal	السنغال
+532	Corniche Circuit	حلبة الكورنيش
+533	Along the Atlantic corniche: red cliffs and surf, baobabs over the track and a lighthouse on the headland.	على طول كورنيش الأطلسي: منحدرات حمراء وأمواج، وأشجار باوباب فوق الحلبة، ومنارة على الرأس.
+534	Nairobi	نيروبي
+535	Kenya	كينيا
+536	Highlands Circuit	حلبة المرتفعات
+537	Flat-topped acacias, the city on its ridge and a snow-capped peak far away. Thin air at 1,700 m.	أشجار أكاسيا مسطحة القمة، والمدينة على تلّتها، وقمة مكسوة بالثلج في البعيد. هواء خفيف على ارتفاع 1,700 م.
+538	Cape Town	كيب تاون
+539	South Africa	جنوب أفريقيا
+540	Southern Africa	الجنوب الأفريقي
+541	Table Bay Circuit	حلبة خليج تيبل
+542	Under the flat top of Table Mountain, past painted houses and the harbour. The wind off the bay is strong.	تحت القمة المسطحة لجبل الطاولة، مرورًا بالبيوت الملونة والميناء. رياح الخليج قوية.
+543	Tokyo	طوكيو
+544	Bay Lights Circuit	حلبة أضواء الخليج
+545	Neon and rain at dusk, under the red lattice tower and the stacked expressways.	نيون ومطر عند الغسق، تحت البرج الأحمر الشبكي والطرق السريعة المتراكبة.
+546	Reykjanes	ريكيانيس
+547	Iceland	آيسلندا
+548	Basalt Coast Circuit	حلبة ساحل البازلت
+549	Black basalt columns, moss, a glacier in the mist and sea stacks in the surf. Cold track, low grip.	أعمدة بازلت سوداء، وطحالب، وجليد في الضباب، وصخور بحرية وسط الأمواج. حلبة باردة وتماسك ضعيف.
+550	New Delhi	نيودلهي
+551	India	الهند
+552	South Asia	جنوب آسيا
+553	Yamuna Circuit	حلبة يامونا
+554	Wide and fast beside the Yamuna, with the capital spreading to the horizon. Hot, dusty air.	واسعة وسريعة بجوار نهر يامونا، والعاصمة ممتدة حتى الأفق. هواء حار مغبر.
+555	Sochi	سوتشي
+556	Russia	روسيا
+557	Black Sea Circuit	حلبة البحر الأسود
+558	Between the Black Sea and the snowy Caucasus. Smooth tarmac, gentle on tyres.	بين البحر الأسود والقوقاز المثلج. أسفلت ناعم ولطيف على الإطارات.
+559	Miami	ميامي
+560	USA	الولايات المتحدة
+561	Biscayne Bay Circuit	حلبة خليج بيسكاين
+562	Palms, yachts and towers on the bay. Steamy, with thunderstorms that build by the afternoon.	نخيل ويخوت وأبراج على الخليج. رطوبة خانقة وعواصف رعدية تتشكل بعد الظهر.
+563	Austin	أوستن
+564	Hill Country Circuit	حلبة ريف التلال
+565	A steep climb to turn one and rolling Texas hill country all around.	صعود حاد نحو المنعطف الأول وتلال تكساس المتموجة في كل مكان.
+566	Las Vegas	لاس فيغاس
+567	Neon Strip Circuit	حلبة شارع النيون
+568	Flat out down the Strip at night. A cold track makes the tyres hard to warm up.	بأقصى سرعة على الشارع الشهير ليلًا. الحلبة الباردة تجعل تسخين الإطارات صعبًا.
+569	Melbourne	ملبورن
+570	Australia	أستراليا
+571	Oceania	أوقيانوسيا
+572	Albert Lake Circuit	حلبة بحيرة ألبرت
+573	Round a park lake with the city skyline behind. Four seasons in one day.	حول بحيرة في حديقة وأفق المدينة خلفها. أربعة فصول في يوم واحد.
+574	Lusail	لوسيل
+575	Qatar	قطر
+576	Pearl Lights Circuit	حلبة أضواء اللؤلؤ
+577	Fast sweeping corners under floodlights. Heavy on the tyres.	منعطفات سريعة واسعة تحت الأضواء الكاشفة. قاسية على الإطارات.
+578	Imola	إيمولا
+579	Santerno Valley Circuit	حلبة وادي سانتيرنو
+580	Old-school and narrow, climbing through the hills by the river. Hard to pass.	كلاسيكية وضيقة، تصعد التلال بجانب النهر. التجاوز صعب.
+581	Madrid	مدريد
+582	Meseta Circuit	حلبة الهضبة
+583	Part street, part park, on the high plain. Hot and dry.	جزء منها شوارع وجزء حديقة، على الهضبة العالية. حارة وجافة.
+584	Istanbul	إسطنبول
+585	Türkiye	تركيا
+586	Bosphorus Circuit	حلبة البوسفور
+587	Where Europe meets Asia, with the city on both banks. Slippery when it rains.	حيث تلتقي أوروبا بآسيا، والمدينة على الضفتين. زلقة عند المطر.
+588	Portimão	بورتيماو
+589	Portugal	البرتغال
+590	Algarve Rollercoaster	أفعوانية الغارف
+591	Blind crests and drops in the hills above the Atlantic. Windy.	قمم عمياء ومنحدرات في التلال فوق الأطلسي. عاصفة الرياح.
+592	Le Castellet	لو كاستيليه
+593	France	فرنسا
+594	Provence Plateau Circuit	حلبة هضبة بروفانس
+595	A high plateau among Provence pines. The mistral wind changes the car.	هضبة عالية بين صنوبر بروفانس. رياح الميسترال تغيّر سلوك السيارة.
+596	Hockenheim	هوكنهايم
+597	Germany	ألمانيا
+598	Rhine Forest Ring	حلبة غابة الراين
+599	Long blasts through the forest, then a stadium full of fans. Rain can arrive on one side only.	انطلاقات طويلة عبر الغابة، ثم ملعب مليء بالمشجعين. قد يصل المطر إلى جانب واحد فقط.
+600	Kuala Lumpur	كوالالمبور
+601	Malaysia	ماليزيا
+602	Petaling Circuit	حلبة بيتالينغ
+603	Jungle heat and the hardest tropical downpours of the year.	حرارة الأدغال وأشد الأمطار الاستوائية في العام.
+604	Johannesburg	جوهانسبرغ
+605	Highveld Circuit	حلبة هايفيلد
+606	Up on the green Highveld with the city skyline close by. Thin air and afternoon thunderstorms.	في أعالي الهايفيلد الأخضر وأفق المدينة قريب. هواء خفيف وعواصف رعدية بعد الظهر.
+607	Harmattan Racing	
+608	HAR	
+609	Kora	
+610	KOR	
+611	Sahel-9	
+612	SAH	
+613	Lagoon Dynamics	
+614	LAG	
+615	Ade	
+616	ADE	
+617	Marlin	
+618	MAR	
+619	Northern Lights GP	
+620	NLG	
+621	Aurora	
+622	AUR	
+623	Fjord	
+624	FJO	
+625	Kilimanjaro Motorsport	
+626	KIL	
+627	Tembo	
+628	TEM	
+629	Zuri	
+630	ZUR	
+631	Volta Speed	
+632	VOL	
+633	Volt	
+634	VLT	
+635	Ampere	
+636	AMP	
+637	Monsoon Works	
+638	MON	
+639	Raja	
+640	RAJ	
+641	Kai	
+642	KAI	
+643	Pampas Racing	
+644	PAM	
+645	Tango	
+646	TAN	
+647	Pampa	
+648	Sakura Velocity	
+649	SAK	
+650	Hana	
+651	HAN	
+652	Kenji	
+653	KEN	
+654	Atlas Machine	
+655	ATL	
+656	Atlas	
+657	Orion	
+658	ORI	
+659	Green & white	أخضر وأبيض
+660	Racing blue	أزرق السباق
+661	Red	أحمر
+662	Black & gold	أسود وذهبي
+663	Papaya	بابايا
+664	Teal & sun	فيروزي وشمس
+665	Purple	بنفسجي
+666	White & red	أبيض وأحمر
+667	Stealth	خفي
+668	Silver arrow	السهم الفضي
+669	Midnight & brass	منتصف الليل والنحاس
+670	Sahara gold	ذهب الصحراء
+671	Eagle green	أخضر النسر
+672	Neon night	ليلة النيون
+673	Savanna	السافانا
+674	Ruby	ياقوتي
+675	Gloss	لامع
+676	Satin	ساتان
+677	Matte	مطفي
+678	Metallic	معدني
+679	Wet	مطري
+680	Braking and corners	الكبح والمنعطفات
+681	Overtaking and defending	التجاوز والدفاع
+682	Tyres and energy	الإطارات والطاقة
+683	Weather	الطقس
+684	Judgement	الحكمة
+685	Team play	اللعب الجماعي
+686	Late braking	الكبح المتأخر
+687	Brakes early, with margin	يكبح مبكرًا، بهامش أمان
+688	Brakes as late as the car allows	يكبح بأقصى تأخير تسمح به السيارة
+689	Shorter braking zones	مناطق كبح أقصر
+690	More lock-ups and flat spots	قفل عجلات وتسطّح إطارات أكثر
+691	Entry vs exit	الدخول أم الخروج
+692	Slow in, fast out	بطيء في الدخول، سريع في الخروج
+693	Carries speed into the corner	يحمل السرعة إلى داخل المنعطف
+694	Faster corner entry, easier dives	دخول أسرع إلى المنعطف، وانقضاض أسهل
+695	Slower exits, more running wide	خروج أبطأ، وانحراف أكثر
+696	Corner commitment	الالتزام في المنعطف
+697	Leaves grip in reserve	يحتفظ بتماسك احتياطي
+698	Uses nearly all the grip	يستخدم تقريبًا كل التماسك
+699	Higher corner speed, a better grid slot	سرعة أعلى في المنعطف، ومركز أفضل على خط الانطلاق
+700	Tyre wear and more mistakes	تآكل الإطارات وأخطاء أكثر
+701	Kerb use	استخدام الأرصفة
+702	Stays off the kerbs	يبتعد عن الأرصفة
+703	Rides every kerb	يركب كل رصيف
+704	A little time in each corner	قليل من الوقت في كل منعطف
+705	Tyre wear and the odd big moment	تآكل الإطارات ولحظات خطرة أحيانًا
+706	Throttle aggression	عدوانية الدواسة
+707	Gentle on the power	لطيف مع القوة
+708	Full power early	قوة كاملة مبكرًا
+709	Faster exits in the dry	خروج أسرع على الجاف
+710	Wheelspin, worse in the wet	انزلاق العجلات، أسوأ على المبلل
+711	Overtaking eagerness	الرغبة في التجاوز
+712	Waits for a sure thing	ينتظر فرصة مؤكدة
+713	Tries every chance	يجرّب كل فرصة
+714	More passing attempts	محاولات تجاوز أكثر
+715	More contact and aborted moves	تلامس أكثر ومناورات ملغاة
+716	Gap acceptance	قبول الفجوة
+717	Needs a big gap	يحتاج فجوة كبيرة
+718	Goes for half a gap	ينقضّ في نصف فجوة
+719	Passes from further back	يتجاوز من مسافة أبعد
+720	Tighter moves, more contact	مناورات أضيق، وتلامس أكثر
+721	Slipstream patience	الصبر في الانسياب
+722	Dives into corners	ينقضّ في المنعطفات
+723	Waits for the straight	ينتظر الخط المستقيم
+724	Cleaner, safer passes	تجاوزات أنظف وأكثر أمانًا
+725	Fewer chances on twisty tracks	فرص أقل في الحلبات المتعرجة
+726	Defending	الدفاع
+727	Lets faster cars go	يفسح للسيارات الأسرع
+728	Covers every move	يغطي كل حركة
+729	Harder to pass	أصعب في التجاوز
+730	Slower laps while defending, tyre wear	لفات أبطأ أثناء الدفاع، وتآكل الإطارات
+731	Side-by-side caution	الحذر جنبًا إلى جنب
+732	Holds the line, door to door	يتمسك بخطه، بابًا لباب
+733	Gives room, avoids contact	يترك مساحة، ويتجنب التلامس
+734	Fewer collisions	اصطدامات أقل
+735	Loses more wheel-to-wheel fights	يخسر معارك أكثر عجلة بعجلة
+736	Tyre care	العناية بالإطارات
+737	Uses the tyres up	يستنزف الإطارات
+738	Nurses the tyres	يدلّل الإطارات
+739	Longer stints, fewer stops	مراحل أطول، وتوقفات أقل
+740	Slower laps	لفات أبطأ
+741	Battery use	استخدام البطارية
+742	Saves charge for fights	يدّخر الشحن للمعارك
+743	Spends charge freely	ينفق الشحن بسخاء
+744	Faster on the straights	أسرع في الخطوط المستقيمة
+745	Less in reserve to attack or defend	احتياط أقل للهجوم أو الدفاع
+746	Wet confidence	الثقة على المبلل
+747	Very careful in the wet	حذر جدًا على المبلل
+748	Pushes in the rain	يضغط تحت المطر
+749	Faster on a wet track	أسرع على الحلبة المبللة
+750	Spins and offs in the wet	دوران وخروج عن الحلبة على المبلل
+751	Tyre-change timing	توقيت تغيير الإطارات
+752	Stays out on the old tyres	يبقى على الإطارات القديمة
+753	Asks to change early	يطلب التغيير مبكرًا
+754	First onto the right tyres	أول من يركّب الإطارات الصحيحة
+755	Sometimes stops too soon	يتوقف أحيانًا مبكرًا جدًا
+756	Consistency	الثبات
+757	Spectacular, up and down	استعراضي، متقلّب
+758	Steady, lap after lap	ثابت، لفة بعد لفة
+759	Fewer mistakes, even laps	أخطاء أقل، ولفات متساوية
+760	Fewer stand-out laps	لفات مميزة أقل
+761	Team-order compliance	الالتزام بأوامر الفريق
+762	Argues with orders	يجادل في الأوامر
+763	Obeys at once	يطيع فورًا
+764	Swaps happen fast	التبديلات تحدث بسرعة
+765	Gives up places without a fight	يتنازل عن المراكز دون قتال
+766	Teammate cooperation	التعاون مع الزميل
+767	Races the teammate hard	يقاتل زميله بشراسة
+768	Helps the teammate	يساعد زميله
+769	Fewer team clashes	صدامات أقل داخل الفريق
+770	Slow to fight a teammate for position	بطيء في مقاتلة زميله على المركز
+771	Fewer lock-ups	قفل عجلات أقل
+772	Longer braking zones	مناطق كبح أطول
+773	Better exits, tidier lines	خروج أفضل، وخطوط أنظف
+774	Slower into corners, fewer dives	أبطأ في الدخول، وانقضاض أقل
+775	Saves tyres, fewer mistakes	يوفّر الإطارات، وأخطاء أقل
+776	Lower corner speed	سرعة أقل في المنعطف
+777	Kinder to the tyres	أرفق بالإطارات
+778	A little slower in each corner	أبطأ قليلًا في كل منعطف
+779	Better traction in the wet	جرّ أفضل على المبلل
+780	Slower exits in the dry	خروج أبطأ على الجاف
+781	Less contact	تلامس أقل
+782	Fewer passing attempts	محاولات تجاوز أقل
+783	Cleaner moves	مناورات أنظف
+784	Has to be closer to try	يحتاج أن يكون أقرب ليحاول
+785	More chances into corners	فرص أكثر عند الدخول إلى المنعطفات
+786	Riskier corner dives	انقضاض أخطر في المنعطفات
+787	Keeps its lap time when attacked	يحافظ على زمنه عند الهجوم عليه
+788	Easier to pass	أسهل في التجاوز
+789	Wins more wheel-to-wheel fights	يكسب معارك أكثر عجلة بعجلة
+790	More collisions	اصطدامات أكثر
+791	Quicker laps	لفات أسرع
+792	Shorter stints, more wear	مراحل أقصر، وتآكل أكثر
+793	Charge in reserve for fights	شحن احتياطي للمعارك
+794	Slower on the straights	أبطأ في الخطوط المستقيمة
+795	Rarely spins in the rain	نادرًا ما يدور تحت المطر
+796	Slower on a wet track	أبطأ على الحلبة المبللة
+797	Never stops too soon	لا يتوقف مبكرًا أبدًا
+798	Slow onto the right tyres	بطيء في تركيب الإطارات الصحيحة
+799	The odd stand-out lap	لفة مميزة أحيانًا
+800	More mistakes, uneven laps	أخطاء أكثر، ولفات غير متساوية
+801	Fights for its place	يقاتل على مركزه
+802	Swaps happen slowly	التبديلات تحدث ببطء
+803	Races for itself	يتسابق لنفسه
+804	More team clashes	صدامات أكثر داخل الفريق
+805	Braking aggression	عدوانية الكبح
+806	Early and safe	مبكر وآمن
+807	Late and hard	متأخر وقوي
+808	Lock-ups, missed apexes	قفل عجلات، وتفويت قمم المنعطفات
+809	Cornering style	أسلوب المنعطفات
+810	Grip in reserve	تماسك احتياطي
+811	On the limit	على الحد الأقصى
+812	Tyre wear, running wide	تآكل الإطارات، والانحراف
+813	Overtaking	التجاوز
+814	Patient	صبور
+815	Opportunist	انتهازي
+816	Contact, aborted moves	تلامس، ومناورات ملغاة
+817	Defensive racing	القيادة الدفاعية
+818	Lets them by	يفسح لهم
+819	Covers everything	يغطي كل شيء
+820	Slower laps, tyre wear	لفات أبطأ، وتآكل الإطارات
+821	Tyre preservation	الحفاظ على الإطارات
+822	Uses them up	يستنزفها
+823	Nurses them	يدلّلها
+824	Gentle	لطيف
+825	Wheelspin, wet weakness	انزلاق العجلات، وضعف على المبلل
+826	Wet-weather confidence	الثقة في الطقس الممطر
+827	Confident	واثق
+828	Spins in the rain	يدور تحت المطر
+829	Spectacular	استعراضي
+830	Steady	ثابت
+831	Fewer stand-out moves	لحظات مميزة أقل
+832	Fewer chances taken	فرص مستغلة أقل
+833	More wear, maybe an extra stop	تآكل أكثر، وربما توقف إضافي
+834	Slower exits	خروج أبطأ
+835	Slow in the rain	بطيء تحت المطر
+836	More mistakes	أخطاء أكثر
+837	Balanced	متوازن
+838	Even in everything. A good place to start.	متوازن في كل شيء. نقطة بداية جيدة.
+839	Late on the brakes and into every gap. Wins fights, wears tyres, finds walls.	يكبح متأخرًا ويدخل كل فجوة. يكسب المعارك، ويستهلك الإطارات، ويجد الجدران.
+840	Technician	التقني
+841	Clean lines and smooth hands. Quick and tidy, but rarely makes a bold move.	خطوط نظيفة ويدان ناعمتان. سريع ومرتب، لكنه نادرًا ما يقوم بحركة جريئة.
+842	Strategist	الاستراتيجي
+843	Thinks a stint ahead: saves tyres and charge, then strikes late.	يفكر مرحلة إلى الأمام: يوفّر الإطارات والشحن، ثم يضرب متأخرًا.
+844	All-Rounder	الشامل
+845	A little above average almost everywhere, a master of nothing.	فوق المتوسط قليلًا في كل شيء تقريبًا، ولا يتقن شيئًا.
+846	Wet-Weather Specialist	خبير المطر
+847	Comes alive in the rain and reads a drying track first. Ordinary in the dry.	ينبض بالحياة تحت المطر ويقرأ الحلبة الجافة أولًا. عادي على الجاف.
+848	Makes a set last for ever, so stops less. Slower on fresh rubber.	يجعل الطقم يدوم طويلًا جدًا، فيتوقف أقل. أبطأ على المطاط الجديد.
+849	Qualifying Specialist	خبير التأهيل
+850	Starts near the front with one blistering lap, then fights to keep it as the tyres fade.	ينطلق من المقدمة بلفة خاطفة، ثم يقاتل ليحتفظ بها مع تراجع الإطارات.
+851	Defensive Anchor	المرساة الدفاعية
+852	Almost impossible to pass, and loses time doing it. Rarely attacks.	شبه مستحيل تجاوزه، ويخسر الوقت في ذلك. نادرًا ما يهاجم.
+853	dna1:	
+854	preset:	
+855	blend weights must add up to 100	
+856	blend:	
+857	not a profile	ليس ملفًا
+858	no settings	لا إعدادات
+859	Imported	مستورد
+860	restored an earlier version	تمت استعادة نسخة سابقة
+861	Your own preset	إعدادك الخاص
+862	Your Team	فريقك
+863	YOU	أنت
+864	Nova	
+865	NOV	
+866	Echo	
+867	ECH	
+868	Paddock Club	
+869	PAD	
+870	Sol	
+871	SOL	
+872	KAY	
+873	Short	قصير
+874	About 5 min	نحو 5 دقائق
+875	About 10 min	نحو 10 دقائق
+876	Long	طويل
+877	About 18 min	نحو 18 دقيقة
+878	Real Grand Prix laps · about 35 min	لفات جائزة كبرى حقيقية · نحو 35 دقيقة
+879	agp.here	
+880	file:	
+881	bold 92px system-ui, sans-serif	
+882	NAIROBI	
+883	agp.live.v1	
+884	Teague	
+885	save tyres	توفير الإطارات
+886	Interval	الفارق
+887	Leader	المتصدر
+888	wet out here	
+889	standing water	
+890	dry line	
+891	Safety car! Cheap	سيارة الأمان! توقف رخيص
+892	Virtual safety car. Box	سيارة أمان افتراضية. Box
+893	second compound. Box now	نوع ثانٍ. Box الآن
+894	Pit window	نافذة التوقف
+895	Sound on. Turn sound off	الصوت يعمل. أطفئ الصوت
+896	Sound off. Turn sound on	الصوت مطفأ. شغّل الصوت
+897	VSC	
+898	VIRTUAL SAFETY CAR	سيارة أمان افتراضية
+899	SC IN THIS LAP	سيارة الأمان تدخل هذه اللفة
+900	SAFETY CAR	سيارة الأمان
+901	OUT	خروج
+902	PIT	صيانة
+903	FIN	نهاية
+904	DRS	
+905	BOXING	يدخل الصيانة
+906	tap to cancel	اضغط للإلغاء
+907	SAY “RADIO”	قل «راديو»
+908	HOLD TO TALK	اضغط مطولًا للتحدث
+909	Hands-free: say "Radio" then the call. Hold to talk still works.	بدون يدين: قل «راديو» ثم الأمر. الضغط المطوّل للتحدث ما زال يعمل.
+910	Hold and speak (or hold T)	اضغط مطولًا وتكلم (أو اضغط T)
+911	MacIntel	
+912	Listening…	أستمع…
+913	Allow the microphone in your browser to talk to your drivers. The buttons still work.	اسمح للميكروفون في متصفحك لتتحدث إلى سائقيك. الأزرار ما زالت تعمل.
+914	Team radio lost its connection. Hold the mic and try again.	فقد الراديو الاتصال. اضغط على الميكروفون وحاول مرة أخرى.
+915	No microphone found.	لم يُعثر على ميكروفون.
+916	Radio… go ahead	راديو… تفضّل
+917	Allow the microphone to use hands-free radio. The buttons still work.	اسمح للميكروفون لاستخدام الراديو بدون يدين. الأزرار ما زالت تعمل.
+918	Tyres still feel good. I'd rather stay out.	الإطارات ما زالت جيدة. أفضّل البقاء على الحلبة.
+919	Tyres are gone. I can't push much longer.	الإطارات انتهت. لا أستطيع الضغط أكثر.
+920	Copy, boss. But my tyres are starting to go.	تم يا رئيس. لكن إطاراتي بدأت تنهار.
+921	Copy. Saving now, then I'll push.	تم. أوفّر الآن، ثم أضغط.
+922	Understood. Managing the tyres.	مفهوم. أدير الإطارات.
+923	Battery's empty. I need to charge first.	البطارية فارغة. يجب أن أشحن أولًا.
+924	Copy. Charging until we're close.	تم. أشحن حتى نقترب.
+925	Swap places works when your two cars run nose to tail.	تبديل المراكز يعمل عندما تسير سيارتاك متلاصقتين.
+926	laps done	لفات منجزة
+927	you're within a second	أنت على بعد أقل من ثانية
+928	Battery back to balanced.	عادت البطارية إلى الوضع المتوازن.
+929	now.	الآن.
+930	aggressive racer	متسابق عدواني
+931	patient racer	متسابق صبور
+932	balanced racer	متسابق متوازن
+933	gentle on tyres	لطيف مع الإطارات
+934	hard on tyres	قاسٍ على الإطارات
+935	average on tyres	متوسط مع الإطارات
+936	no reply	لا رد
+937	Attack + boost	هجوم + boost
+938	Harvest	شحن
+939	Do it	نفّذ
+940	Dismiss	تجاهل
+941	Not now	ليس الآن
+942	Say "do it" and I'll make the call.	قل «نفّذ» وسأصدر الأمر.
+943	New tip	نصيحة جديدة
+944	Open the coach tip	افتح نصيحة المدرب
+945	Coach	المدرب
+946	Show tips open	إظهار النصائح
+947	Fold the coach away	طيّ المدرب
+948	Fold away	طيّ
+949	Close	إغلاق
+950	🎧 Coach	🎧 المدرب
+951	Coach folded away. New tips show as a small pill.	تم طيّ المدرب. النصائح الجديدة تظهر كزر صغير.
+952	Coach tips open in full again.	نصائح المدرب تُفتح كاملة من جديد.
+953	You run a team of	أنت تدير فريقًا من
+954	so your faster car can chase the cars ahead.	كي تطارد سيارتك الأسرع السيارات الأمامية.
+955	Your two cars are fighting each other, which costs them both time.	سيارتاك تتقاتلان، وهذا يكلّف كلتيهما وقتًا.
+956	tells them not to attack each other.	يطلب منهما ألّا تهاجما بعضهما.
+957	Last lap! Tyre wear doesn't matter any more, so	اللفة الأخيرة! تآكل الإطارات لم يعد مهمًا، لذا
+958	with both cars.	بكلتا السيارتين.
+959	Push both cars	اضغط بكلتا السيارتين
+960	makes the driver go for the gap, and	يجعل السائق ينقضّ على الفجوة، و
+961	fires the battery for 12 seconds of extra speed.	يطلق البطارية لـ12 ثانية من السرعة الإضافية.
+962	Attack + BOOST	هجوم + BOOST
+963	recharges the battery as the car brakes, like regen in an electric car, so you have charge for the next fight.	يشحن البطارية عندما تكبح السيارة، مثل السيارة الكهربائية، كي يكون لديك شحن للمعركة القادمة.
+964	until the next fight.	حتى المعركة القادمة.
+965	Out	خارج
+966	Gap to leader	الفارق عن المتصدر
+967	Avg pit stop	متوسط التوقف
+968	Tyre life	عمر الإطارات
+969	--below	
+970	In the pits	في الصيانة
+971	Autonomous	ذاتي
+972	Pushing	يضغط
+973	Saving tyres	يوفّر الإطارات
+974	Ask the engineer	اسأل المهندس
+975	OK	حسنًا
+976	Boost	Boost
+977	Normal pace	إيقاع عادي
+978	Balanced battery	بطارية متوازنة
+979	Deploy	استخدام البطارية
+980	Stationary	متوقفة
+981	Dry	جاف
+982	Damp	رطب
+983	Soaked	غارق
+984	Simulated weather, not the real forecast	طقس محاكى، ليس التوقعات الحقيقية
+985	SIM	محاكاة
+986	It looks heavy.	يبدو غزيرًا.
+987	Could be light.	قد يكون خفيفًا.
+988	📡 Rain expected soon	📡 مطر متوقع قريبًا
+989	· AI agent	· وكيل ذكاء اصطناعي
+990	My car	سيارتي
+991	Ahead	أمامه
+992	Behind	خلفه
+993	Speed	السرعة
+994	ERS battery	بطارية ERS
+995	Last lap	اللفة الأخيرة
+996	The marshals have cleared the car.	أزال الحكام السيارة.
+997	Save tyres:	توفير الإطارات:
+998	a little slower, but the tyres wear about a third less. Use it to make a set last longer.	أبطأ قليلًا، لكن الإطارات تتآكل بنحو الثلث أقل. استخدمه لإطالة عمر الطقم.
+999	Normal:	عادي:
+1000	steady speed and normal tyre wear.	سرعة ثابتة وتآكل عادي للإطارات.
+1001	Push:	ضغط:
+1002	faster, but tyres wear 50% quicker and mistakes are more likely. Best in the last laps.	أسرع، لكن الإطارات تتآكل أسرع بـ50% والأخطاء أكثر احتمالًا. الأفضل في اللفات الأخيرة.
+1003	Harvest:	شحن:
+1004	recharges the battery when the car brakes and lifts off, like regen in an electric car. A bit slower on the straights.	يشحن البطارية عندما تكبح السيارة وترفع القدم، مثل السيارة الكهربائية. أبطأ قليلًا في الخطوط المستقيمة.
+1005	Balanced:	متوازن:
+1006	uses a little battery on each straight and tops it up in the corners.	يستخدم قليلًا من البطارية في كل خط مستقيم ويعيد شحنها في المنعطفات.
+1007	Deploy:	استخدام البطارية:
+1008	spends the battery for about 3% more speed on the straights and easier passes. A full battery lasts about half a minute of straights.	ينفق البطارية مقابل نحو 3% سرعة إضافية في الخطوط المستقيمة وتجاوزات أسهل. البطارية الممتلئة تكفي نحو نصف دقيقة من الخطوط المستقيمة.
+1009	How's the car?	كيف السيارة؟
+1010	Tyres?	الإطارات؟
+1011	Gaps?	الفوارق؟
+1012	Can you pass?	هل تستطيع التجاوز؟
+1013	What do you think?	ما رأيك؟
+1014	Your orders?	أوامرك؟
+1015	your call	قرارك
+1016	the strategist's call	قرار الاستراتيجي
+1017	the engineer's call	قرار المهندس
+1018	already made	نُفّذ بالفعل
+1019	You took over the calls	توليت القرارات
+1020	You run the car	أنت تدير السيارة
+1021	Cancel it if you like.	ألغِه إن شئت.
+1022	Race freely:	سباق حر:
+1023	your two drivers may fight each other for position.	سائقاك قد يتقاتلان على المركز.
+1024	Hold positions:	الحفاظ على المراكز:
+1025	your drivers won't attack each other, so neither loses time in a team fight.	سائقاك لن يهاجما بعضهما، فلا يخسر أي منهما الوقت في قتال داخلي.
+1026	Swap places:	تبديل المراكز:
+1027	the car in front lets its teammate through, for when the one behind is faster or on fresher tyres.	السيارة الأمامية تفسح لزميلها، عندما تكون الخلفية أسرع أو بإطارات أحدث.
+1028	Defend:	دفاع:
+1029	your driver covers the inside line. About half as easy to pass, a touch slower.	سائقك يغطي الخط الداخلي. أصعب في التجاوز بمرتين، وأبطأ قليلًا.
+1030	Neutral:	محايد:
+1031	races normally and passes when there is a clear chance.	يتسابق بشكل عادي ويتجاوز عندما تكون الفرصة واضحة.
+1032	Attack:	هجوم:
+1033	goes for every gap. Many more passes, but more tyre wear and a higher risk of contact.	ينقضّ على كل فجوة. تجاوزات أكثر بكثير، لكن تآكل أكبر وخطر تلامس أعلى.
+1034	Out of the race.	خارج السباق.
+1035	In the pit lane…	في ممر الصيانة…
+1036	Cancel	إلغاء
+1037	Your agents run the team · Take it back	وكلاؤك يديرون الفريق · استعِد القيادة
+1038	Hand the team to my agents	سلّم الفريق لوكلائي
+1039	Team Principal	مدير الفريق
+1040	The AI strategist runs this car and talks to your driver.	الاستراتيجي الآلي يدير هذه السيارة ويتحدث إلى سائقك.
+1041	You make the calls. The engineer only calls the stops.	أنت تصدر الأوامر. المهندس يقرر التوقفات فقط.
+1042	You alone make the calls and talk to your drivers. The engineer stays off the radio until you ask.	أنت وحدك تصدر الأوامر وتتحدث إلى سائقيك. المهندس لا يتكلم في الراديو حتى تطلب.
+1043	🎧 Ask the engineer	🎧 اسأل المهندس
+1044	Engineer calls the stops	المهندس يقرر التوقفات
+1045	Beginner assist: your engineer boxes both cars at the right time. You keep pace, battery and battles.	مساعدة المبتدئين: مهندسك يُدخل السيارتين إلى الصيانة في الوقت المناسب. وأنت تتولى الإيقاع والبطارية والمعارك.
+1046	Your driver pits the next time past the pit entry. A stop costs about 8 seconds (a quarter of a lap).	سائقك يدخل الصيانة في المرة القادمة التي يمر فيها بالمدخل. التوقف يكلّف نحو 8 ثوانٍ (ربع لفة).
+1047	Pick the tyres, then BOX: your driver pits next time round, about 8 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.	اختر الإطارات، ثم BOX: سائقك يدخل في اللفة القادمة، نحو 8 ثوانٍ. ناعم: الأسرع والأكثر تآكلًا. متوسط: متوازن. صلب: الأبطأ والأطول عمرًا. وسيط: حلبة رطبة. مطري: مطر غزير.
+1048	Swap places works when your cars run nose to tail.	تبديل المراكز يعمل عندما تسير سيارتاك متلاصقتين.
+1049	Autonomous mode	الوضع الذاتي
+1050	Box this lap	Box في هذه اللفة
+1051	Pace	الإيقاع
+1052	ERS (battery)	ERS (البطارية)
+1053	Battle	المعركة
+1054	Team orders · both cars	أوامر الفريق · كلتا السيارتين
+1055	Beginner assist on: your engineer calls the pit stops.	مساعدة المبتدئين مفعّلة: مهندسك يقرر التوقفات.
+1056	Beginner assist off: you call the pit stops.	مساعدة المبتدئين متوقفة: أنت تقرر التوقفات.
+1057	Staying out	يبقى على الحلبة
+1058	Engineer	المهندس
+1059	Pit wall	جدار الصيانة
+1060	You	أنت
+1061	Race control	إدارة السباق
+1062	Stay out	ابقَ على الحلبة
+1063	Your team awaits	فريقك بانتظارك
+1064	Two AI drivers race for you. You make the calls: tyres, pit stops, battery and the weather.	سائقان آليّان يتسابقان من أجلك. أنت تقرر: الإطارات، والتوقفات، والبطارية، والطقس.
+1065	▶ Start here	▶ ابدأ هنا
+1066	Your team	فريقك
+1067	Next:	التالي:
+1068	▶ Continue	▶ متابعة
+1069	Daily Challenge	التحدي اليومي
+1070	New race	سباق جديد
+1071	Season & career	الموسم والمسيرة
+1072	season over: see the standings	انتهى الموسم: شاهد الترتيب
+1073	Live Grand Prix	جائزة كبرى مباشرة
+1074	ten real teams on one grid	عشرة فرق حقيقية على خط انطلاق واحد
+1075	today’s Daily, a whole Grand Prix	سباق اليوم، جائزة كبرى كاملة
+1076	Racing Academy	أكاديمية السباق
+1077	Free practice	تجارب حرة
+1078	no points, no pressure	بلا نقاط، بلا ضغط
+1079	Build my team	أنشئ فريقي
+1080	My team	فريقي
+1081	name it, pick a car and colours	سمِّه، واختر سيارة وألوانًا
+1082	drivers, car, colours, garage	السائقون، السيارة، الألوان، المرآب
+1083	Leaderboard	لوحة الصدارة
+1084	today and the weekly Sora prizes	اليوم وجوائز سورا الأسبوعية
+1085	Profile & wallet	الملف والمحفظة
+1086	Profile	الملف الشخصي
+1087	your account and Sora	حسابك وعملات سورا
+1088	sign in so your team follows you	سجّل الدخول كي يرافقك فريقك
+1089	Anti-Bot Pass	بطاقة مكافحة الروبوتات
+1090	Sign out	تسجيل الخروج
+1091	Sign in	تسجيل الدخول
+1092	Start here	ابدأ هنا
+1093	Play	العب
+1094	Turn your phone sideways for the best view	أدر هاتفك أفقيًا لأفضل مشهد
+1095	Menu	القائمة
+1096	Hide the menu and watch the race	أخفِ القائمة وشاهد السباق
+1097	Open the menu	افتح القائمة
+1098	AGENT	
+1099	GRAND PRIX	
+1100	racing team management	إدارة فرق السباق
+1101	Watch ▾	شاهد ▾
+1102	All modes & more	كل الأوضاع والمزيد
+1103	full distance, academy, practice, your team…	المسافة الكاملة، الأكاديمية، التجارب، فريقك…
+1104	Garage	المرآب
+1105	My agent	وكيلي
+1106	Support & rules	الدعم والقواعد
+1107	☰ Menu	☰ القائمة
+1108	You’re a verified human	أنت إنسان موثَّق
+1109	All of Agent Grand Prix	كل Agent Grand Prix
+1110	Renews	يتجدد
+1111	Active until	فعّال حتى
+1112	Manage pass	إدارة البطاقة
+1113	per month	شهريًا
+1114	Unlock everything	افتح كل شيء
+1115	Opens very soon. Every mode is free until then.	تفتح قريبًا جدًا. كل الأوضاع مجانية حتى ذلك الحين.
+1116	★ Anti-Bot Pass	★ بطاقة مكافحة الروبوتات
+1117	✓ verified human	✓ إنسان موثَّق
+1118	New races	سباقات جديدة
+1119	The Championship	البطولة
+1120	against people	ضد أشخاص حقيقيين
+1121	Full-distance	المسافة الكاملة
+1122	A share of the	حصة من
+1123	weekly Sora prizes	جوائز سورا الأسبوعية
+1124	Get the app	احصل على التطبيق
+1125	full screen, one tap from your home screen	ملء الشاشة، بلمسة واحدة من شاشتك الرئيسية
+1126	Computer	الكمبيوتر
+1127	Chrome or Edge	Chrome أو Edge
+1128	Safari	
+1129	Android	
+1130	Chrome	
+1131	Or play in the browser	أو العب في المتصفح
+1132	★ Pass	★ البطاقة
+1133	New to the pit wall? Start with one of these.	جديد على جدار الصيانة؟ ابدأ بأحد هذه.
+1134	🎓 Racing Academy	🎓 أكاديمية السباق
+1135	Learn the pit wall in five short lessons. Best if you're new.	تعلّم جدار الصيانة في خمسة دروس قصيرة. الأفضل إن كنت جديدًا.
+1136	🏁 Jump into a race	🏁 انطلق في سباق
+1137	A short race at Sakhir with the coach beside you.	سباق قصير في الصخير والمدرب بجانبك.
+1138	🔧 Free practice	🔧 تجارب حرة
+1139	No points, no pressure. Try every call.	بلا نقاط، بلا ضغط. جرّب كل أمر.
+1140	Build my team first	أنشئ فريقي أولًا
+1141	· name your team and drivers, pick a car and colours	· سمِّ فريقك وسائقيك، واختر سيارة وألوانًا
+1142	Every way to race	كل طرق السباق
+1143	Season and career	الموسم والمسيرة
+1144	Season over. See the final standings.	انتهى الموسم. شاهد الترتيب النهائي.
+1145	Up to ten teams of real people on one grid. A race every five minutes.	حتى عشرة فرق من أشخاص حقيقيين على خط انطلاق واحد. سباق كل خمس دقائق.
+1146	Today’s Daily over a whole Grand Prix.	سباق اليوم على مسافة جائزة كبرى كاملة.
+1147	No points, no pressure. Free.	بلا نقاط، بلا ضغط. مجاني.
+1148	Name your team, pick a car and colours.	سمِّ فريقك، واختر سيارة وألوانًا.
+1149	Your agent races the Dailies you miss, and talks to you on WhatsApp.	وكيلك يتسابق في السباقات اليومية التي تفوتك، ويتحدث إليك على واتساب.
+1150	Today’s board and the weekly Sora prizes.	لوحة اليوم وجوائز سورا الأسبوعية.
+1151	Watch a race	شاهد سباقًا
+1152	Sit back and watch the field.	استرخِ وشاهد السباق.
+1153	Your account and Sora wallet	حسابك ومحفظة سورا
+1154	Sign in so your team follows you	سجّل الدخول كي يرافقك فريقك
+1155	Active: you are a verified human	فعّال: أنت إنسان موثَّق
+1156	Verified human, every mode, for a year	إنسان موثَّق، كل الأوضاع، لمدة عام
+1157	Settings	الإعدادات
+1158	Sound, the engineer, the coach and language	الصوت، والمهندس، والمدرب، واللغة
+1159	‹ Back	‹ رجوع
+1160	Race again	سابق مجددًا
+1161	Renews on	يتجدد في
+1162	Manage or cancel	الإدارة أو الإلغاء
+1163	The pass opens very soon.	البطاقة تفتح قريبًا جدًا.
+1164	Until then every mode is free.	حتى ذلك الحين كل الأوضاع مجانية.
+1165	Back	رجوع
+1166	Real people on the pit wall. A small pass keeps bots off the grid and the prize table fair.	أشخاص حقيقيون على جدار الصيانة. بطاقة صغيرة تُبعد الروبوتات عن خط الانطلاق وتُبقي جدول الجوائز عادلًا.
+1167	verified human	إنسان موثَّق
+1168	badge on the leaderboards	شارة في لوحات الصدارة
+1169	✓ The full Championship season	✓ موسم البطولة الكامل
+1170	✓ Live Grand Prix against people	✓ جائزة كبرى مباشرة ضد أشخاص حقيقيين
+1171	✓ Full-distance races	✓ سباقات المسافة الكاملة
+1172	✓ A share of the weekly Sora prize pot	✓ حصة من مجموع جوائز سورا الأسبوعية
+1173	Always free: the Daily Grand Prix, and your agent races the Dailies you miss.	مجاني دائمًا: الجائزة الكبرى اليومية، ووكيلك يتسابق في السباقات اليومية التي تفوتك.
+1174	Opening Stripe…	جارٍ فتح Stripe…
+1175	Checkout cancelled. Nothing was charged.	أُلغي الدفع. لم يُخصم شيء.
+1176	★ Welcome, verified human. Every mode is open.	★ أهلًا أيها الإنسان الموثَّق. كل الأوضاع مفتوحة.
+1177	Payment received. Your pass turns on in a minute or two.	تم استلام الدفع. بطاقتك تُفعّل خلال دقيقة أو اثنتين.
+1178	Agent Grand Prix is a strategy game: your AI drivers drive, you make the calls.	Agent Grand Prix لعبة استراتيجية: سائقوك الآليّون يقودون، وأنت تقرر.
+1179	One person, one team.	شخص واحد، فريق واحد.
+1180	Race with your own account. Bots and scripts that play for you are not allowed.	تسابق بحسابك الخاص. الروبوتات والبرامج النصية التي تلعب عنك غير مسموحة.
+1181	The Daily.	السباق اليومي.
+1182	Your first run of each day is the one that counts on the leaderboard. Your agent can race it for you if you miss it.	أول محاولة لك كل يوم هي التي تُحتسب في لوحة الصدارة. يمكن لوكيلك أن يتسابق عنك إن فاتتك.
+1183	Weekly prizes.	الجوائز الأسبوعية.
+1184	The week's Daily points add up. The top ten people share the Sora pot. Sora is game currency: it is earned, never bought, and can't be cashed out.	نقاط السباقات اليومية في الأسبوع تُجمع. أفضل عشرة أشخاص يتقاسمون مجموع سورا. سورا عملة اللعبة: تُكسب، ولا تُشترى أبدًا، ولا يمكن صرفها نقدًا.
+1185	The Anti-Bot Pass.	بطاقة مكافحة الروبوتات.
+1186	Be kind.	كن لطيفًا.
+1187	Team names and messages must not be rude or pretend to be someone else.	يجب ألّا تكون أسماء الفرق والرسائل مسيئة أو تنتحل شخصية أحد.
+1188	Need help? Email	تحتاج مساعدة؟ راسلنا على
+1189	amaete@gmail.com	
+1190	Terms	الشروط
+1191	Privacy	الخصوصية
+1192	Credits	الشكر والمصادر
+1193	Sound	الصوت
+1194	Engines, the crowd and the radio	المحركات، والجمهور، والراديو
+1195	Engineer’s voice	صوت المهندس
+1196	Your race engineer speaks the calls	مهندس السباق ينطق الأوامر
+1197	Race coach	مدرب السباق
+1198	Tips during your first races and quick races	نصائح خلال سباقاتك الأولى والسباقات السريعة
+1199	Language	اللغة
+1200	More languages are on the way	
+1201	English	
+1202	More languages soon	
+1203	select.lang	
+1204	Telegram	
+1205	Discord	
+1206	TikTok	
+1207	YouTube	
+1208	Instagram	
+1209	Join us: coming soon	انضم إلينا: قريبًا
+1210	Join us	انضم إلينا
+1211	player chats, news and race videos: coming soon	محادثات اللاعبين، والأخبار، ومقاطع السباقات: قريبًا
+1212	Installed. Agent Grand Prix is on your home screen.	تم التثبيت. Agent Grand Prix على شاشتك الرئيسية.
+1213	Install the app	ثبّت التطبيق
+1214	Opens full screen from your home screen	يُفتح بملء الشاشة من شاشتك الرئيسية
+1215	Install	تثبيت
+1216	No problem. You can install it any time from the menu.	لا مشكلة. يمكنك التثبيت في أي وقت من القائمة.
+1217	Add to your Home Screen	أضف إلى الشاشة الرئيسية
+1218	On iPhone and iPad, open agentgrandprix.com in	على iPhone وiPad، افتح agentgrandprix.com في
+1219	, then:	، ثم:
+1220	Tap the	اضغط زر
+1221	Share	مشاركة
+1222	Scroll down and tap	مرّر للأسفل واضغط
+1223	Add to Home Screen	إضافة إلى الشاشة الرئيسية
+1224	Tap	اضغط
+1225	Add	إضافة
+1226	Install on Android	التثبيت على أندرويد
+1227	Open agentgrandprix.com in	افتح agentgrandprix.com في
+1228	menu at the top right.	القائمة أعلى اليمين.
+1229	Install app	تثبيت التطبيق
+1230	Add to Home screen	إضافة إلى الشاشة الرئيسية
+1231	Install on your computer	التثبيت على الكمبيوتر
+1232	Edge	
+1233	Click the	انقر على أيقونة
+1234	icon at the right end of the address bar (a screen with a down arrow).	في نهاية شريط العنوان (شاشة بسهم للأسفل).
+1235	Or open the browser menu and choose	أو افتح قائمة المتصفح واختر
+1236	Install Agent Grand Prix	تثبيت Agent Grand Prix
+1237	Click	انقر
+1238	days ago	أيام
+1239	Race report	تقرير السباق
+1240	No races yet	لا سباقات بعد
+1241	Your first result will show here.	ستظهر نتيجتك الأولى هنا.
+1242	Edit team	تعديل الفريق
+1243	← Menu	← القائمة
+1244	Share result	شارك النتيجة
+1245	🤖 raced by my agent	🤖 تسابق فيه وكيلي
+1246	the Daily	السباق اليومي
+1247	Report	التقرير
+1248	🤖 While you were away	🤖 أثناء غيابك
+1249	Agent settings	إعدادات الوكيل
+1250	When it rains	عندما تمطر
+1251	Team orders	أوامر الفريق
+1252	Risk	المخاطرة
+1253	Recent agent races	سباقات الوكيل الأخيرة
+1254	Missed Dailies	السباقات اليومية الفائتة
+1255	Race my missed Dailies	تسابق في سباقاتي اليومية الفائتة
+1256	Cover time	وقت التغطية
+1257	Disconnect	قطع الاتصال
+1258	Open WhatsApp	افتح واتساب
+1259	Copy	نسخ
+1260	and it sets you up, then connect here.	وهو يجهّزك، ثم اتصل من هنا.
+1261	📱 Connect your AI agent	📱 اربط وكيلك الذكي
+1262	Connect WhatsApp	اربط واتساب
+1263	Could not reach the server. Try again in a moment.	تعذّر الوصول إلى الخادم. حاول بعد لحظة.
+1264	Copied	تم النسخ
+1265	Ten teams, one grid	عشرة فرق، خط انطلاق واحد
+1266	Finding the next race…	جارٍ البحث عن السباق القادم…
+1267	Take a seat	احجز مقعدًا
+1268	Open seat	مقعد متاح
+1269	On the radio	على الراديو
+1270	You have a seat. Stay on this page: the race starts by itself when the lights go out.	لديك مقعد. ابقَ في هذه الصفحة: السباق يبدأ تلقائيًا عند انطفاء الأضواء.
+1271	Circuit	الحلبة
+1272	Teams	الفرق
+1273	Laps	اللفات
+1274	Live races are not running right now. Every other race works as usual.	السباقات المباشرة لا تعمل الآن. كل السباقات الأخرى تعمل كالمعتاد.
+1275	Could not reach the race room. Try again in a moment.	تعذّر الوصول إلى غرفة السباق. حاول بعد لحظة.
+1276	Taking a seat…	جارٍ حجز مقعد…
+1277	the grid is full	خط الانطلاق ممتلئ
+1278	This grid is full. The next race opens in a few minutes.	خط الانطلاق هذا ممتلئ. السباق القادم يفتح خلال دقائق.
+1279	Could not take a seat. Try again in a moment.	تعذّر حجز مقعد. حاول بعد لحظة.
+1280	Your full-distance race is on today's full-distance board.	سباقك على المسافة الكاملة في لوحة المسافة الكاملة لليوم.
+1281	On today's leaderboard you are	في لوحة صدارة اليوم أنت
+1282	Race it again	تسابق مجددًا
+1283	Race today's GP	تسابق في جائزة اليوم
+1284	Today's race is the same for everyone: the same circuit, grid and weather. Every result here was raced, not claimed: the server runs your race again from your own calls before it ranks you.	سباق اليوم واحد للجميع: الحلبة نفسها، وخط الانطلاق نفسه، والطقس نفسه. كل نتيجة هنا خِيضت فعلًا لا ادُّعيت: الخادم يعيد تشغيل سباقك من أوامرك قبل أن يرتّبك.
+1285	Reading today's board…	جارٍ قراءة لوحة اليوم…
+1286	Race the full distance	تسابق على المسافة الكاملة
+1287	· fully experienced	· بخبرة كاملة
+1288	Wins	الانتصارات
+1289	Podiums	منصات التتويج
+1290	Retirements	الانسحابات
+1291	Circuits	الحلبات
+1292	Per race	لكل سباق
+1293	Overtakes	التجاوزات
+1294	Overtaken	تم تجاوزه
+1295	Small mistakes	أخطاء صغيرة
+1296	No races yet. Every race this driver starts, with you on the radio or your agent, becomes experience here.	لا سباقات بعد. كل سباق يخوضه هذا السائق، وأنت على الراديو أو وكيلك، يصبح خبرة هنا.
+1297	Nothing yet. After a few races the Team Strategist offers a lesson drawn from this driver's whole record, not one bad afternoon. You approve it, and it moves a Driver DNA slider.	لا شيء بعد. بعد بضعة سباقات يقترح استراتيجي الفريق درسًا مستمدًا من سجل السائق كله، لا من ظهيرة سيئة واحدة. توافق عليه، فيحرّك مؤشرًا في الحمض النووي للسائق.
+1298	What this driver has learned	ما تعلّمه هذا السائق
+1299	My account	حسابي
+1300	Verified human	إنسان موثَّق
+1301	Your account	حسابك
+1302	Could not reach the game server. Try again in a minute.	تعذّر الوصول إلى خادم اللعبة. حاول بعد دقيقة.
+1303	Team memory	ذاكرة الفريق
+1304	Soon Teague and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.	قريبًا سيتذكرك تيغ وسائقوك من سباق لآخر: اسمك، وكيف تحب أن تتسابق، ومنافسيك، ونتائجك.
+1305	Teague and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.	تيغ وسائقوك يتذكرون اسمك، وكيف تحب أن تتسابق، ومنافسيك، وكيف جرت سباقاتك، ويذكرونها في الوقت المناسب. لا شيء بعد: تحدّث معهم وتسابق.
+1306	Forget	انسَ
+1307	Forget me	انسَني
+1308	Tap again to forget everything	اضغط مجددًا لنسيان كل شيء
+1309	Done. Your team has forgotten everything it remembered about you.	تم. نسي فريقك كل ما كان يتذكره عنك.
+1310	renews on	يتجدد في
+1311	★ Verified human	★ إنسان موثَّق
+1312	Manage	إدارة
+1313	★ Get the Anti-Bot Pass	★ احصل على بطاقة مكافحة الروبوتات
+1314	Signed in as	مسجّل الدخول باسم
+1315	Sora wallet	محفظة سورا
+1316	Loading…	جارٍ التحميل…
+1317	Sign out of this device	تسجيل الخروج من هذا الجهاز
+1318	Signed out on this device. Your progress stays with your account.	تم تسجيل الخروج على هذا الجهاز. تقدّمك باقٍ في حسابك.
+1319	Your Sora wallet opens soon. Weekly prizes land here.	محفظة سورا تفتح قريبًا. الجوائز الأسبوعية تصل هنا.
+1320	Prize	الجائزة
+1321	Finish in the top ten of a week’s Dailies and your prize lands here.	أنهِ ضمن أفضل عشرة في السباقات اليومية للأسبوع وستصل جائزتك هنا.
+1322	Sora is earned in the game. It can’t be bought or cashed out.	سورا تُكسب في اللعبة. لا يمكن شراؤها أو صرفها نقدًا.
+1323	Sign in to race	سجّل الدخول لتتسابق
+1324	Sign in to Agent Grand Prix	سجّل الدخول إلى Agent Grand Prix
+1325	Racing is free. Sign in first, so your team, results and agent follow you to any device.	السباق مجاني. سجّل الدخول أولًا، كي يرافقك فريقك ونتائجك ووكيلك على أي جهاز.
+1326	It’s free. Your team, season, Academy progress and agent follow you to any device, and nothing you’ve built here is lost.	إنه مجاني. فريقك، وموسمك، وتقدّمك في الأكاديمية، ووكيلك يرافقونك على أي جهاز، ولا يضيع شيء مما بنيته هنا.
+1327	Continue with Google	المتابعة باستخدام Google
+1328	you@example.com	you@example.com
+1329	Email	البريد الإلكتروني
+1330	Email me a code	أرسل لي رمزًا
+1331	Sign-in opens very soon	تسجيل الدخول يفتح قريبًا جدًا
+1332	with Google or your email. Until then your team and progress are saved on this device.	باستخدام Google أو بريدك. حتى ذلك الحين فريقك وتقدّمك محفوظان على هذا الجهاز.
+1333	We only use your email to sign you in and to tell you about your account. No spam. By signing in you agree to the	نستخدم بريدك فقط لتسجيل دخولك وإبلاغك بشؤون حسابك. لا رسائل مزعجة. بتسجيل الدخول توافق على
+1334	Opening Google…	جارٍ فتح Google…
+1335	Could not reach the game server. Your progress is safe on this device.	تعذّر الوصول إلى خادم اللعبة. تقدّمك آمن على هذا الجهاز.
+1336	Sending…	جارٍ الإرسال…
+1337	Check your email	تحقق من بريدك
+1338	We sent a 6-digit code to	أرسلنا رمزًا من 6 أرقام إلى
+1339	Code	الرمز
+1340	Send a new code	أرسل رمزًا جديدًا
+1341	Use a different email	استخدم بريدًا آخر
+1342	A new code is on its way.	رمز جديد في الطريق.
+1343	This account already	هذا الحساب لديه بالفعل
+1344	You already have a team	لديك فريق بالفعل
+1345	Your races, trophies and Academy lessons from this device join the account. Where both have the same thing, the one that has raced more is kept.	سباقاتك وكؤوسك ودروس الأكاديمية من هذا الجهاز تنضم إلى الحساب. حين يكون لدى الاثنين الشيء نفسه، يُحتفظ بالذي تسابق أكثر.
+1346	Yes, add it	نعم، أضِفه
+1347	Nothing changed. You’re still playing on this device only.	لم يتغير شيء. ما زلت تلعب على هذا الجهاز فقط.
+1348	Pick your name	اختر اسمك
+1349	This is how other players see you on leaderboards and live races. Your @handle is yours across the game.	هكذا يراك اللاعبون الآخرون في لوحات الصدارة والسباقات المباشرة. معرّفك @ لك في كل اللعبة.
+1350	Your name	اسمك
+1351	@handle	@المعرّف
+1352	3 to 24 letters, numbers or _. You can change it once a month.	من 3 إلى 24 حرفًا أو رقمًا أو _. يمكنك تغييره مرة في الشهر.
+1353	Save and continue	احفظ وتابع
+1354	button[type=submit]	
+1355	install:	
+1356	driver:	
+1357	ar:	
+1358	A callsign is three letters, like NOV.	رمز النداء ثلاثة أحرف، مثل NOV.
+1359	Your two drivers need different callsigns.	سائقاك يحتاجان رمزي نداء مختلفين.
+1360	Pick a number from 1 to 99.	اختر رقمًا من 1 إلى 99.
+1361	Your two drivers need different numbers.	سائقاك يحتاجان رقمين مختلفين.
+1362	Savanna Racing	
+1363	Kora Motorsport	
+1364	Sahel Speed	
+1365	Ember GP	
+1366	Zenith Racing	
+1367	Baobab Racing	
+1368	Comet GP	
+1369	Nomad Racing	
+1370	Delta Works	
+1371	Lumen Racing	
+1372	Equator GP	
+1373	Highveld Racing	
+1374	Tidewater GP	
+1375	Ironwood Racing	
+1376	Blue Nile Motorsport	
+1377	Dune Velocity	
+1378	Kofi	
+1379	Tunde	
+1380	Kwame	
+1381	Jabari	
+1382	Femi	
+1383	Malik	
+1384	Ayo	
+1385	Chidi	
+1386	Emeka	
+1387	Sipho	
+1388	Tariq	
+1389	Rio	
+1390	Mateo	
+1391	Idris	
+1392	Bayo	
+1393	Kalu	
+1394	Obi	
+1395	Thabo	
+1396	Zane	
+1397	Dayo	
+1398	Nico	
+1399	Omar	
+1400	Jonah	
+1401	Ezra	
+1402	Leon	
+1403	Musa	
+1404	Combover	تسريحة جانبية
+1405	High top	شعر عالٍ
+1406	Bob	قصة بوب
+1407	Curls	تجعيدات
+1408	Curly bun	كعكة مجعدة
+1409	Buzz cut	حلاقة قصيرة
+1410	Bangs	غُرّة
+1411	Bald	أصلع
+1412	Balding	صلع جزئي
+1413	Undercut bun	كعكة مع حلاقة سفلية
+1414	Fade	تدرّج
+1415	Bun	كعكة
+1416	Extra long	طويل جدًا
+1417	Sideburns	سوالف
+1418	Side shave	جانب محلوق
+1419	Mohawk	موهوك
+1420	Pigtails	ضفيرتان
+1421	None	لا شيء
+1422	Stubble	لحية خفيفة
+1423	Goatee	سكسوكة
+1424	Full beard	لحية كاملة
+1425	Moustache	شارب
+1426	Walrus	شارب كثيف
+1427	Soul patch	ذقن صغيرة
+1428	Open	مفتوحتان
+1429	Happy	سعيدتان
+1430	Glasses	نظارات
+1431	Shades	نظارات شمسية
+1432	Hair	الشعر
+1433	Beard	اللحية
+1434	Eyes	العينان
+1435	Previous	السابق
+1436	Skin tone	لون البشرة
+1437	Hair colour	لون الشعر
+1438	Random look	مظهر عشوائي
+1439	Change look	غيّر المظهر
+1440	Skin	البشرة
+1441	Helmet	الخوذة
+1442	Callsign	رمز النداء
+1443	Race number	رقم السباق
+1444	Change names, numbers and colours any time.	غيّر الأسماء والأرقام والألوان في أي وقت.
+1445	Team name	اسم الفريق
+1446	Short code	الرمز المختصر
+1447	The callsign is the three letters on the timing tower. The race number is painted on the car.	رمز النداء هو الأحرف الثلاثة على برج التوقيت. ورقم السباق مرسوم على السيارة.
+1448	Faces and helmets	الوجوه والخوذ
+1449	Colours	الألوان
+1450	Mix your own colours and finish in the showroom	امزج ألوانك والطلاء في صالة العرض
+1451	Save	حفظ
+1452	Name your team	سمِّ فريقك
+1453	You are the team principal. What is your team called?	أنت مدير الفريق. ما اسم فريقك؟
+1454	SAV	
+1455	🎲 Suggest a name	🎲 اقترح اسمًا
+1456	The code shows on the timing tower next to your drivers.	يظهر الرمز على برج التوقيت بجانب سائقيك.
+1457	Give your team a name, or tap the dice for one.	أعطِ فريقك اسمًا، أو اضغط النرد.
+1458	Pick your car	اختر سيارتك
+1459	Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.	كل السيارات لها الإيقاع العام نفسه. بعضها أسرع في المنعطفات، وبعضها في الكبح، وبعضها في الخطوط المستقيمة. اضغط صورة لتدوير السيارة ثلاثية الأبعاد.
+1460	Choose this car	اختر هذه السيارة
+1461	Your colours	ألوانك
+1462	Pick a set, or mix your own main, accent and light colours. Drag to turn the car.	اختر مجموعة، أو امزج ألوانك الرئيسية والثانوية والضوئية. اسحب لتدوير السيارة.
+1463	Your drivers	سائقاك
+1464	Name your two AI drivers, give them race numbers and pick how they drive.	سمِّ سائقيك الآليّين، وأعطهما أرقامًا، واختر أسلوب قيادتهما.
+1465	Smooth	سلس
+1466	Suggest a name	اقترح اسمًا
+1467	Number	الرقم
+1468	More styles and every setting are in Driver DNA, any time.	مزيد من الأساليب وكل الإعدادات في الحمض النووي للسائق، في أي وقت.
+1469	Give both drivers a name, or tap the dice.	أعطِ السائقين اسمين، أو اضغط النرد.
+1470	picked when building the team	اختير عند إنشاء الفريق
+1471	Your race engineer	مهندس السباق
+1472	Your engineer runs the radio when you hand the cars to the AI, and answers when you ask for advice. When you are Team Principal, only you and your drivers talk. Tap a voice to hear a call.	مهندسك يدير الراديو عندما تسلّم السيارتين للذكاء الاصطناعي، ويجيب عندما تطلب النصيحة. عندما تكون مدير الفريق، تتحدث أنت وسائقاك فقط. اضغط صوتًا لتسمعه.
+1473	Hands-free radio	راديو بدون يدين
+1474	The mic stays on during your races. Say "Radio", then the call: "Radio, box box, softs". It goes quiet while your team is talking. Best with headphones.	يبقى الميكروفون مفتوحًا أثناء سباقاتك. قل «راديو» ثم الأمر: «راديو، بوكس بوكس، ناعمة». ويصمت حين يتحدث فريقك. الأفضل مع سماعات.
+1475	Drivers answer	السائقون يردّون
+1476	Your drivers reply in their own voices: "Copy. Boxing."	سائقاك يردّان بصوتيهما: «تم. أدخل الصيانة.»
+1477	How you'll run it	كيف ستديره
+1478	Who makes the calls in the race? You can change this before every race, and take over at any time.	من يصدر الأوامر في السباق؟ يمكنك تغيير ذلك قبل كل سباق، وتولي القيادة في أي وقت.
+1479	Start my first race	ابدأ سباقي الأول
+1480	Tips at the right moment, with a button to act on them in one tap: your first box call, your first Push, your first BOOST.	نصائح في اللحظة المناسبة، مع زر للتنفيذ بلمسة: أول أمر صيانة، وأول ضغط، وأول BOOST.
+1481	, one stop each	، توقف واحد لكل سيارة
+1482	Debris on the track.	حطام على الحلبة.
+1483	SC	س.أ
+1484	cam:	
+1485	Leave lesson	اترك الدرس
+1486	Lesson left. Keep racing, or open the Academy from the menu.	تركت الدرس. واصل السباق، أو افتح الأكاديمية من القائمة.
+1487	The chequered flag came out before we finished. Run the lesson again to pick up where we stopped.	رُفع العلم المربّع قبل أن ننتهي. أعد الدرس لنكمل من حيث توقفنا.
+1488	Run it again	أعد المحاولة
+1489	Results	النتائج
+1490	Academy	الأكاديمية
+1491	Academy graduate	خريج الأكاديمية
+1492	Academy graduate.	خريج الأكاديمية.
+1493	All five lessons done. The badge is on your team page.	أنجزت الدروس الخمسة. الشارة في صفحة فريقك.
+1494	Keep racing	واصل السباق
+1495	About three minutes each.	نحو ثلاث دقائق لكل درس.
+1496	Soon	قريبًا
+1497	Again	مجددًا
+1498	Run any lesson again whenever you like.	أعد أي درس متى شئت.
+1499	Race guide	دليل السباق
+1500	Ten ways to win, from the undercut to the first car on slicks. Read it any time.	عشر طرق للفوز، من التوقف المبكر إلى أول سيارة على الإطارات الملساء. اقرأه في أي وقت.
+1501	How to play	كيف تلعب
+1502	Your two AI drivers do the driving. You make the calls from the pit wall.	سائقاك الآليّان يقودان. وأنت تصدر الأوامر من جدار الصيانة.
+1503	Tyres.	الإطارات.
+1504	Softs are fastest but wear out quickest. Mediums and Hards last longer. In a dry race you must use two different dry compounds.	الناعمة الأسرع لكنها تتآكل الأسرع. المتوسطة والصلبة تدوم أكثر. في السباق الجاف يجب استخدام نوعين جافين مختلفين.
+1505	Rain.	المطر.
+1506	Pit stop.	التوقف في الصيانة.
+1507	Tap a tyre under	اضغط إطارًا تحت
+1508	ERS (battery).	ERS (البطارية).
+1509	Deploy for speed on the straights, Harvest to recharge.	استخدم البطارية للسرعة في الخطوط المستقيمة، واشحن لإعادة تعبئتها.
+1510	Battle.	المعركة.
+1511	Attack to go for gaps, Defend to hold position. Both cost a little.	الهجوم للبحث عن الفجوات، والدفاع للحفاظ على المركز. كلاهما يكلّف قليلًا.
+1512	Autonomous.	الوضع الذاتي.
+1513	Flip the switch and your AI makes every call. Races you run fully autonomous are marked that way.	شغّل المفتاح وسيتخذ ذكاؤك الاصطناعي كل القرارات. السباقات التي تديرها ذاتيًا بالكامل تُعلَّم بذلك.
+1514	Boost.	Boost.
+1515	The green BOOST button on the race view fires the battery for 12 seconds. Use it when you're within a second of the car ahead.	زر BOOST الأخضر يطلق البطارية لمدة 12 ثانية. استخدمه عندما تكون على بعد أقل من ثانية من السيارة الأمامية.
+1516	Cameras.	الكاميرات.
+1517	Tap any car to follow it. Live (the TV director), Overview, Chase, Cockpit, TV and Pit views. Keys 1–6 on a keyboard, space to pause.	اضغط أي سيارة لمتابعتها. مناظر مباشر (مخرج التلفاز)، وعام، ومطاردة، وقمرة القيادة، وتلفاز، وصيانة. المفاتيح 1–6 على لوحة المفاتيح، والمسافة للإيقاف المؤقت.
+1518	Watch the top bar. Once the rain has stopped and it reads Dry, box for slicks that lap. The first car on slicks usually wins.	راقب الشريط العلوي. حين يتوقف المطر ويظهر «جاف»، ادخل الصيانة لتركيب الإطارات الملساء في تلك اللفة. أول سيارة على الملساء تفوز عادة.
+1519	Car 1:	السيارة 1:
+1520	Car 2:	السيارة 2:
+1521	Tyre wear is high here, so you may need two stops. Box when tyre life drops under 25%.	تآكل الإطارات مرتفع هنا، فقد تحتاج توقفين. ادخل الصيانة حين يهبط عمر الإطارات تحت 25%.
+1522	Rain is possible. If a shower is due within two laps of your stop, wait and fit Inters instead. Splitting your two cars covers both bets.	المطر ممكن. إذا كانت زخة متوقعة خلال لفتين من توقفك، انتظر وركّب الوسيطة. توزيع سيارتيك يغطي الاحتمالين.
+1523	If the safety car comes out near your pit window, box straight away: the stop costs about half the time.	إذا خرجت سيارة الأمان قرب نافذة توقفك، ادخل فورًا: التوقف يكلّف نحو نصف الوقت.
+1524	From the Racing Academy: the fastest car doesn't always win. The best calls do.	من أكاديمية السباق: السيارة الأسرع لا تفوز دائمًا. القرارات الأفضل هي التي تفوز.
+1525	Pick a plan before the start.	اختر خطة قبل الانطلاق.
+1526	Use the engineer's plan, then adjust as the race unfolds. Mediums to start is the safe one-stop. Softs gain places early but wear out fast.	استخدم خطة المهندس، ثم عدّلها مع تطور السباق. الانطلاق بالمتوسطة هو التوقف الواحد الآمن. الناعمة تكسب مراكز مبكرًا لكنها تتآكل بسرعة.
+1527	Split your two cars.	وزّع سيارتيك.
+1528	Put them on different tyres or stop on different laps. If the weather or a safety car goes against one, the other benefits.	ضعهما على إطارات مختلفة أو أوقفهما في لفات مختلفة. إن عاكس الطقس أو سيارة الأمان إحداهما، استفادت الأخرى.
+1529	The undercut.	التوقف المبكر (Undercut).
+1530	Stuck behind someone? Box a lap before they do. Fresh tyres are about a second a lap faster, so you can come out ahead when they stop.	عالق خلف أحدهم؟ ادخل الصيانة قبله بلفة. الإطارات الجديدة أسرع بنحو ثانية في اللفة، فتخرج أمامه حين يتوقف.
+1531	Watch tyre life.	راقب عمر الإطارات.
+1532	Under 25%, grip falls off a cliff. Near 0% a tyre can puncture, and a puncture can end your race.	تحت 25% ينهار التماسك. وقرب 0% قد ينفجر الإطار، والانفجار قد ينهي سباقك.
+1533	Safety car means a cheap stop.	سيارة الأمان تعني توقفًا رخيصًا.
+1534	A normal stop costs about 8 seconds (a quarter of a lap). Under the safety car it costs about half. If your stop was due in the next few laps, box now.	التوقف العادي يكلّف نحو 8 ثوانٍ (ربع لفة). وتحت سيارة الأمان نحو النصف. إن كان توقفك مستحقًا في اللفات القليلة القادمة، ادخل الآن.
+1535	Damp track: Inters. Soaked: Wets. When it dries, the first car on slicks gains the most. The radar in the top bar warns you a few laps ahead.	حلبة رطبة: وسيطة. غارقة: مطرية. حين تجف، أول سيارة على الملساء تكسب أكثر. الرادار في الشريط العلوي ينبهك قبل بضع لفات.
+1536	Harvest when you're alone so you have charge for a fight. Then hit BOOST or Deploy when you're within a second of the car ahead, or to defend.	اشحن حين تكون وحدك كي يكون لديك شحن للمعركة. ثم اضغط BOOST أو استخدم البطارية حين تكون على بعد أقل من ثانية من السيارة الأمامية، أو للدفاع.
+1537	Pace.	الإيقاع.
+1538	Save tyres on a long stint and Push in the last two laps. Attack makes passes more likely but risks contact. Defend makes you harder to pass.	وفّر الإطارات في المرحلة الطويلة واضغط في اللفتين الأخيرتين. الهجوم يجعل التجاوز أرجح لكنه يخاطر بالتلامس. والدفاع يجعل تجاوزك أصعب.
+1539	Two compounds.	نوعان من الإطارات.
+1540	In a dry race you must use two different dry tyres, or you get a 20-second penalty.	في السباق الجاف يجب استخدام نوعين جافين مختلفين، وإلا تُعاقب بـ20 ثانية.
+1541	Pit-exit fights.	معارك الخروج من الصيانة.
+1542	Coming out just ahead of a rival? Defend and BOOST for the first lap while your new tyres warm up.	تخرج أمام منافس مباشرة؟ دافع واستخدم BOOST في اللفة الأولى بينما تسخن إطاراتك الجديدة.
+1543	You call pit stops, tyres and tactics. Your engineer advises.	أنت تقرر التوقفات والإطارات والتكتيك. ومهندسك ينصح.
+1544	Your AI makes every call. Sit back and watch. You can take over any time.	ذكاؤك الاصطناعي يتخذ كل القرارات. استرخِ وشاهد. يمكنك تولي القيادة في أي وقت.
+1545	Simple cars	سيارات بسيطة
+1546	Plain blocky cars from the first version. Pick these only if the race stutters on your phone.	السيارات المكعبة من الإصدار الأول. اخترها فقط إن تقطّع السباق على هاتفك.
+1547	Intermediate. For a damp track or light rain. Too slow once it dries.	وسيطة. لحلبة رطبة أو مطر خفيف. بطيئة جدًا حين تجف.
+1548	Full wet. For heavy rain and standing water.	مطرية كاملة. لمطر غزير ومياه متجمعة.
+1549	Speed on a dry track	السرعة على حلبة جافة
+1550	In a dry race each car must use two different dry tyres (Soft, Medium or Hard), so every car stops at least once.	في السباق الجاف يجب على كل سيارة استخدام نوعين جافين مختلفين (ناعم أو متوسط أو صلب)، فتتوقف كل سيارة مرة على الأقل.
+1551	Your first race	سباقك الأول
+1552	Quick race	سباق سريع
+1553	Rain likely	المطر مرجّح
+1554	Rain possible	المطر ممكن
+1555	Usually dry	جاف عادة
+1556	· Night	· ليلي
+1557	Pick a circuit	اختر حلبة
+1558	No points, just racing. Good for practice.	بلا نقاط، سباق فقط. جيد للتدريب.
+1559	Search a city or country	ابحث عن مدينة أو دولة
+1560	Search circuits	ابحث عن حلبات
+1561	Featured	مميّزة
+1562	No circuit matches that.	لا توجد حلبة مطابقة.
+1563	Your car is ready. Change it here, or tap a picture to spin it round in 3D.	سيارتك جاهزة. غيّرها هنا، أو اضغط صورة لتدويرها ثلاثيًا.
+1564	Before the race, qualifying: every driver gets one flying lap, and the fastest lap starts at the front. You choose when your drivers go out, on which tyre, and how hard they push.	قبل السباق، التأهيل: لكل سائق لفة سريعة واحدة، والأسرع ينطلق من المقدمة. أنت تختار متى يخرج سائقاك، وعلى أي إطار، ومدى ضغطهما.
+1565	Your grid	خط انطلاقك
+1566	⏱️ One lap each	⏱️ لفة واحدة لكل سائق
+1567	Fastest lap is pole position	أسرع لفة تنال المركز الأول
+1568	🛞 Your tyre	🛞 إطارك
+1569	Softs are quickest over one lap	الناعمة الأسرع في لفة واحدة
+1570	🚦 Your timing	🚦 توقيتك
+1571	The track gets faster, but don't miss the flag	الحلبة تصبح أسرع، لكن لا تفوّت العلم
+1572	Next: race briefing	التالي: إحاطة السباق
+1573	Watch qualifying	شاهد التأهيل
+1574	Let my agents qualify	دع وكلائي يتأهلون
+1575	Wet track at the start	حلبة مبللة عند الانطلاق
+1576	High	مرتفع
+1577	Low	منخفض
+1578	Race length	طول السباق
+1579	AB	
+1580	Best here	الأفضل هنا
+1581	Running the race…	جارٍ تشغيل السباق…
+1582	Rename	إعادة التسمية
+1583	Use the plans	استخدم الخطط
+1584	Customize	تخصيص
+1585	Lap length	طول اللفة
+1586	Weather · simulated	الطقس · محاكى
+1587	Tyre wear	تآكل الإطارات
+1588	Pre-race briefing	إحاطة ما قبل السباق
+1589	Customize: starting tyres	تخصيص: إطارات الانطلاق
+1590	Learn about tyres	تعرّف على الإطارات
+1591	Which rubber, when to stop, and the race guide	أي مطاط، ومتى تتوقف، ودليل السباق
+1592	Accept plan	اقبل الخطة
+1593	BA	
+1594	Projected	متوقع
+1595	Driver name	اسم السائق
+1596	Enter	
+1597	Escape	
+1598	details.tg	
+1599	Plan accepted:	تم قبول الخطة:
+1600	Last checks before the grid.	فحوصات أخيرة قبل خط الانطلاق.
+1601	Who makes the calls?	من يصدر الأوامر؟
+1602	Tips at the right moment during the race, with a button to act on them in one tap. Good for your first races.	نصائح في اللحظة المناسبة أثناء السباق، مع زر للتنفيذ بلمسة. جيد لسباقاتك الأولى.
+1603	Radio voice	صوت الراديو
+1604	Your drivers reply on the radio in their own voices.	سائقاك يردّان على الراديو بصوتيهما.
+1605	Tune	ضبط
+1606	Show frame rate (for testing on your phone)	إظهار معدل الإطارات (للاختبار على هاتفك)
+1607	Go to the grid	إلى خط الانطلاق
+1608	In the garage	في المرآب
+1609	Out lap	لفة الخروج
+1610	Flying lap	لفة سريعة
+1611	In lap	لفة العودة
+1612	Lap done	انتهت اللفة
+1613	Session over	انتهت الجلسة
+1614	Chequered flag	العلم المربّع
+1615	Stayed in the garage	بقي في المرآب
+1616	Out lap: warming the tyres	لفة الخروج: تسخين الإطارات
+1617	· locked up	· قفل العجلات
+1618	No time: the flag fell first	بلا زمن: سقط العلم أولًا
+1619	Watch	شاهد
+1620	Tyre	الإطار
+1621	Lap	اللفة
+1622	See the grid	شاهد خط الانطلاق
+1623	Skip to the result	انتقل إلى النتيجة
+1624	Qualifying	التأهيل
+1625	Push finds time but can lock up the lap. Later laps are quicker, but start your lap before the flag.	الضغط يكسب الوقت لكنه قد يفسد اللفة بقفل العجلات. اللفات المتأخرة أسرع، لكن ابدأ لفتك قبل العلم.
+1626	-brain	
+1627	Keep an eye on the sky today.	راقب السماء اليوم.
+1628	It looks dry: we need one stop for a second compound.	يبدو جافًا: نحتاج توقفًا واحدًا لنوع ثانٍ.
+1629	Race resumed where you left it	استُؤنف السباق من حيث تركته
+1630	Off	إيقاف
+1631	Text only	نص فقط
+1632	Radio voices	أصوات الراديو
+1633	Pick your race engineer's voice. Tap one to hear a call.	اختر صوت مهندس السباق. اضغط أحدها لتسمعه.
+1634	Your two drivers reply on the radio in their own voices: "Copy. Boxing."	سائقاك يردّان على الراديو بصوتيهما: «تم. أدخل الصيانة.»
+1635	Take the team back	استعِد الفريق
+1636	Finish the race now	أنهِ السباق الآن
+1637	Restart lesson	أعد الدرس
+1638	Restart race	أعد السباق
+1639	Paused	متوقف مؤقتًا
+1640	Resume	استئناف
+1641	Quit to home	الخروج إلى الرئيسية
+1642	Your agents run the team now: both cars, every call. Take it back any time.	وكلاؤك يديرون الفريق الآن: السيارتان وكل القرارات. استعده متى شئت.
+1643	You run the team again: both cars answer to you.	أنت تدير الفريق من جديد: السيارتان تطيعانك.
+1644	Agents racing · Take back	الوكلاء يتسابقون · استعِد
+1645	Hand to agents	سلّم للوكلاء
+1646	Your agents run the team. Tap to take it back.	وكلاؤك يديرون الفريق. اضغط لاستعادته.
+1647	Hand the team to your AI agents	سلّم الفريق لوكلائك الأذكياء
+1648	🏁 First race	🏁 أول سباق
+1649	🔟 First points	🔟 أول نقاط
+1650	🥉 First podium	🥉 أول منصة
+1651	🥇 First win	🥇 أول فوز
+1652	⏱ Fastest lap	⏱ أسرع لفة
+1653	👯 Both cars in the points	👯 السيارتان في النقاط
+1654	🌧️ Rain master	🌧️ سيد المطر
+1655	🚀 Comeback (+8 places)	🚀 عودة قوية (+8 مراكز)
+1656	🎓 Academy graduate	🎓 خريج الأكاديمية
+1657	🇳🇬 Home win in Abuja	🇳🇬 فوز على أرضنا في أبوجا
+1658	🌅 Midnight sun	🌅 شمس منتصف الليل
+1659	🌺 Aloha	🌺 ألوها
+1660	🔥 3-day streak	🔥 سلسلة 3 أيام
+1661	🏆 Season champion	🏆 بطل الموسم
+1662	Your full-distance result is saved and goes on today's full-distance board.	تم حفظ نتيجتك في المسافة الكاملة، وستظهر في لوحة اليوم للمسافة الكاملة.
+1663	· 🤖 autonomous	· 🤖 ذاتي
+1664	Daily #	التحدي رقم
+1665	· Full distance	· المسافة الكاملة
+1666	Round	الجولة
+1667	You won!	لقد فزت!
+1668	Podium!	منصة التتويج!
+1669	In the points	ضمن النقاط
+1670	Tough day	يوم صعب
+1671	finished P	أنهى في المركز
+1672	Fully autonomous.	ذاتي بالكامل.
+1673	Next round	الجولة التالية
+1674	Standings	الترتيب
+1675	Home	الرئيسية
+1676	No changes to suggest: neither driver had a pattern of lock-ups, collisions, worn tyres or missed chances this race. Tune them yourself in Driver DNA any time.	لا تغييرات مقترحة: لم يظهر على أي سائق نمط من انغلاق العجلات أو الاصطدامات أو الإطارات المهترئة أو الفرص الضائعة في هذا السباق. اضبطهما بنفسك في الحمض النووي للسائق متى شئت.
+1677	dp:	
+1678	Copy this and send it to friends.	انسخ هذا وأرسله إلى أصدقائك.
+1679	Selected: copy it	تم التحديد: انسخه
+1680	The season starts in Abu Dhabi.	يبدأ الموسم في أبوظبي.
+1681	Start season	ابدأ الموسم
+1682	Drivers	السائقون
+1683	Calendar	الروزنامة
+1684	Google sign-in was cancelled. Your progress is safe on this device.	أُلغي تسجيل الدخول عبر Google. تقدّمك محفوظ على هذا الجهاز.
+1685	Google sign-in did not work. Please try again.	لم ينجح تسجيل الدخول عبر Google. حاول مرة أخرى.
+1686	YXZ	
+1687	bold 26px system-ui, sans-serif	
+1688	bold 40px system-ui, sans-serif	
+1689	bold 84px system-ui, sans-serif	
+1690	bold 50px system-ui, sans-serif	
+1691	bold 34px system-ui, sans-serif	
+1692	30px system-ui, sans-serif	
+1693	LEADER	المتصدر
+1694	Stripe	شريط
+1695	Chevron	شيفرون
+1696	Split	مقسوم
+1697	Stars	نجوم
+1698	Bolt	برق
+1699	Wave	موجة
+1700	Dots	نقاط
+1701	Smoke	دخان
+1702	Gold	ذهبي
+1703	Blue	أزرق
+1704	Fire	نار
+1705	Oil	زيت
+1706	Silver	فضي
+1707	face|	
+1708	Too few races to tell	سباقات قليلة للحكم
+1709	Your changes look better	تغييراتك تبدو أفضل
+1710	Your changes look worse	تغييراتك تبدو أسوأ
+1711	Too close to call	متقارب جدًا للحكم
+1712	Softs	ناعمة
+1713	Mediums	متوسطة
+1714	Hards	صلبة
+1715	Inters	وسيطة
+1716	Wets	مطرية
+1717	No time	بلا زمن
+1718	Deploy the battery	استخدم البطارية
+1719	Harvest the battery	اشحن البطارية
+1720	Stop attacking	توقف عن الهجوم
+1721	Team orders: hold positions	أوامر الفريق: حافظا على المراكز
+1722	Team orders: free to race	أوامر الفريق: السباق حر
+1723	Team orders: swap places	أوامر الفريق: تبادلا المراكز
+1724	Handed the car to the strategist	سُلّمت السيارة إلى الاستراتيجي
+1725	Took back control	استعدت التحكم
+1726	A 20 s penalty: a dry race needs two different dry tyres.	عقوبة 20 ثانية: السباق الجاف يتطلب نوعين مختلفين من الإطارات الجافة.
+1727	Fastest lap of the race: one extra point.	أسرع لفة في السباق: نقطة إضافية.
+1728	No calls were made: your drivers raced on their own plans.	لم تصدر أي أوامر: سائقاك تسابقا بخططهما الخاصة.
+1729	Your cars' places lap by lap	مراكز سيارتيك لفة بلفة
+1730	Result	النتيجة
+1731	Your calls	أوامرك
+1732	Engineer review	مراجعة المهندس
+1733	No calls this race: your drivers raced on their own plans.	لا أوامر في هذا السباق: سائقاك تسابقا بخططهما الخاصة.
+1734	Places lap by lap	المراكز لفة بلفة
+1735	Each call shows the car's place when you made it and two laps later. Many things move a car in two laps, so read it as what followed, not proof.	كل أمر يُظهر مركز السيارة لحظة إصداره وبعد لفتين. أمور كثيرة تحرّك السيارة في لفتين، فاقرأه على أنه ما حدث بعده، لا دليلًا.
+1736	Team	الفريق
+1737	The engineer reads the race data: places, stops, tyres, weather and the safety car.	يقرأ المهندس بيانات السباق: المراكز والتوقفات والإطارات والطقس وسيارة الأمان.
+1738	🏁 Agent Grand Prix	🏁 Agent Grand Prix
+1739	Car and colours	السيارة والألوان
+1740	Inside the car	داخل السيارة
+1741	Slide the Cutaway to see through the bodywork, then further to pull the car apart. Tap a part here or on the car.	حرّك شريط المقطع لترى عبر الهيكل، ثم أكثر لتفكيك السيارة. المس قطعة هنا أو على السيارة.
+1742	▶ Take the tour	▶ ابدأ الجولة
+1743	Whole car	السيارة كاملة
+1744	Main	الأساسي
+1745	Accent	الثانوي
+1746	Lights	الأضواء
+1747	The car in 3D. Drag to spin it, pinch or scroll to zoom.	السيارة ثلاثية الأبعاد. اسحب لتدويرها، وقرّب بإصبعين أو بالتمرير.
+1748	Close the showroom	أغلق صالة العرض
+1749	Previous car	السيارة السابقة
+1750	Next car	السيارة التالية
+1751	Paint finish	اللمسة النهائية
+1752	This car's own colours	ألوان هذه السيارة الأصلية
+1753	Cutaway	المقطع
+1754	Car	السيارة
+1755	See-through	شفافة
+1756	Pulled apart	مفككة
+1757	Every car has the same overall pace: what one gains on the straights it gives back in the corners or under braking.	كل السيارات بالسرعة الإجمالية نفسها: ما تكسبه إحداها على المستقيمات تخسره في المنعطفات أو عند الكبح.
+1758	🎲 Randomize	🎲 عشوائي
+1759	↶ Undo	↶ تراجع
+1760	Reset	إعادة الضبط
+1761	🌙 Night	🌙 ليل
+1762	showroom wizcol	
+1763	■ Stop the tour	■ أوقف الجولة
+1764	Racing this car	السباق بهذه السيارة
+1765	☀️ Day	☀️ نهار
+1766	The track is soaked.	الحلبة غارقة بالماء.
+1767	The track is wet now.	الحلبة مبتلة الآن.
+1768	Standing water on track.	مياه راكدة على الحلبة.
+1769	The track is drying. Wets are overheating.	الحلبة تجف. الإطارات المطرية ترتفع حرارتها.
+1770	There's a dry line now.	ظهر خط جاف الآن.
+1771	Safety car out. A stop costs less now.	سيارة الأمان على الحلبة. التوقف أرخص الآن.
+1772	Virtual safety car. A stop costs less now.	سيارة أمان افتراضية. التوقف أرخص الآن.
+1773	Tyres are nearly finished.	الإطارات على وشك الانتهاء.
+1774	A second tyre compound is still needed.	ما زلنا نحتاج نوع إطارات ثانيًا.
+1775	Pit window is open.	نافذة التوقف مفتوحة.
+1776	Understood, staying out.	مفهوم، سنبقى على الحلبة.
+1777	Lights out! The race is on.	انطفأت الأضواء! انطلق السباق.
+1778	Heavy rain is falling!	أمطار غزيرة!
+1779	Rain is starting to fall.	بدأ المطر يهطل.
+1780	The rain has stopped. The track will start to dry.	توقف المطر. ستبدأ الحلبة بالجفاف.
+1781	Final lap!	اللفة الأخيرة!
+1782	the lead	الصدارة
+1783	Engine failure	عطل في المحرك
+1784	ERS failure, the battery has died	عطل في ERS، البطارية ماتت
+1785	Gearbox failure	عطل في علبة التروس
+1786	Hydraulics failure	عطل هيدروليكي
+1787	Out of fuel	نفد الوقود
+1788	SAFETY CAR! The field must slow down and line up. No overtaking.	سيارة الأمان! على الجميع الإبطاء والاصطفاف. ممنوع التجاوز.
+1789	VIRTUAL SAFETY CAR. Everyone slows to a set pace. No overtaking.	سيارة أمان افتراضية. الجميع يبطئ إلى سرعة محددة. ممنوع التجاوز.
+1790	VSC ending. Green flag! Racing again.	انتهت سيارة الأمان الافتراضية. العلم الأخضر! عاد السباق.
+1791	Safety car in this lap. Get ready for the restart!	سيارة الأمان تدخل في هذه اللفة. استعدوا لإعادة الانطلاق!
+1792	GREEN FLAG! The race is back on!	العلم الأخضر! عاد السباق!
+1793	for P	على المركز
+1794	The track is soaked. Full wets.	الحلبة غارقة. إطارات مطرية كاملة.
+1795	It's wet out here. Inters.	الجو مبتل هنا. إطارات وسيطة.
+1796	Too much standing water for inters.	المياه كثيرة جدًا على الوسيطة.
+1797	Wets are overheating. Time to change.	الإطارات المطرية ترتفع حرارتها. حان وقت التغيير.
+1798	There's a dry line now. Slicks!	ظهر خط جاف. إطارات ملساء!
+1799	Safety car! Cheap stop, box now.	سيارة الأمان! توقف رخيص، ادخل الآن.
+1800	Virtual safety car. Box, box!	سيارة أمان افتراضية. BOX، BOX!
+1801	These tyres are finished. Box!	انتهت هذه الإطارات. BOX!
+1802	We still need a second compound. Box now.	ما زلنا نحتاج نوعًا ثانيًا. ادخل الآن.
+1803	Battery is empty. Switch to harvest for a lap?	البطارية فارغة. نشحن لمدة لفة؟
+1804	Reminder: you must use a second dry compound. Box this lap or take a penalty.	تذكير: يجب أن تستخدم نوع إطارات جافة ثانيًا. ادخل هذه اللفة وإلا فالعقوبة.
+1805	Rule check: a second dry compound is still needed, or a penalty. 2 laps left.	فحص القوانين: ما زال نوع جاف ثانٍ مطلوبًا وإلا فالعقوبة. بقيت لفتان.
+1806	Running	جارٍ
+1807	Race over.	انتهى السباق.
+1808	no car named	لا سيارة بهذا الاسم
+1809	no changes	لا تغييرات
+1810	no evidence	لا دليل
+1811	rejected:	مرفوض:
+1812	Throttle	الخانق
+1813	just now	الآن
+1814	Preset	إعداد جاهز
+1815	Blend	مزج
+1816	Import	استيراد
+1817	Restore	استعادة
+1818	· race in progress	· سباق جارٍ
+1819	Discard and leave	تجاهل وخروج
+1820	· unsaved	· غير محفوظ
+1821	History	السجل
+1822	Export / import	تصدير / استيراد
+1823	How your drivers drive	كيف يقود سائقاك
+1824	Undo changes	تراجع عن التغييرات
+1825	Your changes	تغييراتك
+1826	Saved	محفوظ
+1827	Balanced in everything: no strong habits and no weak spots. Move a dial to give this driver a style.	متوازن في كل شيء: لا عادات قوية ولا نقاط ضعف. حرّك مؤشرًا لتمنح هذا السائق أسلوبًا.
+1828	What this driver gains and gives up	ما يكسبه هذا السائق وما يتنازل عنه
+1829	No setting adds grip or top speed. Each one changes a habit, and every habit has a price.	لا إعداد يضيف تماسكًا أو سرعة قصوى. كل إعداد يغيّر عادة، ولكل عادة ثمن.
+1830	Start from a personality	ابدأ من شخصية
+1831	Blend two…	امزج اثنتين…
+1832	Quick	سريع
+1833	Profile name	اسم الملف
+1834	Test in the Proving Ground	اختبر في ساحة التجارب
+1835	Save as my own preset	احفظ كإعدادي الخاص
+1836	A blend of two personalities, settings averaged by your weights.	مزيج من شخصيتين، والإعدادات متوسطة حسب أوزانك.
+1837	Your own tuning.	ضبطك الخاص.
+1838	No suggestions waiting. Finish a race and check back.	لا اقتراحات بانتظارك. أكمل سباقًا وعد لاحقًا.
+1839	Declined	مرفوض
+1840	Approved	موافق عليه
+1841	Decisions	القرارات
+1842	Racing now	يتسابق الآن
+1843	Earlier	سابقًا
+1844	Active	نشط
+1845	Saved version	نسخة محفوظة
+1846	Change	تغيير
+1847	No changes yet.	لا تغييرات بعد.
+1848	Versions	النسخ
+1849	Every save is kept (the last 30). Restoring makes a new version, so nothing is lost.	كل حفظ محفوظ (آخر 30). الاستعادة تنشئ نسخة جديدة، فلا يضيع شيء.
+1850	Change log	سجل التغييرات
+1851	Export	تصدير
+1852	Check and load	افحص وحمّل
+1853	Unnamed	بلا اسم
+1854	button, summary	
+1855	SUMMARY	
+1856	Okay, no change.	حسنًا، لا تغيير.
+1857	That suggestion is out of date: the settings have changed since.	هذا الاقتراح قديم: تغيّرت الإعدادات منذ ذلك الحين.
+1858	You have unsaved changes. Save them, or tap again to leave without saving.	لديك تغييرات غير محفوظة. احفظها، أو المس مرة أخرى للخروج دون حفظ.
+1859	My preset	إعدادي
+1860	Copied.	تم النسخ.
+1861	Select the text and copy it.	حدد النص وانسخه.
+1862	Not loaded:	لم يُحمّل:
+1863	Loaded as unsaved changes. Check it, then save.	حُمّل كتغييرات غير محفوظة. راجعه ثم احفظ.
+1864	Average finish	متوسط المركز
+1865	your changes	تغييراتك
+1866	As forecast	حسب التوقعات
+1867	Rain	مطر
+1868	Stop	توقف
+1869	Better	أفضل
+1870	Worse	أسوأ
+1871	Earlier tests	اختبارات سابقة
+1872	Run the same races twice: once with	شغّل السباقات نفسها مرتين: مرة مع
+1873	, once with	، ومرة مع
+1874	Compare with	قارن مع
+1875	the same	نفسها
+1876	Back to tuning	العودة إلى الضبط
+1877	Changes	التغييرات
+1878	Averages per race. Racing is chaotic: one safety car or a spin ahead can swing a result, so treat 6 races as a hint and 24 as a good read. The same settings on the same circuit always give the same answer.	متوسطات لكل سباق. السباقات فوضوية: سيارة أمان واحدة أو دوران أمامك قد يقلب النتيجة، لذا 6 سباقات مجرد مؤشر و24 قراءة جيدة. الإعدادات نفسها على الحلبة نفسها تعطي الجواب نفسه دائمًا.
+1879	Blend weight	وزن المزج
+1880	First	الأول
+1881	Second	الثاني
+1882	Applied	مطبّق
+1883	Out of date	قديم
+1884	Approve	موافقة
+1885	Test it first	اختبره أولًا
+1886	no track	لا حلبة
+1887	Michael	
+1888	American	أمريكي
+1889	George	
+1890	British	بريطاني
+1891	Lewis	
+1892	Daniel	
+1893	Fable	
+1894	Nicola	
+1895	Italian	إيطالي
+1896	Alex	
+1897	Spanish	إسباني
+1898	Santiago	
+1899	Tiago	
+1900	Portuguese	برتغالي
+1901	Rui	
+1902	Thorsten	
+1903	German	ألماني
+1904	Ronnie	
+1905	Dutch	هولندي
+1906	Gilles	
+1907	French	فرنسي
+1908	Simulated	محاكى
+1909	Seeded weather typical of the circuit, not live	طقس معتاد للحلبة، مولَّد وليس مباشرًا
+1910	-world	
+1911	car model failed to load, keeping the simple cars	لم يُحمّل نموذج السيارة، نبقي السيارات البسيطة
+1912	700 25px "Barlow Semi Condensed", system-ui, sans-serif	
+1913	700 27px "Barlow Semi Condensed", system-ui, sans-serif	
+1914	700 26px "Barlow Semi Condensed", system-ui, sans-serif	
+1915	Race order	ترتيب السباق
+1916	Race view. Tap a car to follow it.	عرض السباق. المس سيارة لمتابعتها.
+1917	Pause and menu	إيقاف مؤقت والقائمة
+1918	Race speed	سرعة السباق
+1919	Camera	الكاميرا
+1920	Your two cars	سيارتاك
+1921	ERS boost	دفعة ERS
+1922	Team radio: hold and speak to your drivers	راديو الفريق: اضغط مطولًا وتحدث إلى سائقيك
+1923	Pit stop	توقف الصيانة
+1924	Open or close the panel	افتح اللوحة أو أغلقها
+1925	Change the radio voice	غيّر صوت الراديو
+1926	Agent Grand Prix	Agent Grand Prix
+1927	A free browser racing game: build your AI racing team, name your drivers, call the strategy and race on circuits around the world.	لعبة سباقات مجانية في المتصفح: ابنِ فريقك من الذكاء الاصطناعي، وسمِّ سائقيك، وقرّر الاستراتيجية، وتسابق على حلبات حول العالم.
+1928	Agent Grand Prix runs in your browser and needs JavaScript and WebGL turned on.	تعمل Agent Grand Prix في متصفحك وتحتاج إلى تفعيل JavaScript وWebGL.
+1929	Opening the paddock…	جارٍ فتح البادوك…
+1930	Order	الترتيب
+1931	LAP	اللفة
+1932	Live	مباشر
+1933	Overview	نظرة عامة
+1934	Chase	مطاردة
+1935	Cockpit	قمرة القيادة
+1936	TV	تلفاز
+1937	Pit	الصيانة
+1938	Box call	نداء التوقف
+1939	Pit entry	دخول ممر الصيانة
+1940	Release	الانطلاق
+1941	Back on track	العودة إلى الحلبة
+1942	Timing	التوقيت
+1943	Radio	الراديو
+1944	Team radio	راديو الفريق
+1945	Fuelling the cars…	تزويد السيارات بالوقود…
+1946	Painting the kerbs…	طلاء الأرصفة…
+1947	Warming the tyres…	تسخين الإطارات…
+1948	Checking the weather radar…	فحص رادار الطقس…
+1949	Briefing your drivers…	إطلاع السائقين على الخطة…
+1950	Tuning the team radio…	ضبط راديو الفريق…
+1951	Lining up the grid…	اصطفاف شبكة الانطلاق…
+1952	Lights out!	انطفأت الأضواء!
+1953	Car one.	السيارة الأولى.
+1954	Car two.	السيارة الثانية.
+1955	The wets are overheating. Time to change.	الإطارات المطرية ترتفع حرارتها. حان وقت التغيير.
+1956	These tyres are finished.	انتهت هذه الإطارات.
+1957	We still need a second compound.	ما زلنا نحتاج نوعًا ثانيًا من الإطارات.
+1958	The pit window is open.	نافذة التوقف مفتوحة.
+1959	The battery is empty. Switch to harvest for a lap?	البطارية فارغة. نشحن لمدة لفة؟
+1960	Reminder. We must use a second dry compound. Box this lap, or take a penalty.	تذكير. يجب أن نستخدم نوع إطارات جافة ثانيًا. ادخل هذه اللفة، وإلا فالعقوبة.
+1961	Lights out! Here we go.	انطفأت الأضواء! لننطلق.
+1962	Final lap! Push, push, push!	اللفة الأخيرة! اضغط، اضغط، اضغط!
+1963	Safety car, safety car. No overtaking.	سيارة الأمان، سيارة الأمان. ممنوع التجاوز.
+1964	Virtual safety car. Hold your pace.	سيارة أمان افتراضية. حافظ على سرعتك.
+1965	Safety car in this lap. Get ready for the restart.	سيارة الأمان تدخل في هذه اللفة. استعد لإعادة الانطلاق.
+1966	Green flag! We're racing again.	العلم الأخضر! عدنا للسباق.
+1967	Heavy rain now. Heavy rain.	أمطار غزيرة الآن. أمطار غزيرة.
+1968	Radar shows rain in about one lap.	الرادار يُظهر مطرًا بعد لفة تقريبًا.
+1969	Radar shows rain in about two laps.	الرادار يُظهر مطرًا بعد لفتين تقريبًا.
+1970	Your call on tyres.	القرار لك في الإطارات.
+1971	Nice move!	حركة رائعة!
+1972	We've lost a place.	خسرنا مركزًا.
+1973	Good stop. Go, go, go.	توقف جيد. انطلق، انطلق، انطلق.
+1974	Slow stop, sorry. Push now.	توقف بطيء، آسف. اضغط الآن.
+1975	Puncture! Bring it back to the pits.	ثقب في الإطار! عد إلى الصيانة.
+1976	Contact! Keep it going if you can.	احتكاك! تابع إن استطعت.
+1977	We're out. The car has stopped. Sorry.	خرجنا. توقفت السيارة. آسف.
+1978	Fastest lap! Great work.	أسرع لفة! عمل رائع.
+1979	Chequered flag!	العلم المربّع!
+1980	We won the race! Brilliant job, brilliant.	فزنا بالسباق! عمل رائع، رائع.
+1981	That's a podium! Great job.	إنها منصة تتويج! عمل رائع.
+1982	Points finish. Well done.	ضمن النقاط. أحسنت.
+1983	No points today. We'll go again.	لا نقاط اليوم. سنحاول مجددًا.
+1984	You run two cars. Use the tabs on the pit wall to switch between them.	أنت تدير سيارتين. استخدم التبويبات على جدار الصيانة للتنقل بينهما.
+1985	You're within a second of the car ahead. Attack and boost now!	أنت على بعد أقل من ثانية من السيارة الأمامية. هاجم واستخدم BOOST الآن!
+1986	The car behind is close. Defend!	السيارة الخلفية قريبة. دافع!
+1987	The tyres are fading. Time to think about a stop.	الإطارات تضعف. حان وقت التفكير في التوقف.
+1988	Clear air. Harvest the battery, for the next fight.	طريق خالٍ. اشحن البطارية للمعركة القادمة.
+1989	Last lap. Push with both cars!	اللفة الأخيرة. اضغط بالسيارتين!
+1990	Nobody close ahead. Back to neutral, save the tyres.	لا أحد قريب أمامك. عد إلى الوضع المحايد ووفّر الإطارات.
+1991	Copy.	مفهوم.
+1992	Okay, staying out.	حسنًا، سنبقى على الحلبة.
+1993	Box for softs?	BOX للناعمة؟
+1994	Box this lap for softs.	BOX هذه اللفة للناعمة.
+1995	Box for mediums?	BOX للمتوسطة؟
+1996	Box this lap for mediums.	BOX هذه اللفة للمتوسطة.
+1997	Box for hards?	BOX للصلبة؟
+1998	Box this lap for hards.	BOX هذه اللفة للصلبة.
+1999	Box for inters?	BOX للوسيطة؟
+2000	Box this lap for inters.	BOX هذه اللفة للوسيطة.
+2001	Box for wets?	BOX للمطرية؟
+2002	Box this lap for wets.	BOX هذه اللفة للمطرية.
+2003	P one.	المركز الأول.
+2004	P two.	المركز الثاني.
+2005	P three.	المركز الثالث.
+2006	P four.	المركز الرابع.
+2007	P five.	المركز الخامس.
+2008	P six.	المركز السادس.
+2009	P seven.	المركز السابع.
+2010	P eight.	المركز الثامن.
+2011	P nine.	المركز التاسع.
+2012	P ten.	المركز العاشر.
+2013	P eleven.	المركز الحادي عشر.
+2014	P twelve.	المركز الثاني عشر.
+2015	P thirteen.	المركز الثالث عشر.
+2016	P fourteen.	المركز الرابع عشر.
+2017	P fifteen.	المركز الخامس عشر.
+2018	P sixteen.	المركز السادس عشر.
+2019	P seventeen.	المركز السابع عشر.
+2020	P eighteen.	المركز الثامن عشر.
+2021	P nineteen.	المركز التاسع عشر.
+2022	P twenty.	المركز العشرون.
+2023	Team orders. Let your teammate through.	أوامر الفريق. دع زميلك يمر.
+2024	Hold positions. No fighting each other.	حافظا على المراكز. لا قتال بينكما.
+2025	You're free to race.	السباق حر لك.
+2026	Your teammate behind is on fresher tyres. Swap places.	زميلك خلفك على إطارات أحدث. تبادلا المراكز.
+2027	Our two cars are fighting each other. Hold positions?	سيارتانا تتقاتلان. نحافظ على المراكز؟
+2028	Locked up there. A touch earlier on the brakes.	انغلقت العجلات هناك. اكبح أبكر قليلًا.
+2029	Ran wide. Easy on the entry.	خرجت عن المسار. بهدوء عند الدخول.
+2030	Spun it! Careful, it's slippery out there.	دوران! انتبه، المسار زلق.
+2031	Good work. The strategist has some notes for you.	عمل جيد. لدى الاستراتيجي بعض الملاحظات لك.
+2032	zero point one.	صفر فاصلة واحد.
+2033	zero point two.	صفر فاصلة اثنان.
+2034	zero point three.	صفر فاصلة ثلاثة.
+2035	zero point four.	صفر فاصلة أربعة.
+2036	zero point five.	صفر فاصلة خمسة.
+2037	zero point six.	صفر فاصلة ستة.
+2038	zero point seven.	صفر فاصلة سبعة.
+2039	zero point eight.	صفر فاصلة ثمانية.
+2040	zero point nine.	صفر فاصلة تسعة.
+2041	one point zero.	واحد فاصلة صفر.
+2042	one point one.	واحد فاصلة واحد.
+2043	one point two.	واحد فاصلة اثنان.
+2044	one point three.	واحد فاصلة ثلاثة.
+2045	one point four.	واحد فاصلة أربعة.
+2046	one point five.	واحد فاصلة خمسة.
+2047	one point six.	واحد فاصلة ستة.
+2048	one point seven.	واحد فاصلة سبعة.
+2049	one point eight.	واحد فاصلة ثمانية.
+2050	one point nine.	واحد فاصلة تسعة.
+2051	two point zero.	اثنان فاصلة صفر.
+2052	two point one.	اثنان فاصلة واحد.
+2053	two point two.	اثنان فاصلة اثنان.
+2054	two point three.	اثنان فاصلة ثلاثة.
+2055	two point four.	اثنان فاصلة أربعة.
+2056	two point five.	اثنان فاصلة خمسة.
+2057	two point six.	اثنان فاصلة ستة.
+2058	two point seven.	اثنان فاصلة سبعة.
+2059	two point eight.	اثنان فاصلة ثمانية.
+2060	two point nine.	اثنان فاصلة تسعة.
+2061	three point zero.	ثلاثة فاصلة صفر.
+2062	four seconds.	أربع ثوانٍ.
+2063	five seconds.	خمس ثوانٍ.
+2064	six seconds.	ست ثوانٍ.
+2065	seven seconds.	سبع ثوانٍ.
+2066	eight seconds.	ثماني ثوانٍ.
+2067	nine seconds.	تسع ثوانٍ.
+2068	ten seconds.	عشر ثوانٍ.
+2069	eleven seconds.	إحدى عشرة ثانية.
+2070	twelve seconds.	اثنتا عشرة ثانية.
+2071	thirteen seconds.	ثلاث عشرة ثانية.
+2072	fourteen seconds.	أربع عشرة ثانية.
+2073	fifteen seconds.	خمس عشرة ثانية.
+2074	Gap ahead,	الفارق أمامك،
+2075	Gap behind,	الفارق خلفك،
+2076	You're leading the race.	أنت تتصدر السباق.
+2077	Your teammate is just ahead.	زميلك أمامك مباشرة.
+2078	Your teammate is right behind you.	زميلك خلفك مباشرة.
+2079	You're catching the car ahead.	أنت تقترب من السيارة الأمامية.
+2080	The car ahead is pulling away.	السيارة الأمامية تبتعد.
+2081	The car behind is closing.	السيارة الخلفية تقترب.
+2082	You're pulling clear.	أنت تبتعد عنهم.
+2083	Tyres look good.	الإطارات تبدو جيدة.
+2084	Tyres are holding up.	الإطارات صامدة.
+2085	The tyres are wearing now. Look after them.	الإطارات تهترئ الآن. حافظ عليها.
+2086	Battery is full. Use it.	البطارية ممتلئة. استخدمها.
+2087	Battery is low. Harvest where you can.	البطارية منخفضة. اشحن حيث تستطيع.
+2088	Halfway there.	منتصف السباق.
+2089	Good pace. Keep it up.	سرعة جيدة. استمر.
+2090	We need a bit more pace.	نحتاج سرعة أكثر قليلًا.
+2091	The car ahead has pitted.	السيارة الأمامية دخلت الصيانة.
+2092	The car behind has boxed. Watch the undercut.	السيارة الخلفية دخلت الصيانة. انتبه للأندركت.
+2093	Clear air. Hit your marks.	طريق خالٍ. التزم بنقاطك.
+2094	Battle on. Keep it clean.	المعركة مستمرة. حافظ على النظافة.
+2095	Small mistake there. Reset.	خطأ صغير. ركّز من جديد.
+2096	Good teamwork, both of you.	عمل جماعي رائع، أنتما الاثنان.
+2097	Your teammate is coming through. Let them by.	زميلك قادم. دعه يمر.
+2098	Push, push! Everything you have got.	اضغط، اضغط! كل ما لديك.
+2099	Back to normal pace.	عودة إلى السرعة العادية.
+2100	Save the tyres now.	وفّر الإطارات الآن.
+2101	Boost! Full deploy.	BOOST! استخدام كامل للطاقة.
+2102	Harvest mode. Charge the battery.	وضع الشحن. اشحن البطارية.
+2103	Attack. Go for the gap.	هاجم. انطلق نحو الفجوة.
+2104	Neutral. Race your race.	محايد. خض سباقك.
+2105	Defend. Cover the inside.	دافع. أغلق الجهة الداخلية.
+2106	Okay, you make the calls now.	حسنًا، أنت من يقرر الآن.
+2107	Copy. I'll take the calls from here.	مفهوم. سأتولى القرارات من هنا.
+2108	Stay out, stay out.	ابقَ على الحلبة، ابقَ على الحلبة.
+2109	two laps to go.	بقيت لفتان.
+2110	three laps to go.	بقيت ثلاث لفات.
+2111	four laps to go.	بقيت أربع لفات.
+2112	five laps to go.	بقيت خمس لفات.
+2113	six laps to go.	بقيت ست لفات.
+2114	seven laps to go.	بقيت سبع لفات.
+2115	eight laps to go.	بقيت ثماني لفات.
+2116	nine laps to go.	بقيت تسع لفات.
+2117	ten laps to go.	بقيت عشر لفات.
+2118	Box, box! Softs.	BOX، BOX! ناعمة.
+2119	Box, box! Mediums.	BOX، BOX! متوسطة.
+2120	Box, box! Hards.	BOX، BOX! صلبة.
+2121	Box, box! Inters.	BOX، BOX! وسيطة.
+2122	Box, box! Wets.	BOX، BOX! مطرية.
+2123	Box, box, box! In this lap.	BOX، BOX، BOX! في هذه اللفة.
+2124	Out lap. Push, push!	لفة الخروج. اضغط، اضغط!
+2125	Push now. Push, push!	اضغط الآن. اضغط، اضغط!
+2126	Get ready for the restart. Push, push!	استعد لإعادة الانطلاق. اضغط، اضغط!
+2127	Copy. Boxing.	مفهوم. داخل إلى الصيانة.
+2128	Okay, pushing!	حسنًا، أضغط!
+2129	Copy, staying out.	مفهوم، باقٍ على الحلبة.
+2130	Understood. Saving tyres.	مفهوم. أوفّر الإطارات.
+2131	Copy that.	مفهوم.
+2132	Okay, going for it.	حسنًا، سأحاول.
+2133	Copy, covering the inside.	مفهوم، أغلق الجهة الداخلية.
+2134	Okay, your call. Boxing this lap.	حسنًا، القرار لك. أدخل هذه اللفة.
+2135	Going for it!	سأحاول!
+2136	Say again? You're breaking up.	أعد من فضلك؟ الصوت يتقطع.
+2137	My tyres are going off. I'm losing grip.	إطاراتي تنتهي. أفقد التماسك.
+2138	Battery's low, so I'm harvesting.	البطارية منخفضة، لذا أشحن.
+2139	I'm stuck in dirty air behind this car.	أنا عالق في الهواء المضطرب خلف هذه السيارة.
+2140	It's really slippery out here.	المسار زلق جدًا هنا.
+2141	Tyres are still cold after the stop.	الإطارات ما زالت باردة بعد التوقف.
+2142	Pace feels good, boss. No problems.	السرعة جيدة يا رئيس. لا مشاكل.
+2143	Best option: box now.	الخيار الأفضل: ادخل الآن.
+2144	Best option: stay out. The tyres have life left.	الخيار الأفضل: ابقَ على الحلبة. ما زال في الإطارات عمر.
+2145	Rain is coming. Wait for it, then box for inters.	المطر قادم. انتظره، ثم ادخل للإطارات الوسيطة.
+2146	Box now for the undercut.	ادخل الآن من أجل الأندركت.
+2147	Say do it, and I'll make the call.	قل «نفّذ» وسأصدر الأمر.
+2148	ten percent.	عشرة بالمئة.
+2149	twenty percent.	عشرون بالمئة.
+2150	thirty percent.	ثلاثون بالمئة.
+2151	forty percent.	أربعون بالمئة.
+2152	fifty percent.	خمسون بالمئة.
+2153	sixty percent.	ستون بالمئة.
+2154	seventy percent.	سبعون بالمئة.
+2155	eighty percent.	ثمانون بالمئة.
+2156	ninety percent.	تسعون بالمئة.
+2157	a hundred percent.	مئة بالمئة.
+2158	Welcome to the pit wall. I'm your race engineer. Your two drivers drive the cars. You're the team principal. You make the calls.	أهلًا بك على جدار الصيانة. أنا مهندس السباق الخاص بك. سائقاك يقودان السيارتين. أنت مدير الفريق. أنت من يصدر الأوامر.
+2159	You run two cars. Tap your second driver to follow that car.	أنت تدير سيارتين. المس سائقك الثاني لمتابعة سيارته.
+2160	Good. Each car takes its own calls. Ready to race?	جيد. كل سيارة تتلقى أوامرها الخاصة. مستعد للسباق؟
+2161	We're racing. Tell your driver to go faster. Tap push.	السباق جارٍ. اطلب من سائقك أن يسرع. المس اضغط.
+2162	Push is faster, but the tyres wear quicker. Keep an eye on tyre life.	الضغط أسرع، لكن الإطارات تهترئ أسرع. راقب عمر الإطارات.
+2163	Now the battery. Tap boost for twelve seconds of extra power.	الآن البطارية. المس BOOST لاثنتي عشرة ثانية من الطاقة الإضافية.
+2164	Boost empties the battery. It fills up again under braking.	BOOST يفرغ البطارية. تمتلئ مجددًا عند الكبح.
+2165	Time for a pit stop. Pick the soft tyres, then tap box.	حان وقت التوقف. اختر الإطارات الناعمة، ثم المس BOX.
+2166	Copy. Your driver pits at the end of this lap.	مفهوم. سائقك يدخل الصيانة في نهاية هذه اللفة.
+2167	Great stop. Fresh tyres, and back out on the fast lane.	توقف رائع. إطارات جديدة، وعودة إلى المسار السريع.
+2168	You can say every call. Hold the mic, and say: push. Or: box, box.	يمكنك نطق كل أمر. اضغط على الميكروفون وقل: اضغط. أو: BOX، BOX.
+2169	That's the job. Pace, battery, tyres and pit stops. Lesson one complete.	هذه هي المهمة. السرعة والبطارية والإطارات والتوقفات. اكتمل الدرس الأول.
+2170	Your drivers race everyone, including each other. You decide when they fight.	سائقاك يتسابقان مع الجميع، حتى مع بعضهما. أنت من يقرر متى يتقاتلان.
+2171	Lights out. Your lead car has someone just ahead. Tap attack.	انطفأت الأضواء. سيارتك الأمامية خلف أحدهم مباشرة. المس هاجم.
+2172	Attack makes a pass more likely, but wears the tyres and risks contact. Within a second? Add boost.	الهجوم يجعل التجاوز أرجح، لكنه يهلك الإطارات ويخاطر بالاحتكاك. على بعد أقل من ثانية؟ أضف BOOST.
+2173	Now your second car. Someone is close behind. Tap defend.	الآن سيارتك الثانية. هناك من يقترب خلفها. المس دافع.
+2174	Defend makes the car about half as easy to pass. Back to neutral when the fight is over.	الدفاع يجعل تجاوز السيارة أصعب بمرتين. عد إلى المحايد عندما تنتهي المعركة.
+2175	Your two cars can fight each other and lose time. Tap hold positions.	قد تتقاتل سيارتاك وتخسران الوقت. المس حافظا على المراكز.
+2176	When the car behind is faster, swap places lets it through.	عندما تكون السيارة الخلفية أسرع، تبادل المراكز يتيح لها المرور.
+2177	All of these work on the radio. Hold the mic and say: attack. Or: hold positions.	كل هذا يعمل عبر الراديو. اضغط على الميكروفون وقل: هاجم. أو: حافظا على المراكز.
+2178	Attack, defend, hold and swap. Lesson two complete.	الهجوم والدفاع والحفاظ والتبادل. اكتمل الدرس الثاني.
+2179	Every driver has a driver DNA. How late they brake, how hard they take corners, how eager they pass, and how kind they are to the tyres.	لكل سائق حمض نووي. متى يكبح، وكم يندفع في المنعطفات، وكم يتحمس للتجاوز، وكم يرفق بالإطارات.
+2180	Today, car one is an attacker. Car two is a tyre whisperer.	اليوم، السيارة الأولى مهاجمة. والسيارة الثانية تعرف كيف تحافظ على الإطارات.
+2181	Watch car one. Braking late gains time, but now and then the wheels lock.	راقب السيارة الأولى. الكبح المتأخر يكسب الوقت، لكن العجلات تنغلق أحيانًا.
+2182	Now car two. Look at tyre life. Those tyres wear more slowly.	الآن السيارة الثانية. انظر إلى عمر الإطارات. تلك الإطارات تهترئ أبطأ.
+2183	Every circuit rewards a different driver. Long straights favour the brave. Tight tracks punish mistakes.	كل حلبة تكافئ سائقًا مختلفًا. المستقيمات الطويلة تحب الشجعان. والحلبات الضيقة تعاقب الأخطاء.
+2184	You tune the DNA between races. The proving ground tests a change first.	تضبط الحمض النووي بين السباقات. ساحة التجارب تختبر التغيير أولًا.
+2185	Driver DNA, tuned to the circuit. Lesson three complete.	الحمض النووي للسائق، مضبوط على الحلبة. اكتمل الدرس الثالث.
+2186	Races are won on strategy. Soft is fastest and wears quickest. Hard lasts longest.	السباقات تُكسب بالاستراتيجية. الناعمة الأسرع وتهترئ أسرع. الصلبة تدوم أطول.
+2187	In a dry race, every car must use two different dry tyres, or take a twenty second penalty.	في السباق الجاف، يجب أن تستخدم كل سيارة نوعين مختلفين من الإطارات الجافة، وإلا فعقوبة عشرين ثانية.
+2188	A normal stop costs about ten seconds. The trick is when.	التوقف العادي يكلف نحو عشر ثوانٍ. السر في التوقيت.
+2189	Safety car! A stop now costs about half. Box for mediums.	سيارة الأمان! التوقف الآن يكلف نحو النصف. BOX للمتوسطة.
+2190	Boxing under the safety car. The cheapest stop of the race.	ندخل تحت سيارة الأمان. أرخص توقف في السباق.
+2191	Look at the weather. Rain is coming.	انظر إلى الطقس. المطر قادم.
+2192	It's raining. Box for inters.	إنها تمطر. BOX للوسيطة.
+2193	Tyres, the safety car and the rain. Lesson four complete.	الإطارات وسيارة الأمان والمطر. اكتمل الدرس الرابع.
+2194	A full Grand Prix. I'll be on the radio, and the coach will help. Lights out when you're ready.	سباق جائزة كبرى كامل. سأكون على الراديو، والمدرب سيساعدك. تنطفئ الأضواء عندما تكون مستعدًا.
+2195	Run your cars. Watch the tyres, and box when the window opens.	أدر سيارتيك. راقب الإطارات، وادخل حين تفتح النافذة.
+2196	Last lap! Push, push!	اللفة الأخيرة! اضغط، اضغط!
+2197	Chequered flag. You ran a Grand Prix from the pit wall. Well done.	العلم المربّع. أدرت سباق جائزة كبرى من جدار الصيانة. أحسنت.
+2198	That's all five lessons. You're an Academy graduate.	هذه الدروس الخمسة كلها. أنت الآن خريج الأكاديمية.
+2199	English, Français, Español, Português, العربية, Naijá	
+2200	Team orders from your playbook: {0} and {1} hold positions.	أوامر الفريق من خطتك: {0} و{1} يحافظان على المراكز.
+2201	On the radio{1}	على الراديو{1}
+2202	Agents{3}	الوكلاء{3}
+2203	{0} Sora	
+2204	{3} {4} raced {5}today{6} Your first race of the day is the one that counts.	{3} {4} تسابق {5}اليوم{6} سباقك الأول في اليوم هو الذي يُحتسب.
+2205	{0} {1} to go after today.	{0} {1} متبقية بعد اليوم.
+2206	, shared by the top {1} teams on the radio. Paid into each winner's Sora wallet when the week ends{2}. Sora is earned, never bought or cashed out.	، مقسّمة على أفضل {1} فرق على الراديو. تُدفع في محفظة Sora لكل فائز عند نهاية الأسبوع{2}. Sora تُكسب، لا تُشترى ولا تُصرف نقدًا.
+2207	, on course for {0}	، في الطريق إلى {0}
+2208	You are P{0}{1}.	أنت في المركز {0}{1}.
+2209	Week {1}: Dailies #{2} to #{3}. {4} {5}	الأسبوع {1}: التحديات من رقم {2} إلى رقم {3}. {4} {5}
+2210	On the radio ({7})	على الراديو ({7})
+2211	Agents ({9})	الوكلاء ({9})
+2212	{0} seconds.	{0} ثانية.
+2213	{0} laps to go.	بقيت {0} لفات.
+2214	It's really slippery out here on {0}.	المسار زلق جدًا هنا في {0}.
+2215	{0} {1} Harvesting.	{0} {1} أشحن.
+2216	I'm stuck in dirty air behind {0}.	أنا عالق في الهواء المضطرب خلف {0}.
+2217	{0} Mediums.	{0} متوسطة.
+2218	Start on {0}s, box for slicks once the track dries	انطلق على {0}، ثم ادخل للإطارات الملساء عندما تجف الحلبة
+2219	{0}s, then slicks when it dries	{0}، ثم إطارات ملساء عندما تجف
+2220	{0}s (lap {1})	{0} (اللفة {1})
+2221	brief-{0}-{1}	
+2222	{0} lock-ups in {1} races.	{0} انغلاقات في {1} سباقات.
+2223	{0} small mistakes over {1} races.	{0} أخطاء صغيرة في {1} سباقات.
+2224	{0} stops a race.	{0} توقفات في السباق.
+2225	{0} contacts in {1} races.	{0} احتكاكات في {1} سباقات.
+2226	{0} passes from {1} attempts.	{0} تجاوزات من {1} محاولات.
+2227	{0} wet races and {1} spin{2}.	{0} سباقات ممطرة و{1} دوران{2}.
+2228	Overtaken {0} times in {1} races.	تم تجاوزه {0} مرات في {1} سباقات.
+2229	{0} clean races, {1} passes a race.	{0} سباقات نظيفة، {1} تجاوزات في السباق.
+2230	{0}:{1}:career:{2}	
+2231	{0} has learned: {1}	تعلّم {0}: {1}
+2232	{0} {1} moves {2} {3}.	{0} {1} يحرّك {2} {3}.
+2233	Knows {0} circuits	يعرف {0} حلبات
+2234	{0} is getting into too many collisions	{0} يصطدم كثيرًا
+2235	{0} contacts in one race. Each one risks a puncture or broken wing.	{0} احتكاكات في سباق واحد. كل واحد يخاطر بثقب أو جناح مكسور.
+2236	{0} is pushing too hard in the rain	{0} يضغط كثيرًا تحت المطر
+2237	{0} spin{1} on a wet track.	{0} دوران{1} على حلبة مبتلة.
+2238	{0} is locking the brakes	{0} يغلق المكابح
+2239	{0} lock-ups. Each one costs about a second and flat-spots the tyres.	{0} انغلاقات. كل واحد يكلف نحو ثانية ويسطّح الإطارات.
+2240	{0} keeps running wide	{0} يخرج عن المسار كثيرًا
+2241	{0} trips wide. The time lost there is more than the corners gain.	{0} خروجات عن المسار. الوقت الضائع هناك أكبر مما تكسبه المنعطفات.
+2242	{0} is making too many mistakes	{0} يرتكب أخطاء كثيرة
+2243	{0} small mistakes, each one a few tenths or a lost place.	{0} أخطاء صغيرة، كل منها بأجزاء من الثانية أو مركز ضائع.
+2244	{0} is wearing the tyres out	{0} يهلك الإطارات
+2245	The last set finished {0}% worn.	انتهت المجموعة الأخيرة مهترئة بنسبة {0}%.
+2246	{0} is too easy to pass	من السهل جدًا تجاوز {0}
+2247	Overtaken {0} times.	تم تجاوزه {0} مرات.
+2248	{0}'s passing moves aren't sticking	تجاوزات {0} لا تنجح
+2249	{0} attempts and {1} pass{2}. Waiting for the straights gives cleaner moves.	{0} محاولات و{1} تجاوز{2}. انتظار المستقيمات يعطي مناورات أنظف.
+2250	{0} isn't trying to pass	{0} لا يحاول التجاوز
+2251	{0} passing attempt{1} while dropping {2} places.	{0} محاولة{1} تجاوز مع خسارة {2} مراكز.
+2252	{0} is too careful in the rain	{0} حذر جدًا تحت المطر
+2253	No spins, but {0} places lost on a wet track.	لا دوران، لكن خسر {0} مراكز على حلبة مبتلة.
+2254	unknown version {0}	نسخة غير معروفة {0}
+2255	unknown setting {0}	إعداد غير معروف {0}
+2256	{0} of the {1} settings are missing	{0} من أصل {1} إعدادات مفقودة
+2257	{0} must be a whole number from 0 to 100	يجب أن يكون {0} عددًا صحيحًا من 0 إلى 100
+2258	seat{0}-{1}	
+2259	Driver {0}	السائق {0}
+2260	Team {0}	الفريق {0}
+2261	{0}/stream?id={1}	
+2262	{0} boxes for {1}s	{0} يدخل الصيانة: {1}
+2263	{0} stays out	{0} يبقى على الحلبة
+2264	{0}: your agents have the car	{0}: وكلاؤك يقودون السيارة
+2265	{0}: back to you	{0}: عادت إليك
+2266	📱 {0} on WhatsApp: {1}.	📱 {0} على واتساب: {1}.
+2267	{0} fps · {1} calls · {2}k tris · dpr {3}	
+2268	{0} is out of the race. Now following {1}.	{0} خرج من السباق. نتابع الآن {1}.
+2269	P{1} {2} · {3} km/h{4}	المركز {1} {2} · {3} كم/س{4}
+2270	⚡ {0}: boost!	⚡ {0}: BOOST!
+2271	Didn't catch a call in “{0}”	لم أفهم أي أمر في «{0}»
+2272	Say again: {0}	أعد: {0}
+2273	· interp {0}	
+2274	📻 mic {0} · words {1} · call {2} · done {3} ms{4}	
+2275	{0} is out of the race. That car can't take calls any more.	{0} خرج من السباق. هذه السيارة لا تتلقى أوامر بعد الآن.
+2276	{0} has finished the race.	{0} أنهى السباق.
+2277	Box for {0}s	BOX: {0}
+2278	{0} is already boxing. Nothing to change.	{0} يدخل الصيانة بالفعل. لا شيء لتغييره.
+2279	Rain due in about {0} laps. Stay out until it starts, then box {1} for inters.	المطر متوقع بعد نحو {0} لفات. ابقَ على الحلبة حتى يبدأ، ثم أدخل {1} للإطارات الوسيطة.
+2280	It's wet. Box {0} for {1}s.	الحلبة مبتلة. أدخل {0}: {1}.
+2281	{0}'s tyres are at {1}%. Box for {2}s.	إطارات {0} عند {1}%. BOX: {2}.
+2282	{0} behind has pitted. Box {1} now to cover the undercut.	{0} خلفك دخل الصيانة. أدخل {1} الآن لصدّ الأندركت.
+2283	{0} is {1} s behind {2} with {3}% battery. Boost and attack.	{0} على بعد {1} ث من {2} وبطاريته {3}%. BOOST وهاجم.
+2284	{0}'s battery is at {1}%. Harvest now for the next fight.	بطارية {0} عند {1}%. اشحن الآن للمعركة القادمة.
+2285	Stay out. {0}'s tyres are at {1}% with {2} laps to go.	ابقَ على الحلبة. إطارات {0} عند {1}% وبقيت {2} لفات.
+2286	: {0} (P{1}) and {2} (P{3}). The tabs at the top of the pit wall switch between them, and each car has its own calls.	: {0} (المركز {1}) و{2} (المركز {3}). التبويبات أعلى جدار الصيانة تنقلك بينهما، ولكل سيارة أوامرها.
+2287	Show {0}	أظهر {0}
+2288	{0} is right behind {1} on much fresher tyres.	{0} خلف {1} مباشرة بإطارات أحدث بكثير.
+2289	{0} is {1} s behind {2} for P{3}.	{0} على بعد {1} ث من {2} على المركز {3}.
+2290	{0} is right behind {1}.	{0} خلف {1} مباشرة.
+2291	covers the inside line and makes {2} about half as easy to pass.	يغلق الخط الداخلي ويجعل تجاوز {2} أصعب بمرتين.
+2292	Defend with {0}	دافع بـ{0}
+2293	{0}'s {1}s are down to {2}%. Under 25% the grip falls away and a puncture gets likely. Box for {3}s?	إطارات {1} لدى {0} عند {2}%. تحت 25% يضيع التماسك ويصبح الثقب محتملًا. BOX: {3}؟
+2294	{0} has clear air.	{0} في هواء نظيف.
+2295	Harvest with {0}	اشحن بـ{0}
+2296	{0} is on Attack with nobody close ahead. That wears the tyres for nothing. Back to	{0} في وضع الهجوم ولا أحد قريب أمامه. هذا يهلك الإطارات بلا فائدة. عد إلى
+2297	+{0} lap{1}	+{0} لفة{1}
+2298	Boxing · {0}s	في الصيانة · {0}
+2299	📊 Race info · {0}	📊 معلومات السباق · {0}
+2300	🎧 Engineer · {0}	🎧 المهندس · {0}
+2301	Stationary {0} s	متوقف {0} ث
+2302	· rain in ~{0} lap{1}	· مطر بعد ~{0} لفة{1}
+2303	Radar shows rain in about {0} lap{1}. {2} Your call on tyres.	الرادار يُظهر مطرًا بعد نحو {0} لفة{1}. {2} القرار لك في الإطارات.
+2304	{0} has stopped.	توقف {0}.
+2305	Lap {0}.	اللفة {0}.
+2306	Box this lap for {0}s stays ({1}).	BOX هذه اللفة: {0} يبقى ({1}).
+2307	{0}: Autonomous. The AI strategist runs the car now.{1}	{0}: ذاتي. الاستراتيجي الآلي يقود السيارة الآن.{1}
+2308	{0}Finished P{1}.	{0}أنهى في المركز {1}.
+2309	Boxing this lap: {0}s{1}	BOX هذه اللفة: {0}{1}
+2310	BOX, BOX · {2}s	BOX، BOX · {2}
+2311	🎙️ Talk to {0}	🎙️ تحدث إلى {0}
+2312	Box this lap · {0}s	BOX هذه اللفة · {0}
+2313	Lap {1}	اللفة {1}
+2314	Daily Grand Prix #{0}	جائزة اليوم الكبرى رقم {0}
+2315	Championship round {0}	الجولة {0} من البطولة
+2316	Daily #{0} again	التحدي رقم {0} مرة أخرى
+2317	{0} {1} · you finished P{2}	{0} {1} · أنهيت في المركز {2}
+2318	{0} Welcome to the paddock	{0} أهلًا بك في البادوك
+2319	{0} Continue	{0} تابع
+2320	{2} starts · {3} wins	{2} انطلاقات · {3} انتصارات
+2321	#{0} {1} {2} · you finished P{3}	رقم {0} {1} {2} · أنهيت في المركز {3}
+2322	#{0} {1} {2} · free for everyone	رقم {0} {1} {2} · مجاني للجميع
+2323	, last: {0}	، الأخيرة: {0}
+2324	any of {0} circuits{1}	أي من {0} حلبة{1}
+2325	round {0} of {1}: {2} {3}	الجولة {0} من {1}: {2} {3}
+2326	· {0}/{1} done	· {0}/{1} مكتملة
+2327	five short lessons{0}	خمسة دروس قصيرة{0}
+2328	every mode for ${0} a month	كل الأوضاع مقابل {0}$ شهريًا
+2329	Next: {0} · {1}	التالي: {0} · {1}
+2330	home nbhome{0}	
+2331	${1} a year, renews yearly. Cancel any time.	{1}$ سنويًا، يتجدد كل عام. ألغِ متى شئت.
+2332	on all {1} circuits	على كل الحلبات الـ{1}
+2333	, all {2} rounds	، كل الجولات الـ{2}
+2334	Daily Challenge #{0}	التحدي اليومي رقم {0}
+2335	{0} {1} · you finished P{2}. Race it again for fun.	{0} {1} · أنهيت في المركز {2}. تسابق مجددًا للمتعة.
+2336	{0} {1} · the same race for everyone today. Always free.	{0} {1} · السباق نفسه للجميع اليوم. مجاني دائمًا.
+2337	Any of {0} circuits. Last time: {1} {2}.	أي من {0} حلبة. آخر مرة: {1} {2}.
+2338	Pick any of {0} circuits.	اختر من بين {0} حلبة.
+2339	Season {0}, round {1} of {2}: {3} {4}	الموسم {0}، الجولة {1} من {2}: {3} {4}
+2340	· {0} of {1} done	· {0} من {1} مكتملة
+2341	Five short lessons{0}. Free.	خمسة دروس قصيرة{0}. مجانًا.
+2342	{0} · {1} starts, {2} wins	{0} · {1} انطلاقات، {2} انتصارات
+2343	{0} come with the pass	{0} مع البطاقة
+2344	✓ New races on all {1} circuits	✓ سباقات جديدة على كل الحلبات الـ{1}
+2345	{0}: coming soon	{0}: قريبًا
+2346	{1}: career	{1}: المسيرة
+2347	Last race{0}	آخر سباق{0}
+2348	Your team: P{1} of {2} teams after {3} round{4}.	فريقك: المركز {1} من {2} فرق بعد {3} جولة{4}.
+2349	Daily #{0} · raced by your agent	التحدي رقم {0} · خاضه وكيلك
+2350	{0} {1} · Daily #{2}	{0} {1} · التحدي رقم {2}
+2351	+{4} pts	+{4} نقطة
+2352	Your agent raced {0}	خاض وكيلك {0}
+2353	Next: {2} {3}, at {4}:00 your time if you haven't raced it.	التالي: {2} {3}، الساعة {4}:00 بتوقيتك إن لم تخضه.
+2354	✅ {0} is connected on WhatsApp	✅ {0} متصل على واتساب
+2355	Send this to {0} on WhatsApp	أرسل هذا إلى {0} على واتساب
+2356	Open your chat with {2} and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.	افتح محادثتك مع {2} وأرسل السطر أعلاه. الرمز صالح 30 دقيقة. تتحدث هذه الصفحة تلقائيًا بعد الربط.
+2357	📱 {0} is connected	📱 {0} متصل
+2358	Say hi to {1}	سلّم على {1}
+2359	Say hi to {0} on WhatsApp and it sets you up, then connect here.	سلّم على {0} على واتساب وسيجهّزك، ثم اربط هنا.
+2360	Link {0}, your race engineer on WhatsApp, and it follows the race you run here, one at a time. Hand the team to your agents and make the big calls by text.	اربط {0}، مهندس سباقك على واتساب: يتابع السباق الذي تديره هنا، سباقًا تلو الآخر. سلّم الفريق لوكلائك واتخذ القرارات الكبرى برسالة.
+2361	No agent yet? {1}	لا وكيل بعد؟ {1}
+2362	Your {0} take the next open seat, with your car and Driver DNA.	{0} يأخذون المقعد الشاغر التالي، بسيارتك وحمضك النووي للسائق.
+2363	{8} Calls in a live race reach the car about a second after you make them.	{8} في السباق المباشر تصل الأوامر إلى السيارة بعد نحو ثانية.
+2364	of {1} {2}.	من {1} {2}.
+2365	Daily #{0} · {1} {2}	التحدي رقم {0} · {1} {2}
+2366	· {0} more to {1}	· {0} إضافية حتى {1}
+2367	What {0} is good at	ما يجيده {0}
+2368	has {0} races	لديه {0} سباقات
+2369	is a {0} with {1} races	{0} مع {1} سباقات
+2370	Next up: “{0}”, once {1} {2}.	التالي: «{0}»، عندما {1} {2}.
+2371	{0} · car {1}	{0} · السيارة {1}
+2372	{7} XP{8}	{7} XP{8}
+2373	…and {0} more.	…و{0} أخرى.
+2374	Teague and your drivers remember {0} thing{1} about you, and bring them up when it fits.	يتذكر Teague وسائقاك {0} شيئًا{1} عنك، ويذكرونه حين يناسب.
+2375	Signed in{0}. Your team follows you to any device.	تم تسجيل الدخول{0}. فريقك يتبعك إلى أي جهاز.
+2376	Anti-Bot Pass {0}	بطاقة مكافحة الروبوتات {0}
+2377	{0} has an Agent Grand Prix team. Add what you've done on this device to it?	لدى {0} فريق في Agent Grand Prix. أتضيف إليه ما فعلته على هذا الجهاز؟
+2378	season-{0}-{1}	
+2379	{0} belongs to another team's driver.	{0} يعود لسائق فريق آخر.
+2380	Number {0} belongs to another team's driver.	الرقم {0} يعود لسائق فريق آخر.
+2381	Step {0} of {1}	الخطوة {0} من {1}
+2382	Driver {2}	السائق {2}
+2383	Welcome to the paddock, {0}.	أهلًا بك في البادوك يا {0}.
+2384	, {2} on	، {2} مفعّل
+2385	🎓 Lesson {0} · {1}	🎓 الدرس {0} · {1}
+2386	{0} of {1} for the Academy badge	{0} من {1} لشارة الأكاديمية
+2387	Lesson {1}: {2}	الدرس {1}: {2}
+2388	🎓 Lesson {0} complete	🎓 اكتمل الدرس {0}
+2389	{0} of {1} done.	{0} من {1} مكتملة.
+2390	Start · {0} min	ابدأ · {0} دقيقة
+2391	Five short lessons on a real race. Your engineer explains one thing at a time and you try it straight away. {0}	خمسة دروس قصيرة في سباق حقيقي. يشرح مهندسك شيئًا واحدًا كل مرة وتجربه فورًا. {0}
+2392	The track is {0}: start both cars on	الحلبة {0}: انطلق بالسيارتين على
+2393	start on Mediums, box around lap {0} for {1}s. Safe and steady.	انطلق على المتوسطة، وادخل قرب اللفة {0}: {1}. آمن وثابت.
+2394	start on Softs to gain places early, box around lap {0} for {1}s.	انطلق على الناعمة لتكسب مراكز مبكرًا، وادخل قرب اللفة {0}: {1}.
+2395	See the {2} in 3D, all the way round	شاهد {2} بالأبعاد الثلاثية من كل الجهات
+2396	Fastest. Lasts about {0} laps here. Use it to gain places at the start or for a short last stint.	الأسرع. يدوم نحو {0} لفات هنا. استخدمه لكسب المراكز في الانطلاق أو لمرحلة أخيرة قصيرة.
+2397	A little slower. Lasts about {0} laps. The safe all-rounder.	أبطأ قليلًا. يدوم نحو {0} لفات. الخيار الآمن الشامل.
+2398	Slowest dry tyre, but lasts about {0} laps. For a long stint so you only stop once.	أبطأ إطار جاف، لكنه يدوم نحو {0} لفات. لمرحلة طويلة بتوقف واحد فقط.
+2399	Daily #{0} · Full distance	التحدي رقم {0} · المسافة الكاملة
+2400	Season {0} · Round {1}	الموسم {0} · الجولة {1}
+2401	{0} {1} Grand Prix	جائزة {0} {1} الكبرى
+2402	{0}% chance of rain	احتمال المطر {0}%
+2403	{3} laps · {4}	{3} لفات · {4}
+2404	Plan {1}	الخطة {1}
+2405	Rename {4}	أعد تسمية {4}
+2406	· starts P{5}	· ينطلق من المركز {5}
+2407	Your engineer's two plans for each driver. The race engine runs this race {7} times in the background, with the same grid and forecast, to see where each plan finishes.	خطتا مهندسك لكل سائق. يحاكي محرك السباق هذا السباق {7} مرة في الخلفية، بالشبكة والتوقعات نفسها، ليرى أين تنتهي كل خطة.
+2408	· out in {0} of {1}	· ينسحب في {0} من {1}
+2409	· range P{1}–P{2}{3} · ahead of Plan {4} in	· من المركز {1} إلى {2}{3} · متقدم على الخطة {4} في
+2410	Simulating: {0} of {1} races done.	المحاكاة: {0} من {1} سباقات مكتملة.
+2411	{0} Plan {1}	{0} الخطة {1}
+2412	{0}:{1} left	متبقٍ {0}:{1}
+2413	Goes out in {0} s, or send {1} now	يخرج بعد {0} ث، أو أرسل {1} الآن
+2414	· sector {0} done	· القطاع {0} مكتمل
+2415	Flying lap{0}	لفة سريعة{0}
+2416	Send {1} out now	أرسل {1} الآن
+2417	Radio check. You have the calls. {0}	اختبار الراديو. القرارات لك. {0}
+2418	{0} stops, around laps {1}, onto {2}	{0} توقفات، قرب اللفات {1}، إلى {2}
+2419	one stop around lap {0}, then {1}s	توقف واحد قرب اللفة {0}، ثم {1}
+2420	We're back. Lap {0} of {1}.	عدنا. اللفة {0} من {1}.
+2421	{0} {1} · lap {2} of {3}	{0} {1} · اللفة {2} من {3}
+2422	Your agents are racing it out: lap {0} of {1}…	وكلاؤك يخوضون السباق: اللفة {0} من {1}…
+2423	Your team is P{0} in the constructors' standings after round {1}.	فريقك في المركز {0} في ترتيب الصانعين بعد الجولة {1}.
+2424	Replay only: your scored full-distance run today was P{0}.	إعادة فقط: نتيجتك المحتسبة في المسافة الكاملة اليوم كانت المركز {0}.
+2425	Agent Grand Prix · Daily #{0}	Agent Grand Prix · التحدي رقم {0}
+2426	+{0} pts	+{0} نقطة
+2427	🔥 {0}-day streak.	🔥 سلسلة {0} أيام.
+2428	If you're busy, your agent races it at {0}:00 and tells you how it went.	إن كنت مشغولًا، يخوضه وكيلك الساعة {0}:00 ويخبرك بما جرى.
+2429	Today's result is saved. {0} Tomorrow's Daily is {1} {2}.{3}	تم حفظ نتيجة اليوم. {0} تحدي الغد هو {1} {2}.{3}
+2430	Replay only: your agent already raced today's Daily (P{0}).	إعادة فقط: خاض وكيلك تحدي اليوم بالفعل (المركز {0}).
+2431	Replay only: your scored run today was P{0}.	إعادة فقط: نتيجتك المحتسبة اليوم كانت المركز {0}.
+2432	New best today: P{0}.	أفضل نتيجة جديدة اليوم: المركز {0}.
+2433	{0} {1} Grand Prix · {2}	جائزة {0} {1} الكبرى · {2}
+2434	🎖️ Now a {0}	🎖️ أصبحت {0}
+2435	· {0} to {1}	· {0} حتى {1}
+2436	+{7} XP	+{7} XP
+2437	After {0} of {1} rounds.	بعد {0} من {1} جولات.
+2438	You: {0} · won by {1}	أنت: {0} · فاز بها {1}
+2439	Season {0}	الموسم {0}
+2440	{0} · LIVE TIMING	{0} · التوقيت المباشر
+2441	<svg class="portrait face" width="{0}" height="{1}" role="img" aria-label="{2}"	
+2442	proving-{0}-{1}	
+2443	{0} leaves the garage on {1}.	{0} يغادر المرآب على {1}.
+2444	{0} starts a push lap.	{0} يبدأ لفة ضاغطة.
+2445	{0} is on a flying lap.	{0} في لفة سريعة.
+2446	{0} locks up! That lap is gone.	{0} أغلق العجلات! ضاعت تلك اللفة.
+2447	{0} didn't start a lap before the flag.	{0} لم يبدأ لفة قبل العلم.
+2448	{0} retired after {1} laps.	انسحب {0} بعد {1} لفات.
+2449	: {0} {1} place{2}	: {0} {1} مركز{2}
+2450	{0} started P{1} and finished P{2}{3}.	انطلق {0} من المركز {1} وأنهى في المركز {2}{3}.
+2451	Best spell: laps {0}–{1}, from P{2} to P{3}.	أفضل فترة: اللفات {0}–{1}، من المركز {2} إلى {3}.
+2452	Pitted under the safety car on lap {0}: a stop that cost less time than usual.	دخل الصيانة تحت سيارة الأمان في اللفة {0}: توقف كلّف وقتًا أقل من المعتاد.
+2453	Stayed out under the safety car on lap {0}. A stop there costs less time than under green.	بقي على الحلبة تحت سيارة الأمان في اللفة {0}. التوقف هناك أرخص منه تحت العلم الأخضر.
+2454	On rain tyres by lap {0}, soon after the rain came on lap {1}.	على إطارات المطر في اللفة {0}، بعد قليل من بدء المطر في اللفة {1}.
+2455	Finished on worn {0}s with {1}% left.	أنهى على {0} مهترئة بقي منها {1}%.
+2456	You made {0} call{1}{2}.	أصدرت {0} أمر{1}{2}.
+2457	The strategist made all {0} calls: the team raced autonomously.	أصدر الاستراتيجي كل الأوامر الـ{0}: تسابق الفريق ذاتيًا.
+2458	P{0}, held	المركز {0}، محافظ عليه
+2459	{3} colour code, like #1267F4	رمز اللون {3}، مثل #1267F4
+2460	AGP-{0}	
+2461	Race the {0}	تسابق بـ{0}
+2462	Copy, box this lap for {0}s.	مفهوم، BOX هذه اللفة: {0}.
+2463	{0}: Autonomous. The strategist runs the car.	{0}: ذاتي. الاستراتيجي يقود السيارة.
+2464	{0}: Team Principal. You run the car.	{0}: مدير الفريق. أنت تقود السيارة.
+2465	Team orders: {0} lets {1} through.	أوامر الفريق: {0} يدع {1} يمر.
+2466	Team orders: {0} and {1} hold positions.	أوامر الفريق: {0} و{1} يحافظان على المراكز.
+2467	Team orders lifted: {0} and {1} are free to race.	رُفعت الأوامر: {0} و{1} حرّان في التسابق.
+2468	Fastest lap: {0}, {1}	أسرع لفة: {0}، {1}
+2469	Chequered flag! {0} wins in {1}.	العلم المربّع! {0} يفوز في {1}.
+2470	{0} is in the pit lane.	{0} في ممر الصيانة.
+2471	{0} is out of the pits... and here comes {1}! Battle for {2}!	{0} يخرج من الصيانة... وها هو {1}! معركة على المركز {2}!
+2472	Slow stop for {0}! {1} s.	توقف بطيء لـ{0}! {1} ث.
+2473	{0}: {1} s stop, {2}s on.	{0}: توقف {1} ث، على {2}.
+2474	{0} locks up into Turn {1}.	{0} يغلق العجلات في المنعطف {1}.
+2475	{0} runs wide at Turn {1}.	{0} يخرج عن المسار في المنعطف {1}.
+2476	{0} spins at Turn {1} on the wet track.	{0} يدور في المنعطف {1} على الحلبة المبتلة.
+2477	{0} ({1}) is in the barrier! Out of the race.	{0} ({1}) في الحاجز! خرج من السباق.
+2478	{0} runs wide and loses time!	{0} يخرج عن المسار ويخسر وقتًا!
+2479	{0} locks up into the corner.	{0} يغلق العجلات عند دخول المنعطف.
+2480	Puncture for {0}! The tyres gave up. Limping back to the pits.	ثقب في إطار {0}! استسلمت الإطارات. يعود ببطء إلى الصيانة.
+2481	{0} spins on the shredded tyre and hits the wall! Out.	{0} يدور على الإطار الممزق ويصطدم بالجدار! خرج.
+2482	{0} for {1}! {2} is slowing down.	{0} على {1}! {2} يتباطأ.
+2483	Contact between {0} and {1}! {2} is in the wall. Out of the race.	احتكاك بين {0} و{1}! {2} في الجدار. خرج من السباق.
+2484	{0} has a puncture after the contact.	ثقب في إطار {0} بعد الاحتكاك.
+2485	Contact! {0} and {1} touch wheels and both go wide.	احتكاك! تلامست عجلات {0} و{1} وخرجا عن المسار.
+2486	{0} ({1}) has stopped. Out of the race.	توقف {0} ({1}). خرج من السباق.
+2487	Yellow flags for the stopped {0}.	أعلام صفراء بسبب {0} المتوقف.
+2488	{0} passes {1}{2}.	{0} يتجاوز {1}{2}.
+2489	{0} Box for {1}s?	{0} BOX: {1}؟
+2490	{0} Boxing this lap for {1}s.	{0} BOX هذه اللفة: {1}.
+2491	{0} has changed since this was proposed	تغيّر {0} منذ اقتراح هذا
+2492	{0} out of range	{0} خارج النطاق
+2493	{0} min ago	منذ {0} دقيقة
+2494	{0} h ago	منذ {0} ساعة
+2495	{0} d ago	منذ {0} يوم
+2496	Driver DNA shape: {2}	شكل الحمض النووي للسائق: {2}
+2497	🔒 This race is using the DNA your drivers started with (version {0}). Anything you save now applies from the next race.	🔒 هذا السباق يستخدم الحمض النووي الذي بدأ به سائقاك (النسخة {0}). ما تحفظه الآن يُطبق من السباق التالي.
+2498	Car {4} · {5}	السيارة {4} · {5}
+2499	Strategist{0}	الاستراتيجي{0}
+2500	Unsaved changes to {0}'s DNA	تغييرات غير محفوظة على الحمض النووي لـ{0}
+2501	{0} races with	{0} يتسابق بـ
+2502	Driver DNA{0}	الحمض النووي للسائق{0}
+2503	Balanced{2}	متوازن{2}
+2504	Advanced · all {8}	متقدم · كل الـ{8}
+2505	Watch for: {0}	انتبه إلى: {0}
+2506	· {0} changed	· {0} تغيّرت
+2507	After each race your Strategist reads what {0} did (lock-ups, trips wide, collisions, tyre wear, passes) and may suggest one change, with the numbers behind it. Nothing changes until you approve it.	بعد كل سباق يقرأ الاستراتيجي ما فعله {0} (انغلاقات، خروجات، اصطدامات، اهتراء الإطارات، تجاوزات) وقد يقترح تغييرًا واحدًا مع الأرقام التي تدعمه. لا شيء يتغير حتى توافق.
+2508	· +{0} more	· +{0} أخرى
+2509	The profile only: its name and {0} settings. Nothing about your team or this device.	الملف فقط: اسمه و{0} إعدادات. لا شيء عن فريقك أو هذا الجهاز.
+2510	Paste a profile. It is checked setting by setting and loads as unsaved changes for {2}.	الصق ملفًا. يُفحص إعدادًا إعدادًا ويُحمّل كتغييرات غير محفوظة لـ{2}.
+2511	Balanced{1}	متوازن{1}
+2512	Applied as v{0}. You can restore the old version in History.	طُبّق كنسخة v{0}. يمكنك استعادة النسخة القديمة من السجل.
+2513	{0}: restored as v{1}	{0}: استُعيد كنسخة v{1}
+2514	{0}: {1} saved as v{2}{3}	{0}: حُفظ {1} كنسخة v{2}{3}
+2515	Copied to Car {0} as unsaved changes.	نُسخ إلى السيارة {0} كتغييرات غير محفوظة.
+2516	Saved "{0}" to your presets.	حُفظ «{0}» في إعداداتك الجاهزة.
+2517	It rarely rains in {0}, so there may be fewer wet races than you asked for.	نادرًا ما تمطر في {0}، لذا قد تكون السباقات الممطرة أقل مما طلبت.
+2518	· about {0} s left	· بقي نحو {0} ث
+2519	Race {1} of {2}, twice each{3}	السباق {1} من {2}، مرتين لكل منهما{3}
+2520	Nothing to compare yet: change {0}'s settings on the Tune tab, or compare with Balanced.	لا شيء للمقارنة بعد: غيّر إعدادات {0} في تبويب الضبط، أو قارن مع المتوازن.
+2521	Run {1} races	شغّل {1} سباقات
+2522	{4} · ahead in {5} of {6}, behind in {7}{8}	{4} · متقدم في {5} من {6}، متأخر في {7}{8}
+2523	, the same in {0}	، متساوٍ في {0}
+2524	Best lap {0} (median).	أفضل لفة {0} (الوسيط).
+2525	Keep these changes (save v{0})	احتفظ بهذه التغييرات (احفظ v{0})
+2526	{2} finished ahead in	أنهى {2} متقدمًا في
+2527	of {4} races, behind in	من {4} سباقات، متأخرًا في
+2528	Race {0} of {1}, twice each{2}	السباق {0} من {1}، مرتين لكل منهما{2}
+2529	Car {1}	السيارة {1}
