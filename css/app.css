@@ -1158,6 +1158,9 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .wa-card .note { font-size: 13px; opacity: .8; }
 .wa-card .actions { margin-top: 10px; }
 .wa-card a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.wa-watch { margin: 4px 0 6px; }
+.wa-video { margin: 8px 0; text-align: center; }
+.wa-video video { width: min(100%, 300px); aspect-ratio: 9 / 16; border-radius: 14px; background: #000; }
 .wa-steps { margin: 8px 0 10px; padding-left: 22px; font-size: 14px; line-height: 1.45; }
 .wa-steps li { margin: 3px 0; }
 .wa-form label, .wa-rename label { display: block; margin: 8px 0; }
