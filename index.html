@@ -11,6 +11,9 @@
 <meta name="theme-color" content="#f4f6f9">
 <meta name="application-name" content="Agent Grand Prix">
 <meta name="apple-mobile-web-app-title" content="Agent GP">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/brand/favicon-32.png">
 <link rel="apple-touch-icon" href="/assets/brand/apple-touch-icon.png">
@@ -87,6 +90,22 @@
   <p>A free browser racing game: build your AI racing team, name your drivers, call the strategy and race on circuits around the world.</p>
 </header>
 <noscript><p class="noscript">Agent Grand Prix runs in your browser and needs JavaScript and WebGL turned on.</p></noscript>
+<!-- loading screen: runs on its own until the game's first screen is ready (js/main.js calls __bootDone) -->
+<div id="boot" class="boot" role="status" aria-live="polite"><div class="boot-in">
+  <p class="brand">AGENT <em>GRAND PRIX</em></p>
+  <div class="boot-car"><i id="bootBar"></i></div>
+  <p class="boot-step" id="bootStep">Opening the paddock…</p>
+  <div class="boot-flags" aria-hidden="true"><b></b><b></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+</div></div>
+<script>
+(function () {
+  var steps = ['Opening the paddock…', 'Fuelling the cars…', 'Painting the kerbs…', 'Warming the tyres…', 'Checking the weather radar…', 'Briefing your drivers…', 'Tuning the team radio…', 'Lining up the grid…'];
+  var i = 0, p = 4, bar = document.getElementById('bootBar'), st = document.getElementById('bootStep'), box = document.getElementById('boot');
+  var t = setInterval(function () { i = (i + 1) % steps.length; st.textContent = steps[i]; p += (92 - p) * 0.22; bar.style.width = p + '%'; }, 650);
+  window.__bootDone = function () { clearInterval(t); bar.style.width = '100%'; st.textContent = 'Lights out!'; setTimeout(function () { box.classList.add('out'); setTimeout(function () { box.remove(); }, 500); }, 250); };
+  setTimeout(function () { if (window.__bootDone && document.getElementById('boot')) window.__bootDone(); }, 15000);   // never stuck behind it
+})();
+</script>
 <div id="app" class="app">
   <aside id="tower" class="tower panel" aria-label="Race order">
     <div class="tower-head"><span>Order</span><button id="gapMode" class="mini" type="button">Interval</button></div>

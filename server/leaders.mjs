@@ -77,7 +77,9 @@ export function verify(day, rec) {
 const clean = (s, n) => String(s == null ? '' : s).replace(/[^\p{L}\p{N} '°.-]/gu, '').trim().slice(0, n);
 const rank = (board, agent) => Object.entries(board.entries).filter(([, e]) => !!e.agent === agent)
   .map(([id, e]) => ({ id, ...e })).sort((a, b) => a.best - b.best || b.pts - a.pts || a.at - b.at);
-const row = (e, i) => ({ place: i + 1, team: e.team, codes: e.codes, best: e.best, pts: e.pts, places: e.places, agent: !!e.agent });
+// pass holders show a "verified human" mark; the list comes from the accounts service every few minutes
+export const VERIFIED = new Set();
+const row = (e, i) => ({ place: i + 1, team: e.team, codes: e.codes, best: e.best, pts: e.pts, places: e.places, agent: !!e.agent, ...(VERIFIED.has(e.id) ? { v: true } : {}) });
 
 const send = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)); };
 const cookies = (req) => Object.fromEntries(String(req.headers.cookie || '').split(';').map((s) => { const i = s.indexOf('='); return i < 0 ? ['', ''] : [s.slice(0, i).trim(), decodeURIComponent(s.slice(i + 1))]; }));
@@ -114,7 +116,7 @@ export function league(week, me, today = Infinity) {
   const order = (agent) => [...tot.values()].filter((t) => t.agent === agent).sort((a, b) => b.pts - a.pts || a.best - b.best || b.races - a.races);
   const human = order(false), agent = order(true);
   const prize = (i) => (POT && i < SHARES.length ? Math.floor((POT * SHARES[i]) / 100) : 0);
-  const row = (t, i, prizes) => ({ place: i + 1, team: t.team, codes: t.codes, pts: t.pts, races: t.races, best: t.best, ...(prizes ? { prize: prize(i) } : {}) });
+  const row = (t, i, prizes) => ({ place: i + 1, team: t.team, codes: t.codes, pts: t.pts, races: t.races, best: t.best, ...(prizes ? { prize: prize(i) } : {}), ...(VERIFIED.has(t.id) ? { v: true } : {}) });
   const hi = human.findIndex((t) => t.id === me), ai = agent.findIndex((t) => t.id === me);
   const you = hi >= 0 ? { ...row(human[hi], hi, true), you: true } : ai >= 0 ? { ...row(agent[ai], ai, false), you: true, agent: true } : null;
   const days = daysOf(week);
@@ -208,4 +210,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   serve(); console.log(`leaderboards on 127.0.0.1:${PORT}, saving to ${DIR}; weekly prizes ${ECONOMY && ECON_TOKEN && POT ? 'paid in Sora' : 'not connected'}`);
   const pay = () => payFinishedWeeks().then((w) => w.length && console.log(`paid weeks ${w.join(', ')}`));
   setTimeout(pay, 30_000); setInterval(pay, 3600_000);
+  const marks = () => fetch(`${ACCOUNTS}/agent/passes`, { signal: AbortSignal.timeout(5000) }).then((r) => r.json())
+    .then((j) => { VERIFIED.clear(); for (const p of j.passes || []) if (p.active) VERIFIED.add(p.id); }).catch(() => {});
+  marks(); setInterval(marks, 300_000);
 }

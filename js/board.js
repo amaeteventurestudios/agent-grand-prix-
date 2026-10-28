@@ -28,7 +28,8 @@ export async function submitDaily({ day, team, agent, rec }) {
 }
 
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const place = (e) => `<b>${e.place}</b><span>${esc(e.team)}</span><em>${e.codes.map((c, i) => `${esc(c)} ${e.places[i] ? 'P' + e.places[i] : 'DNF'}`).join(' · ')}</em><i>${e.pts}</i>`;
+const vh = (e) => (e.v ? ' <u class="vh" title="Verified human: Anti-Bot Pass">✓ Human</u>' : '');
+const place = (e) => `<b>${e.place}</b><span>${esc(e.team)}${vh(e)}</span><em>${e.codes.map((c, i) => `${esc(c)} ${e.places[i] ? 'P' + e.places[i] : 'DNF'}`).join(' · ')}</em><i>${e.pts}</i>`;
 
 // the week's league: seven Dailies added up (#1-#7, #8-#14, ...), the same weeks the server keeps
 export const weekOf = (day) => Math.floor((day - 1) / 7) + 1;
@@ -58,14 +59,14 @@ export function boardHTML(b, tab = 'human') {
 
 // the week's table. People share the prize pot; agents get a table of their own and no prizes, so
 // a team can't win the pot by leaving an agent to race for it.
-const wrow = (e) => `<b>${e.place}</b><span>${esc(e.team)}</span><em>${e.codes.map(esc).join(' · ')} · ${e.races} ${e.races === 1 ? 'race' : 'races'}</em><i>${e.pts} pts${e.prize ? `<small>${sora(e.prize)}</small>` : ''}</i>`;
-export function leagueHTML(w, day, side = 'human') {
+const wrow = (e) => `<b>${e.place}</b><span>${esc(e.team)}${vh(e)}</span><em>${e.codes.map(esc).join(' · ')} · ${e.races} ${e.races === 1 ? 'race' : 'races'}</em><i>${e.pts} pts${e.prize ? `<small>${sora(e.prize)}</small>` : ''}</i>`;
+export function leagueHTML(w, day, side = 'human', passOn = false) {
   if (!w) return tabs('week') + OFF;
   const list = side === 'agent' ? w.agent : w.human, mine = w.you && (side === 'agent') === !!w.you.agent ? w.you : null;
   const left = w.to - day;
   return `${tabs('week')}
     <p class="small">Week ${w.week}: Dailies #${w.from} to #${w.to}. ${w.done ? 'This week is over; the table is final.' : left > 0 ? `${left} ${left === 1 ? 'Daily' : 'Dailies'} to go after today.` : 'Today is the last Daily of the week.'}
-      ${w.pot ? `Prize pot <b>${sora(w.pot)}</b>, shared by the top ${w.shares.length} teams on the radio. Paid in Sora once your account is connected; Sora is earned, never bought or cashed out.` : 'Prizes come later.'}</p>
+      ${w.pot ? `Prize pot <b>${sora(w.pot)}</b>, shared by the top ${w.shares.length} teams on the radio. Paid into each winner's Sora wallet when the week ends${passOn ? ' (places count Anti-Bot Pass holders only)' : ''}. Sora is earned, never bought or cashed out.` : 'Prizes come later.'}</p>
     <div class="wside"><button type="button" data-bw="human" class="btn ${side === 'human' ? '' : 'ghost'} small">On the radio (${w.humans})</button>
       <button type="button" data-bw="agent" class="btn ${side === 'agent' ? '' : 'ghost'} small">Agents (${w.agents})</button></div>
     ${list.length ? `<ol class="board week">${list.map((e) => `<li class="${mine && e.place === mine.place ? 'you' : ''}">${wrow(e)}</li>`).join('')}</ol>`

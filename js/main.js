@@ -21,7 +21,7 @@ import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
 import { buildReport, reportHTML, shareText } from './report.js';
 import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
-import { account, start as accountStart, signIn, signOut, emailStart, emailVerify, mergeAnswer, setProfile as saveProfile } from './account.js';
+import { account, start as accountStart, signIn, signOut, emailStart, emailVerify, mergeAnswer, setProfile as saveProfile, refreshPass, passCheckout, passManage, wallet as fetchWallet } from './account.js';
 import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLesson, LESSON_TITLES } from './career.js';
 import { fetchBoard, fetchWeek, submitDaily, boardHTML, leagueHTML } from './board.js';
 import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as stopListening, stepAt, secondsToStart, applyDue } from './live.js';
@@ -1513,72 +1513,207 @@ function hide() { $('#screen').hidden = true; }
 // tap Menu. Portrait gets a quiet note that the race looks better sideways; both ways work.
 const GLANCE = matchMedia('(max-width: 760px), (max-height: 540px)');
 GLANCE.addEventListener?.('change', () => { if (G.attract && /\bhome\b/.test($('#screen').className) && !$('#screen').hidden) home(); });
-function glanceHome(start, first) {
-  const n = dayNumber(), dv = dailyVenue(n);
-  const line = first ? 'Two AI agents race for you. Make the calls from the pit wall, or let them run the team.' : start.line;
-  const sh = show(`
-    <div class="gl-top"><h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
-      <p class="tag">Your drivers race. You command.</p></div>
-    ${S.settings.noTurn ? '' : '<button type="button" class="gl-turn" data-go="noturn" aria-label="Hide this tip"><span>⤾</span> Even better sideways · both ways work <b aria-hidden="true">×</b></button>'}
-    <div class="gl-card">
-      <p class="gl-line">${first ? `Today: Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)}` : line}</p>
-      ${first ? `<p class="gl-sub">${line}</p>` : ''}
-      <div class="row"><button class="btn big" data-go="${first ? 'just' : start.go}" type="button">Start racing</button><button class="btn ghost big" data-go="menu" type="button">Menu</button></div>
-    </div>${acChip()}`, 'home glance');
-  sh.onclick = homeClick;
-}
+// The home screen: the race keeps running behind one notebook card. Play opens every way to race,
+// and the menu under it has the rest. Everything a phone shows fits beside the cars.
 function home() {
-  const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n];
+  const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n], first = firstVisit();
+  const locked = account.pass.sell && !account.pass.active;
+  const today = done ? `Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)} · you finished P${done.best}` : `Today: Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)}`;
+  const sh = show(`
+    <div class="nb-top"><h1 class="brand">AGENT <em>GRAND PRIX</em></h1><p class="tag">Your drivers race. You command.</p></div>
+    ${awayCard()}
+    <div class="nb">
+      <div class="nb-paper">
+        <span class="k">${today}</span>
+        <h2>${first ? 'Your team awaits' : `${esc(team().name)} awaits`}</h2>
+        <p>Free to play: the Daily Grand Prix every day, and your agent races the ones you miss.${locked ? ' <b>★ The Anti-Bot Pass</b> opens every mode.' : ''}</p>
+        <button class="btn big nb-play" data-go="play" type="button"><span aria-hidden="true">▶</span> Play</button>
+      </div>
+      <nav class="nb-menu" aria-label="Menu">
+        <button data-go="garage" type="button"><i aria-hidden="true">🚗</i>Garage</button>
+        <button data-go="dna" type="button"><i aria-hidden="true">🧬</i>Driver DNA</button>
+        <button data-go="help" type="button"><i aria-hidden="true">❓</i>How to play</button>
+        <button data-go="pass" type="button" class="nb-pass"><i aria-hidden="true">★</i>Anti-Bot Pass${account.pass.active ? ' <u class="vh">✓</u>' : ''}</button>
+        <button data-go="account" type="button"><i aria-hidden="true">👤</i>My account</button>
+        <button data-go="rules" type="button"><i aria-hidden="true">📜</i>Support &amp; rules</button>
+        ${installItem()}
+        ${langPicker()}
+      </nav>
+    </div>
+    ${joinUs()}${acChip()}`, 'home nbhome');
+  sh.onclick = homeClick;
+  sh.onchange = langChange;
+  bootDone();
+}
+// Play: every way to race. A first visit gets the three ways in first; locked modes carry a ★ Pass tag.
+const PASS_GATED = new Set(['quick', 'season', 'dailyfull', 'live', 'again']);
+const passLocked = (k) => !!(account.pass.sell && !account.pass.active && PASS_GATED.has(k));
+const star = (k) => (passLocked(k) ? '<span class="pm-star">★ Pass</span>' : '');
+function playMenu() {
+  const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n], first = firstVisit();
   const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
-  const lr = S.lastRace && venueById(S.lastRace.venue), first = firstVisit();
-  const nAc = doneCount(S);
-  const cards = `
-    <div class="cards">
-      <div class="hc"><span class="k">Daily Grand Prix #${n}${S.daily.streak > 1 ? ` · 🔥 ${S.daily.streak}-day streak` : ''}</span><h3>${dv.flag} ${esc(dv.city)}</h3>
-        <p>${done ? `${done.agent ? 'Your agent' : 'You'} finished P${done.best} today. Come back tomorrow for a new race, or run it again for fun.` : 'The same race and the same weather for everyone today. Beat the field and share your result.'}</p>
-        <div class="row"><button class="btn" data-go="daily" type="button">${done ? 'Race it again' : "Race today's GP"}</button>${done ? '<button class="btn ghost" data-go="share" type="button">Share</button>' : ''}<button class="btn ghost" data-go="board" type="button">Leaderboard</button><button class="btn ghost" data-go="dailyfull" type="button">Full distance</button></div></div>
-      <div class="hc"><span class="k">Live Grand Prix · up to 10 teams</span><h3>Race people</h3>
-        <p>Ten teams on one grid, everyone on their own radio at the same time. A new race every five minutes.</p>
-        <div class="row"><button class="btn" data-go="live" type="button">Find a race</button></div></div>
-      <div class="hc"><span class="k">Championship · season ${S.season.no}${seasonOver ? ' · complete' : ` · round ${S.season.round} of ${CALENDAR.length}`}</span><h3>${seasonOver ? '🏆 Season over' : `${sv.flag} ${esc(sv.city)}`}</h3>
-        <p>${seasonOver ? 'See the final standings and start a new season.' : esc(sv.note)}</p>
-        ${standingsPeek()}
-        <div class="row"><button class="btn" data-go="season" type="button">${seasonOver ? 'Standings' : S.season.round > 1 ? 'Next round' : 'Start the season'}</button><button class="btn ghost" data-go="standings" type="button">Standings</button></div></div>
-      <div class="hc"><span class="k">Quick race</span><h3>Pick any circuit</h3>
-        <p>${lr ? `Last time: ${lr.flag} ${esc(lr.city)}. Race again with the same tyres and calls, or pick another.` : `All ${VENUES.length} circuits, any time. No points, just racing.`}</p>
-        <div class="row">${lr ? `<button class="btn" data-go="again" type="button">Race again</button>` : ''}${FEATURED.map((id) => { const v = venueById(id); return `<button class="btn ghost" data-go="v:${id}" type="button">${v.flag} ${esc(id === 'monaco' ? v.country : v.city)}</button>`; }).join('')}<button class="btn ghost" data-go="quick" type="button">Choose a circuit</button><button class="btn ghost" data-go="practice" type="button">Free practice</button></div></div>
-    </div>`;
-  // a first visit offers three ways in; nothing is forced, and anyone who has raced skips it
-  const choice = `
-    <div class="cards one"><div class="hc welcome"><span class="k">Welcome to the paddock</span><h3>Your drivers race. You command.</h3>
-      <p>Two AI agents, ten cars, ${VENUES.length} circuits. They drive; you make the calls from the pit wall. How do you want to start?</p>
+  const lr = S.lastRace && venueById(S.lastRace.venue), nAc = doneCount(S);
+  const newcomer = first && !S.stats.starts && !nAc;
+  const item = (go, icon, title, sub) => `<button type="button" class="pm-i${passLocked(go) ? ' locked' : ''}" data-go="${go}"><i aria-hidden="true">${icon}</i><span><b>${title}</b><small>${sub}</small></span>${star(go)}</button>`;
+  const sh = show(`<div class="pm">
+    <div class="pm-head"><button class="link" data-go="home" type="button">‹ Back</button><h2>Play</h2></div>
+    ${newcomer ? `<p class="lede">New to the pit wall? Start with one of these.</p>
       <div class="ways">
         <button type="button" data-go="academy" class="way rec"><b>🎓 Racing Academy</b><span>Learn the pit wall in five short lessons. Best if you're new.</span></button>
         <button type="button" data-go="just" class="way"><b>🏁 Jump into a race</b><span>A short race at Sakhir with the coach beside you.</span></button>
         <button type="button" data-go="practice" class="way"><b>🔧 Free practice</b><span>No points, no pressure. Try every call.</span></button>
       </div>
-      <p class="small"><button type="button" class="link" data-go="build">Build my team first</button> · name your team and drivers, pick a car and colours</p></div></div>`;
-  const welcome = `
-    <div class="cards one"><div class="hc welcome"><span class="k">Welcome back</span><h3>Run your own racing team</h3>
-      <p>Build your team in about a minute: name it, pick your car and colours, name your drivers.</p>
-      <div class="row"><button class="btn" data-go="build" type="button">Build my team</button><button class="btn ghost" data-go="just" type="button">Just race</button></div></div></div>`;
-  const newcomer = first && !S.stats.starts && !nAc;
-  // Start racing goes to the race that matters next: today's Daily, then the Championship, then a quick race
-  const start = !done ? { go: 'daily', line: `Today's Daily Grand Prix: ${dv.flag} ${esc(dv.city)}` } : !seasonOver ? { go: 'season', line: `Championship round ${S.season.round}: ${sv.flag} ${esc(sv.city)}` } : { go: lr ? 'again' : 'quick', line: lr ? `Race again at ${lr.flag} ${esc(lr.city)}` : 'Pick any circuit' };
-  if (GLANCE.matches && G.attract && !G.homeFull) return glanceHome(start, first);
-  const hero = `<div class="hero-acts"><button class="btn big" data-go="${start.go}" type="button">Start racing</button>
-      <button class="btn ghost big" data-go="academy" type="button">🎓 Racing Academy${nAc ? ` · ${nAc}/${LESSONS.length}` : ''}</button>
-      <button class="btn ghost big" data-go="watch" type="button">▶ Watch a race</button></div>
-    <p class="hero-next">${start.line}</p>`;
-  const sh = show(`
-    ${GLANCE.matches && G.attract ? '<button type="button" class="gl-back" data-go="glance">✕ <span>Back to the race</span></button>' : ''}
-    <h1 class="brand">AGENT <em>GRAND PRIX</em></h1>
-    <p class="tag">${newcomer ? 'Your AI agents race, and run the team when you’re away. When you’re here, the calls are yours: tyres, pit stops, battery and the weather. 25 Grands Prix from Abu Dhabi to Abuja.' : '<b>Your drivers race. You command.</b> Tyres, pit stops, battery and the weather call are yours.'}</p>
-    ${newcomer ? choice : first ? welcome + cards : hero + awayCard() + teamStrip() + cards}
-    <div class="home-foot"><span>${first ? '' : `Team: <b>${esc(team().name)}</b> · `}${S.stats.starts} starts · ${S.stats.wins} wins</span>
-      <span><button data-go="garage" type="button">Garage</button> <button data-go="dna" type="button">Driver DNA</button> <button data-go="team" type="button">${first ? 'Build my team' : 'Edit team'}</button> <button data-go="academy" type="button">Academy</button> <button data-go="help" type="button">How to play</button> <button data-go="agent" type="button">My agent</button></span></div>${acChip()}`, 'home');
+      <p class="small"><button type="button" class="link" data-go="build">Build my team first</button> · name your team and drivers, pick a car and colours</p>
+      <h3 class="pm-sub">Every way to race</h3>` : ''}
+    <div class="pm-list">
+      ${item('daily', '🗓', `Daily Challenge #${n}`, done ? `${dv.flag} ${esc(dv.city)} · you finished P${done.best}. Race it again for fun.` : `${dv.flag} ${esc(dv.city)} · the same race for everyone today. Always free.`)}
+      ${item('quick', '🏁', 'New race', lr ? `Any of ${VENUES.length} circuits. Last time: ${lr.flag} ${esc(lr.city)}.` : `Pick any of ${VENUES.length} circuits.`)}
+      ${item('season', '🏆', 'Season and career', seasonOver ? 'Season over. See the final standings.' : `Season ${S.season.no}, round ${S.season.round} of ${CALENDAR.length}: ${sv.flag} ${esc(sv.city)}`)}
+      ${item('live', '📡', 'Live Grand Prix', 'Up to ten teams of real people on one grid. A race every five minutes.')}
+      ${item('dailyfull', '⏱', 'Full distance', 'Today’s Daily over a whole Grand Prix.')}
+      ${item('academy', '🎓', 'Racing Academy', `Five short lessons${nAc ? ` · ${nAc} of ${LESSONS.length} done` : ''}. Free.`)}
+      ${item('practice', '🔧', 'Free practice', 'No points, no pressure. Free.')}
+      ${item('team', '💾', first ? 'Build my team' : 'My team', first ? 'Name your team, pick a car and colours.' : `${esc(team().name)} · ${S.stats.starts} starts, ${S.stats.wins} wins`)}
+      ${item('agent', '🤖', 'My agent', 'Your agent races the Dailies you miss, and talks to you on WhatsApp.')}
+      ${item('board', '📊', 'Leaderboard', 'Today’s board and the weekly Sora prizes.')}
+      ${item('watch', '📺', 'Watch a race', 'Sit back and watch the field.')}
+      ${item('account', '👤', 'Profile', signedIn() ? 'Your account and Sora wallet' : 'Sign in so your team follows you')}
+      ${item('pass', '★', 'Anti-Bot Pass', account.pass.active ? 'Active: you are a verified human' : 'Verified human, every mode, for a year')}
+      ${item('settings', '⚙️', 'Settings', 'Sound, the engineer, the coach and language')}
+    </div></div>`, 'pmenu');
   sh.onclick = homeClick;
 }
+
+// The Anti-Bot Pass: a subscription, yearly at launch (shown as about $0.50 a month); cancel any time on Stripe's page.
+// o.want: the mode they tried to open. Until payments open (sell is false) everything stays free.
+const PASS_WANT = { quick: 'New races', season: 'The Championship', live: 'Live Grand Prix', dailyfull: 'Full distance', again: 'Race again' };
+function passSheet(back, o = {}) {
+  const P_ = account.pass, pr = P_.price || { monthly: '0.50', yearly: '5.99' };
+  const until = P_.active && P_.until ? new Date(P_.until).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const sh = show(`<div class="pass">
+    <span class="pass-chip">★ Anti-Bot Pass</span>
+    <h2>${P_.active ? 'You’re a verified human' : o.want && PASS_WANT[o.want] ? `${PASS_WANT[o.want]} come with the pass` : 'Unlock everything'}</h2>
+    <p class="lede">Real people on the pit wall. A small pass keeps bots off the grid and the prize table fair.</p>
+    <ul class="pass-list">
+      <li>✓ A <b>verified human</b> badge on the leaderboards</li>
+      <li>✓ New races on all ${VENUES.length} circuits</li>
+      <li>✓ The full Championship season</li>
+      <li>✓ Live Grand Prix against people</li>
+      <li>✓ Full-distance races</li>
+      <li>✓ A share of the weekly Sora prize pot</li>
+    </ul>
+    <p class="pass-free">Always free: the Daily Grand Prix, and your agent races the Dailies you miss.</p>
+    ${P_.active ? `<p class="pass-on">${P_.renews ? 'Renews on' : 'Active until'} <b>${esc(until)}</b>. Thank you for racing.</p>
+      ${P_.manage ? '<button class="btn ghost wide" data-p="manage" type="button">Manage or cancel</button>' : ''}`
+      : P_.sell ? `<div class="pass-price"><b>$${esc(pr.monthly)}</b><span>per month</span></div>
+      <button class="btn big wide pass-buy" data-p="buy" type="button">Unlock everything</button>
+      <p class="small pass-fine">Billed $${esc(pr.yearly)} a year. Renews each year; cancel any time. Secure checkout by Stripe.</p>`
+      : '<p class="note"><b>The pass opens very soon.</b> Until then every mode is free.</p>'}
+    <p class="ac-err" role="alert" hidden></p>
+    <div class="actions"><button class="btn ghost" data-p="back" type="button">${P_.active || !P_.sell ? 'Back' : 'Not now'}</button></div></div>`, 'passsheet');
+  sh.onclick = async (e) => {
+    const b = e.target.closest('[data-p]'); if (!b) return;
+    if (b.dataset.p === 'back') return back();
+    if (!signedIn()) return accountSheet(back, { gate: true, then: () => passSheet(back, o) });
+    const label = b.textContent; b.disabled = true; b.textContent = 'Opening Stripe…';
+    const r = b.dataset.p === 'manage' ? await passManage() : await passCheckout();
+    if (!r.ok) { b.disabled = false; b.textContent = label; const er = sh.querySelector('.ac-err'); er.textContent = r.error; er.hidden = false; }
+  };
+}
+// back from Stripe: the webhook can land a moment after the page, so ask again a few times
+async function passBack(ok) {
+  history.replaceState(null, '', location.pathname);
+  if (!ok) return toast('Checkout cancelled. Nothing was charged.');
+  for (let i = 0; i < 6 && !account.pass.active; i++) { await refreshPass(); if (!account.pass.active) await new Promise((r) => setTimeout(r, 2000)); }
+  toast(account.pass.active ? '★ Welcome, verified human. Every mode is open.' : 'Payment received. Your pass turns on in a minute or two.');
+  if (G.attract) passSheet(home);
+}
+
+// Support and the fair-play rules, in plain words
+function rulesSheet(back) {
+  const sh = show(`<h2>Support &amp; rules</h2>
+    <p class="lede">Agent Grand Prix is a strategy game: your AI drivers drive, you make the calls.</p>
+    <ul class="help">
+      <li><b>One person, one team.</b> Race with your own account. Bots and scripts that play for you are not allowed.</li>
+      <li><b>The Daily.</b> Your first run of each day is the one that counts on the leaderboard. Your agent can race it for you if you miss it.</li>
+      <li><b>Weekly prizes.</b> The week's Daily points add up. The top ten people share the Sora pot. Sora is game currency: it is earned, never bought, and can't be cashed out.</li>
+      <li><b>The Anti-Bot Pass.</b> A yearly subscription that renews each year. Cancel any time from My account; the pass runs to the end of the year you paid for.</li>
+      <li><b>Be kind.</b> Team names and messages must not be rude or pretend to be someone else.</li>
+    </ul>
+    <p>Need help? Email <a href="mailto:amaete@gmail.com">amaete@gmail.com</a>.</p>
+    <p class="small"><a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="credits.html" target="_blank" rel="noopener">Credits</a></p>
+    <div class="actions"><button class="btn" id="ruBack" type="button">Got it</button></div>`);
+  $('#ruBack').addEventListener('click', back);
+}
+
+// Settings: the few things players ask to change, kept on this device
+function settingsSheet(back) {
+  const sw = (k, on, label, note) => `<div class="set-row"><span><b>${label}</b><small>${note}</small></span><button type="button" class="switch" role="switch" aria-checked="${on}" data-s="${k}" aria-label="${label}"></button></div>`;
+  const draw = () => {
+    const sh = show(`<h2>Settings</h2>
+      ${sw('sound', S.settings.sound !== false, 'Sound', 'Engines, the crowd and the radio')}
+      ${sw('voice', S.settings.voice !== false, 'Engineer’s voice', 'Your race engineer speaks the calls')}
+      ${sw('coach', S.settings.coach !== false, 'Race coach', 'Tips during your first races and quick races')}
+      <div class="set-row"><span><b>Language</b><small>More languages are on the way</small></span>${langPicker(true)}</div>
+      ${installItem(true)}
+      <div class="actions"><button class="btn" id="seBack" type="button">Done</button></div>`);
+    sh.onclick = (e) => {
+      if (e.target.closest('[data-go="install"]')) return doInstall(() => settingsSheet(back));
+      const b = e.target.closest('[data-s]'); if (!b) return;
+      const k = b.dataset.s, on = b.getAttribute('aria-checked') !== 'true';
+      if (k === 'sound') S.settings.sound = on;
+      if (k === 'voice') S.settings.voice = on ? undefined : false;
+      if (k === 'coach') S.settings.coach = on ? undefined : false;
+      store.save(); draw();
+    };
+    sh.onchange = langChange;
+    $('#seBack').addEventListener('click', back);
+  };
+  draw();
+}
+
+// Languages: English for now. The picker and S.settings.lang are where translations will plug in.
+const LANGS = [['en', 'English']];
+function langPicker(bare) {
+  const sel = `<select class="lang" aria-label="Language">${LANGS.map(([k, n]) => `<option value="${k}"${(S.settings.lang || 'en') === k ? ' selected' : ''}>${n}</option>`).join('')}<option disabled>More languages soon</option></select>`;
+  return bare ? sel : `<label class="nb-lang"><i aria-hidden="true">🌐</i>${sel}</label>`;
+}
+function langChange(e) { if (!e.target.matches('select.lang')) return; S.settings.lang = e.target.value; store.save(); document.documentElement.lang = S.settings.lang; }
+
+// Join us: the community channels, greyed out until they open
+const SOCIAL = ['Telegram', 'Discord', 'TikTok', 'YouTube', 'Instagram'];
+function joinUs() {
+  return `<div class="join" aria-label="Join us: coming soon"><b>Join us</b><span>${SOCIAL.map((n) => `<em title="${n}: coming soon">${n}</em>`).join('')}</span><small>Coming soon</small></div>`;
+}
+
+// Installing the game as an app: Chrome and Edge (desktop and Android) offer a real install prompt;
+// iPhone and iPad have no prompt, so they get the three taps for Add to Home Screen.
+let installEvt = null;
+addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; if (G.attract && /\bnbhome\b/.test($('#screen').className) && !$('#screen').hidden) home(); });
+addEventListener('appinstalled', () => { installEvt = null; toast('Installed. Agent Grand Prix is on your home screen.'); });
+const standalone = () => matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches || navigator.standalone === true;
+function installItem(row) {
+  if (standalone() || !(installEvt || isIOS)) return '';
+  return row ? '<div class="set-row"><span><b>Install the app</b><small>Opens full screen from your home screen</small></span><button class="btn ghost" data-go="install" type="button">Install</button></div>'
+    : '<button data-go="install" type="button" class="nb-install"><i aria-hidden="true">📲</i>Install the app</button>';
+}
+async function doInstall(back) {
+  if (installEvt) { const ev = installEvt; ev.prompt(); const r = await ev.userChoice.catch(() => ({})); installEvt = null; if (r.outcome !== 'accepted') toast('No problem. You can install it any time from the menu.'); return back(); }
+  const sh = show(`<h2>Add to your Home Screen</h2>
+    <p class="lede">Agent Grand Prix opens full screen, like an app, straight from your Home Screen.</p>
+    <ol class="ios-steps">
+      <li>Tap the <b>Share</b> button <span class="ios-share" aria-hidden="true">⬆︎</span> at the bottom of Safari (at the top on iPad).</li>
+      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
+      <li>Tap <b>Add</b>. The game's icon is now on your Home Screen.</li>
+    </ol>
+    <div class="actions"><button class="btn" id="iosOk" type="button">Got it</button></div>`);
+  $('#iosOk').addEventListener('click', back);
+  return sh;
+}
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+// the loading screen in index.html: it runs on its own until the first home screen is ready
+function bootDone() { const b = document.getElementById('boot'); if (!b || b.dataset.done) return; b.dataset.done = '1'; window.__bootDone?.(); }
 // your team on the home page: both drivers' faces, and the last race with its report
 function teamStrip() {
   const t = team(), r = S.lastReport, ago = r ? Math.round((Date.now() - r.at) / 864e5) : 0;
@@ -1726,6 +1861,7 @@ function waPanel(box, code = null) {
 // browser, yours included, to be applied at the same step. A call that arrives late (a dropped
 // connection) means the race is built again from the start with every call, in a blink.
 function liveLobby(back) {
+  if (passLocked('live')) return passSheet(back, { want: 'live' });
   const t = team();
   const sh = show(`<div class="sub">Live Grand Prix</div><h2>Ten teams, one grid</h2>
     <p class="lede">Race people, not just the field: up to ten teams on one grid, everyone making their own calls at the same time. A race starts every five minutes; open seats are raced by the series teams.</p>
@@ -1837,7 +1973,7 @@ async function boardSheet(day, back, tab = 'human') {
     <div class="actions"><button class="btn" data-b="race" type="button">${S.daily.days[day] ? 'Race it again' : "Race today's GP"}</button><button class="btn ghost" data-b="full" type="button">Race the full distance</button><button class="btn ghost" data-b="back" type="button">Back</button></div>`, 'board');
   const body = $('.bbody', sh);
   const draw = async (t, side = 'human') => {
-    const html = t === 'week' ? leagueHTML(await fetchWeek(day), day, side) : boardHTML(await fetchBoard(day, t === 'full' ? 'full' : 'short'), t);
+    const html = t === 'week' ? leagueHTML(await fetchWeek(day), day, side, account.pass.sell) : boardHTML(await fetchBoard(day, t === 'full' ? 'full' : 'short'), t);
     if (body.isConnected) body.innerHTML = html;
   };
   draw(tab);
@@ -1899,14 +2035,14 @@ const signedIn = () => !!(account.me && !account.me.guest);
 function acChip() {
   if (signedIn()) {
     const t = team(), me = account.me;
-    return `<button class="ac-chip in" data-go="account" type="button" aria-label="Your account"><i style="--c1:${esc(t.c1 || '#0f8a4a')};--c2:${esc(t.c2 || '#fff')}">${esc(t.short || 'YOU')}</i><span>${esc(firstVisit() ? me.name || 'My account' : t.name)}</span></button>`;
+    return `<button class="ac-chip in" data-go="account" type="button" aria-label="Your account"><i style="--c1:${esc(t.c1 || '#0f8a4a')};--c2:${esc(t.c2 || '#fff')}">${esc(t.short || 'YOU')}</i><span>${esc(firstVisit() ? me.name || 'My account' : t.name)}</span>${account.pass.active ? '<u class="vh" title="Verified human">✓</u>' : ''}</button>`;
   }
   if (!canSignIn()) return '';
   return '<button class="ac-chip" data-go="account" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.6"/><path d="M3.2 17.4c.9-3.4 3.6-5.2 6.8-5.2s5.9 1.8 6.8 5.2"/></svg><span>Sign in</span></button>';
 }
 // o.gate: they tried to race, and racing needs an account; o.then runs once they're signed in
 function accountSheet(back, o = {}) {
-  const done = () => { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); agentStatus(); if (o.then) o.then(); else back(); };
+  const done = async () => { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); agentStatus(); await refreshPass(); if (o.then) o.then(); else back(); };
   const after = (r) => {   // what Core asks next after the code or a merge
     if (r.save && (r.save.stats || {}).starts > (S.stats.starts || 0)) store.adopt(r.save); else store.save();
     if (r.needs_profile) return accountSheet(back, { ...o, step: 'profile', error: null });
@@ -1918,9 +2054,22 @@ function accountSheet(back, o = {}) {
   if (step === 'me') {
     const sh = shell(`<h2>Your account</h2>
       <p class="lede">Signed in as <b>${esc(me.name || 'you')}</b>${me.handle ? ` · @${esc(me.handle)}` : ''}. Your team, season, Academy progress and agent settings follow you to any device you sign in on.</p>
+      ${account.pass.active ? `<p class="pass-on"><span class="pass-chip">★ Verified human</span> Anti-Bot Pass ${account.pass.renews ? 'renews on' : 'until'} <b>${esc(new Date(account.pass.until).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }))}</b> <button class="link" id="acPass" type="button">Manage</button></p>`
+        : account.pass.sell ? '<p><button class="btn ghost" id="acPass" type="button">★ Get the Anti-Bot Pass</button></p>' : ''}
+      <div class="wallet" id="acWallet"><span class="k">Sora wallet</span><p class="small">Loading…</p></div>
       <div class="actions"><button class="btn ghost" id="acOut" type="button">Sign out of this device</button><button class="btn ghost" id="acBack" type="button">Back</button></div>`);
     $('#acOut').addEventListener('click', async () => { await signOut(); toast('Signed out on this device. Your progress stays with your account.'); back(); });
     $('#acBack').addEventListener('click', back);
+    $('#acPass')?.addEventListener('click', () => passSheet(() => accountSheet(back)));
+    fetchWallet().then((w) => {
+      const el = $('#acWallet'); if (!el) return;
+      const when = (t) => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
+      el.innerHTML = !w || !w.on ? '<span class="k">Sora wallet</span><p class="small">Your Sora wallet opens soon. Weekly prizes land here.</p>'
+        : `<span class="k">Sora wallet</span><b class="w-bal">${(w.sora || 0).toLocaleString('en')} Sora</b>
+          ${w.lines && w.lines.length ? `<ul class="w-lines">${w.lines.slice(0, 6).map((l) => `<li><span>${esc(l.memo || 'Prize')}</span><em>${when(l.at)}</em><b>${l.amount > 0 ? '+' : ''}${(l.amount || 0).toLocaleString('en')}</b></li>`).join('')}</ul>`
+            : '<p class="small">Finish in the top ten of a week’s Dailies and your prize lands here.</p>'}
+          <p class="small">Sora is earned in the game. It can’t be bought or cashed out.</p>`;
+    });
     return sh;
   }
   if (step === 'choose') {
@@ -2001,10 +2150,15 @@ function accountSheet(back, o = {}) {
 const GATED = new Set(['daily', 'dailyfull', 'season', 'quick', 'just', 'practice', 'again', 'live', 'academy', 'build', 'team']);
 function homeClick(e) {
   const b = e.target.closest('[data-go]'); if (!b) return;
-  const go = b.dataset.go, n = dayNumber();
-  if (account.ways.need && !signedIn() && (GATED.has(go) || go.startsWith('v:'))) return accountSheet(home, { gate: true, then: () => homeClick({ target: b }) });
-  if (go === 'menu') { G.homeFull = true; return home(); }
-  if (go === 'glance') { G.homeFull = false; return home(); }
+  const go = b.dataset.go, n = dayNumber(), back = b.closest('.pm') ? playMenu : home;   // sheets opened from Play return to Play
+  if (account.ways.need && !signedIn() && (GATED.has(go) || go.startsWith('v:'))) return accountSheet(back, { gate: true, then: () => homeClick({ target: b }) });
+  if (passLocked(go.startsWith('v:') ? 'quick' : go)) return passSheet(back, { want: go.startsWith('v:') ? 'quick' : go });
+  if (go === 'play' || go === 'menu') return playMenu();
+  if (go === 'home' || go === 'glance') return home();
+  if (go === 'pass') return passSheet(back);
+  if (go === 'rules') return rulesSheet(back);
+  if (go === 'settings') return settingsSheet(back);
+  if (go === 'install') return doInstall(back);
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
   if (go === 'daily') needTeam(() => pre({ kind: 'daily', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
   if (go === 'dailyfull') needTeam(() => pre({ kind: 'dailyfull', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
@@ -2015,27 +2169,27 @@ function homeClick(e) {
   }
   if (go === 'standings') standings();
   if (go === 'watch') watchRace();
-  if (go.startsWith('driver:')) needTeam(() => driverSheet(go.slice(7), home));
-  if (go === 'board') boardSheet(dayNumber(), home);
-  if (go === 'live') needTeam(() => liveLobby(home));
-  if (go === 'agent') agentSheet(home);
-  if (go === 'account') accountSheet(home);
+  if (go.startsWith('driver:')) needTeam(() => driverSheet(go.slice(7), back));
+  if (go === 'board') boardSheet(dayNumber(), back);
+  if (go === 'live') needTeam(() => liveLobby(back));
+  if (go === 'agent') agentSheet(back);
+  if (go === 'account') accountSheet(back);
   if (go === 'awayok') { S.agent.unseen = []; store.save(); home(); }
-  if (go.startsWith('ar:')) { const a = S.agent.reports.find((x) => String(x.n) === go.slice(3)); if (a) reportSheet(a.report, home); }
-  if (go === 'report' && S.lastReport) reportSheet(S.lastReport, home);
+  if (go.startsWith('ar:')) { const a = S.agent.reports.find((x) => String(x.n) === go.slice(3)); if (a) reportSheet(a.report, back); }
+  if (go === 'report' && S.lastReport) reportSheet(S.lastReport, back);
   if (go === 'quick') quickPick();
-  if (go === 'team') { if (firstVisit()) onboard('team', null); else teamSheet(home); }
+  if (go === 'team') { if (firstVisit()) onboard('team', null); else teamSheet(back); }
   if (go === 'build') onboard('team', null);
   if (go === 'just') justRace();
   if (go === 'academy') academyHome();
   if (go === 'practice') freePractice();
   if (go === 'again') raceAgain();
   if (go.startsWith('v:')) needTeam(() => pre(quickO(venueById(go.slice(2))), 'car'));
-  if (go === 'garage') showroom(home);
-  if (go === 'dna') studio(home);
-  if (go === 'help') helpSheet(home);
-  if (go === 'win') winSheet(home);
-  if (go === 'share') shareSheet(S.daily.days[n].share, home);
+  if (go === 'garage') showroom(back);
+  if (go === 'dna') studio(back);
+  if (go === 'help') helpSheet(back);
+  if (go === 'win') winSheet(back);
+  if (go === 'share') shareSheet(S.daily.days[n].share, back);
 }
 
 // Driver DNA Studio (js/studio.js); during a race the race keeps the DNA it started with
@@ -2608,6 +2762,7 @@ function tyreGuide(v) {
 // race setup, one screen at a time: circuit (Quick race only), car, tyres, then race settings
 let P = null;
 function pre(o, step = o.venue ? 'car' : 'circuit') {
+  if ((!P || P.o !== o) && !o.first && passLocked(o.kind)) return passSheet(G.attract ? home : results, { want: o.kind });
   if (!P || P.o !== o) { P = { o, picks: null, auto: !!S.settings.auto, coachOn: coachDefault(o.kind) }; live.clear(); G.quali = null; }
   const steps = [...(o.kind === 'quick' ? ['circuit'] : []), 'car', ...(o.first ? [] : ['quali']), 'tyres', 'settings'];
   const i = steps.indexOf(step), go = (k) => pre(o, steps[i + k]);
@@ -3294,7 +3449,7 @@ window.__agp = {
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,
 };
 
-{ const saved = live.load(); if (!(saved && resumeRace(saved))) attract(); agentCatchUp(); }
+{ const saved = live.load(); if (!(saved && resumeRace(saved))) attract(); agentCatchUp(); bootDone(); }
 // an account, when the service is running: a guest at first, so nothing is asked of a new player
 accountStart(S).then((fromServer) => {
   if (account.on) agentStatus();
@@ -3306,6 +3461,7 @@ accountStart(S).then((fromServer) => {
   if (q.get('signedin')) toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`);
   if (sq === 'profile' && G.attract) accountSheet(home, { step: 'profile' });
   if (sq === 'merge' && G.attract) accountSheet(home, { step: 'merge', who: q.get('who') || '' });
+  const pq = q.get('pass'); if (pq) passBack(pq === 'ok');
   if (sq === 'cancelled') toast('Google sign-in was cancelled. Your progress is safe on this device.');
   if (sq === 'failed' && G.attract) accountSheet(home, { error: 'Google sign-in did not work. Please try again.' });
 });

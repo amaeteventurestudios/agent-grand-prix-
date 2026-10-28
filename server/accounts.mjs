@@ -237,34 +237,81 @@ function signedInAs(req, r) {
   const sess = { uid, user: r.user, roles: r.roles || [] };
   return { sess, cookies: [setCookie('agp.sid', seal(sess), 400 * 86400), setCookie('agp.here', r.needs_profile && r.ticket ? seal({ t: r.ticket }) : '', r.needs_profile ? 1800 : 0)] };
 }
-// ---------- the Anti-Bot Pass (a year of everything, paid once through Stripe) and the Sora wallet ----------
-// Shown as $0.50 a month, sold as one $5.99 charge for a year with no auto-renewal (a monthly 50-cent charge would mostly
-// go to card fees). Stripe Checkout takes the payment; its signed webhook is what grants the pass, never the browser.
-// Passes live in this service's state directory; the leaderboards and the Command Center ask over local-only routes.
+// ---------- the Anti-Bot Pass (a subscription through Stripe) and the Sora wallet ----------
+// A subscription that unlocks every mode. The plans below are the whole price list: only the yearly plan is on at
+// launch, shown as about $0.50 a month; monthly and quarterly turn on by setting on: true (and a price). Stripe
+// Checkout takes the payment and Stripe renews it; its signed webhooks are what grant and extend the pass, never the
+// browser. Players manage or cancel on Stripe's own billing page. Passes live in this service's state directory;
+// the leaderboards and the Command Center ask over local-only routes.
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '', STRIPE_HOOK = process.env.STRIPE_WEBHOOK_SECRET || '';
-const PASS = { cents: 599, monthly: '0.50', yearly: '5.99', days: 365 };
+export const PLANS = {
+  year: { cents: 599, interval: 'year', count: 1, name: 'Yearly', on: true },
+  quarter: { cents: 199, interval: 'month', count: 3, name: 'Quarterly', on: false },
+  month: { cents: 99, interval: 'month', count: 1, name: 'Monthly', on: false },
+};
+const months = (pl) => (pl.interval === 'year' ? 12 : 1) * pl.count;
+const usd = (c) => (c / 100).toFixed(2);
+const planList = () => Object.entries(PLANS).filter(([, pl]) => pl.on).map(([id, pl]) => ({ id, name: pl.name, price: usd(pl.cents), months: months(pl), monthly: usd(Math.round(pl.cents / months(pl))) }));
+const GRACE = 2 * 864e5;   // a renewal that is a day or two late doesn't lock anyone out
 const passFile = () => path.join(DIR, 'passes.json');
-const passes = () => { try { return JSON.parse(fs.readFileSync(passFile(), 'utf8')); } catch { return { byId: {}, sessions: {} }; } };
+const passes = () => { try { return { byId: {}, subs: {}, events: [], ...JSON.parse(fs.readFileSync(passFile(), 'utf8')) }; } catch { return { byId: {}, subs: {}, events: [] }; } };
+const keep = (all) => { all.events = all.events.slice(-500); fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(passFile(), JSON.stringify(all)); };
 export function passOf(id) { const p = passes().byId[id]; return p && p.until > Date.now() ? p : null; }
-export function grantPass(id, ref, cents = PASS.cents) {
-  const all = passes(); if (all.sessions[ref]) return all.byId[id];
-  const now = Date.now(), cur = all.byId[id], from = cur && cur.until > now ? cur.until : now;
-  all.byId[id] = { until: from + PASS.days * 864e5, since: (cur && cur.since) || now, paid: ((cur && cur.paid) || 0) + cents, ref };
-  all.sessions[ref] = { id, at: now, cents };
-  fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(passFile(), JSON.stringify(all));
-  return all.byId[id];
+// one Stripe event: started, renewed, changed or ended. Each event is used once.
+export function passEvent(ev, now = Date.now()) {
+  const all = passes(), o = (ev.data && ev.data.object) || {};
+  if (all.events.includes(ev.id)) return null;
+  const metaUid = (m) => m && m.uid;
+  let id = null, p = null;
+  if (ev.type === 'checkout.session.completed' && o.mode === 'subscription' && o.payment_status === 'paid') {
+    id = metaUid(o.metadata) || o.client_reference_id; if (!safe(id)) return null;
+    const pl = PLANS[(o.metadata && o.metadata.plan) || 'year'] || PLANS.year, cur = all.byId[id] || {};
+    // until the first invoice lands, the pass runs one plan period from now
+    p = { ...cur, since: cur.since || now, plan: (o.metadata && o.metadata.plan) || 'year', sub: o.subscription, customer: o.customer, renews: true,
+      until: Math.max(cur.until || 0, now + months(pl) * 30.44 * 864e5) };
+    if (o.subscription) all.subs[o.subscription] = id;
+  } else if (ev.type === 'invoice.paid' || ev.type === 'invoice.payment_succeeded') {
+    const sub = o.subscription || (o.parent && o.parent.subscription_details && o.parent.subscription_details.subscription);
+    const line = (o.lines && o.lines.data && o.lines.data[0]) || {};
+    id = all.subs[sub] || metaUid(o.subscription_details && o.subscription_details.metadata) || metaUid(o.parent && o.parent.subscription_details && o.parent.subscription_details.metadata) || metaUid(line.metadata);
+    if (!safe(id)) return null;
+    const end = (line.period && line.period.end) || o.period_end, cur = all.byId[id] || {};
+    p = { ...cur, since: cur.since || now, sub: sub || cur.sub, customer: o.customer || cur.customer, paid: (cur.paid || 0) + (o.amount_paid || 0),
+      until: Math.max(cur.until || 0, end ? end * 1000 + GRACE : now + 365 * 864e5) };
+    if (sub) all.subs[sub] = id;
+  } else if (ev.type === 'customer.subscription.updated' || ev.type === 'customer.subscription.deleted') {
+    id = all.subs[o.id] || metaUid(o.metadata); if (!safe(id) || !all.byId[id]) return null;
+    const cur = all.byId[id];
+    if (cur.sub && cur.sub !== o.id) return null;   // an older subscription ending doesn't touch the current one
+    p = { ...cur, renews: ev.type === 'customer.subscription.updated' && !o.cancel_at_period_end && o.status !== 'canceled' };
+    if (ev.type === 'customer.subscription.deleted' || o.status === 'canceled' || o.status === 'unpaid') p.until = Math.min(cur.until || 0, now);
+  } else return null;
+  all.byId[id] = p; all.events.push(ev.id); keep(all);
+  return { id, ...p };
 }
-async function stripeCheckout(id, email) {
-  const f = new URLSearchParams({ mode: 'payment', client_reference_id: id, 'metadata[uid]': id, 'payment_intent_data[metadata][uid]': id, 'payment_intent_data[metadata][game]': 'agp', 'payment_intent_data[statement_descriptor_suffix]': 'AGP',
-    'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': String(PASS.cents),
-    'line_items[0][price_data][product_data][name]': 'Agent Grand Prix Anti-Bot Pass (1 year)',
-    'line_items[0][price_data][product_data][description]': 'Every race mode and the weekly Sora prizes for a year. Paid once, no auto-renewal.',
-    success_url: `${SITE}/?pass=ok`, cancel_url: `${SITE}/?pass=cancel` });
-  if (email) f.set('customer_email', email);
-  const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { authorization: `Bearer ${STRIPE_KEY}`, 'content-type': 'application/x-www-form-urlencoded' }, body: f, signal: AbortSignal.timeout(15000) });
+const stripe = async (route, form) => {
+  const r = await fetch('https://api.stripe.com/v1/' + route, { method: 'POST', headers: { authorization: `Bearer ${STRIPE_KEY}`, 'content-type': 'application/x-www-form-urlencoded' }, body: form, signal: AbortSignal.timeout(15000) });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok || !j.url) throw new Error((j.error && j.error.message) || 'checkout failed');
+  if (!r.ok || !j.url) throw new Error((j.error && j.error.message) || route + ' failed');
   return j.url;
+};
+function stripeCheckout(id, email, planId = 'year') {
+  const pl = PLANS[planId]; if (!pl || !pl.on) throw new Error('no such plan');
+  const cur = passes().byId[id];
+  const f = new URLSearchParams({ mode: 'subscription', client_reference_id: id, 'metadata[uid]': id, 'metadata[plan]': planId, 'metadata[game]': 'agp',
+    'subscription_data[metadata][uid]': id, 'subscription_data[metadata][plan]': planId, 'subscription_data[metadata][game]': 'agp',
+    'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': String(pl.cents),
+    'line_items[0][price_data][recurring][interval]': pl.interval, 'line_items[0][price_data][recurring][interval_count]': String(pl.count),
+    'line_items[0][price_data][product_data][name]': `Agent Grand Prix Anti-Bot Pass (${pl.name.toLowerCase()})`,
+    'line_items[0][price_data][product_data][metadata][game]': 'agp',
+    success_url: `${SITE}/?pass=ok`, cancel_url: `${SITE}/?pass=cancel` });
+  if (cur && cur.customer) f.set('customer', cur.customer); else if (email) f.set('customer_email', email);
+  return stripe('checkout/sessions', f);
+}
+// Stripe's own page for changing the card, seeing receipts or cancelling
+function stripePortal(id) {
+  const cur = passes().byId[id]; if (!cur || !cur.customer) throw new Error('no subscription');
+  return stripe('billing_portal/sessions', new URLSearchParams({ customer: cur.customer, return_url: `${SITE}/` }));
 }
 // Stripe signs each webhook: "t=<time>,v1=<hmac of 't.body'>"; anything older than five minutes or unsigned is refused
 export function stripeVerify(raw, header, secret = STRIPE_HOOK, now = Date.now()) {
@@ -316,27 +363,27 @@ export function serve(port = PORT) {
       return req.on('end', () => {
         if (!stripeVerify(raw, req.headers['stripe-signature'])) return send(res, 400, { error: 'bad signature' });
         try {
-          const ev = JSON.parse(raw), o = ev.data && ev.data.object;
-          if ((ev.type === 'checkout.session.completed' || ev.type === 'checkout.session.async_payment_succeeded') && o && o.payment_status === 'paid') {
-            const id = (o.metadata && o.metadata.uid) || o.client_reference_id;
-            if (safe(id)) { grantPass(id, o.id, o.amount_total || PASS.cents); console.log(`pass granted to ${id}`); }
-          }
+          const r = passEvent(JSON.parse(raw));
+          if (r) console.log(`pass ${r.id}: until ${new Date(r.until).toISOString().slice(0, 10)}${r.renews ? ', renews' : ''}`);
         } catch { return send(res, 400, { error: 'bad event' }); }
         return send(res, 200, { received: true });
       });
     }
-    if (u.pathname === '/api/me/pass' || u.pathname === '/api/me/pass/checkout' || u.pathname === '/api/me/wallet') {
+    if (u.pathname === '/api/me/pass' || u.pathname === '/api/me/pass/checkout' || u.pathname === '/api/me/pass/manage' || u.pathname === '/api/me/wallet') {
       const s = open(cookies(req)['agp.sid']); const who = s && me(s);
       if (u.pathname === '/api/me/pass' && req.method === 'GET') {
-        const p = who && passOf(who.id);
-        return send(res, 200, { active: !!p, until: p ? p.until : null, sell: !!(STRIPE_KEY && STRIPE_HOOK), price: { monthly: PASS.monthly, yearly: PASS.yearly } });
+        const p = who && passOf(who.id), plans = planList(), y = plans.find((x) => x.id === 'year') || plans[0];
+        return send(res, 200, { active: !!p, until: p ? p.until : null, renews: !!(p && p.renews), manage: !!(p && p.customer), sell: !!(STRIPE_KEY && STRIPE_HOOK && plans.length), plans,
+          price: y ? { monthly: y.monthly, yearly: y.price } : null });
       }
       if (!who || who.guest) return send(res, 401, { error: 'Sign in first' });
       try {
         if (u.pathname === '/api/me/pass/checkout' && req.method === 'POST') {
           if (!STRIPE_KEY || !STRIPE_HOOK) return send(res, 503, { error: 'The pass opens very soon.' });
-          return send(res, 200, { url: await stripeCheckout(who.id, s.user && s.user.email) });
+          const b = await body(req, 1024).catch(() => ({}));
+          return send(res, 200, { url: await stripeCheckout(who.id, s.user && s.user.email, String((b && b.plan) || 'year')) });
         }
+        if (u.pathname === '/api/me/pass/manage' && req.method === 'POST') return send(res, 200, { url: await stripePortal(who.id) });
         if (u.pathname === '/api/me/wallet' && req.method === 'GET') return send(res, 200, await wallet(who.id));
       } catch (e) { return send(res, 502, { error: 'Payments are not available right now. Please try again soon.' }); }
       return send(res, 404, {});
