@@ -181,6 +181,30 @@ device brings your team with you.
 - Saves live in `/var/lib/agp-accounts/<user id>.json`. Identity stays with Novenique; this
   service only holds the game's own save.
 
+## Team memory (Teague and the drivers remember you)
+
+Teague on WhatsApp and the two drivers on team radio share one long-term memory per signed-in player:
+the name they like to be called, how they like to race, rivals, favourite circuits and how their races
+went. They bring one up when it fits. Built on [mem0](https://github.com/mem0ai/mem0) (Apache 2.0).
+
+- `server/memory.mjs` runs on 127.0.0.1:8144, local only (no web address). One SQLite file per player in
+  `/var/lib/agp-memory/players/`; search uses a local embedding model (all-MiniLM-L6-v2 through
+  transformers.js), so recalling is free and takes milliseconds.
+- Chats are read by Claude (`ANTHROPIC_API_KEY`, `MEMORY_MODEL`, default Haiku) in batches after a few
+  minutes of quiet, with the long instructions cached; at most `MEMORY_DAILY_CAP` (8) reads per player a day
+  and `MEMORY_DAY_LIMIT` (1500) for everyone. Race results are stored as they are, with no model. mem0's
+  telemetry is off.
+- The game posts each finished race to `/api/me/memory/race` (the accounts service writes the sentence
+  from checked fields). My account › Team memory lists it, forgets one line, or everything (Forget me);
+  on WhatsApp, *memories* and *forget me*. A WhatsApp number that isn't linked has its own memory, keyed
+  by a hash of the number, until it links; then it moves into the account.
+- mem0 and better-sqlite3 install into `/opt/agp-memory` (install.sh), apart from the brain's packages.
+  If they can't install, everything plays on without memory.
+- Test: `npm install --prefix /tmp/agp-memory mem0ai@3.3.1 better-sqlite3@12.11.1 --legacy-peer-deps`,
+  then `node tools/test/memory.test.mjs`.
+- Scale note: mem0's local store reads a player's whole file on each search, which is fine for hundreds
+  of memories per player. If it ever needs more, point mem0 at Qdrant or pgvector instead.
+
 ## Leaderboards (the Daily, checked rather than trusted)
 
 Everyone races the same Daily Grand Prix, so the day's results can be ranked. The game never tells

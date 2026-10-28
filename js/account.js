@@ -88,3 +88,8 @@ async function stripeGo(route, body) {
 }
 // your Sora: weekly prizes land here
 export const wallet = () => ask('/wallet');
+// what Teague and your drivers remember about you (signed-in players): see it, forget one thing or everything
+export const memories = () => ask('/memory');
+export const forget = (id) => ask('/memory' + (id ? '?id=' + encodeURIComponent(id) : ''), { method: 'DELETE' });
+// how a race went, so the team can bring it up next time (the server writes the sentence from these fields)
+export const rememberRace = (r) => ask('/memory/race', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(r) });

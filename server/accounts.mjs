@@ -153,6 +153,33 @@ function saveLinks(l) {
   const tmp = LINKS + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(l)); fs.renameSync(tmp, LINKS);
 }
 export function moveLink(into, from) { const l = links(); if (l.byId[from] && !l.byId[into]) { l.byId[into] = l.byId[from]; delete l.byId[from]; saveLinks(l); } }
+// ---------- the team's long-term memory (server/memory.mjs): what Teague and your drivers remember ----------
+// Signed-in players only. The page can list it, forget one thing or everything, and tell it how a race went;
+// the race is written here from checked fields, so a page can't put words in the team's mouth.
+const MEMORY = (process.env.MEMORY_URL || 'http://127.0.0.1:8144').replace(/\/$/, '');
+async function memory(method, route, b) {
+  const r = await fetch(MEMORY + route, { method, headers: b ? { 'content-type': 'application/json' } : {}, body: b ? JSON.stringify(b) : undefined, signal: AbortSignal.timeout(5000) });
+  if (!r.ok) throw new Error('memory ' + r.status);
+  return r.json();
+}
+const word = (s, n) => String(s ?? '').replace(/[^\p{L}\p{N} .'&°#-]/gu, '').trim().slice(0, n);
+// { venue, label, cars: [{ name, pos, grid, dnf, tyres }], winner, ahead, auto, calls } -> one sentence
+export function raceLine(b, when = new Date()) {
+  if (!b || typeof b !== 'object') return null;
+  const city = word(b.venue, 30); if (!city) return null;
+  const cars = (Array.isArray(b.cars) ? b.cars : []).slice(0, 2).map((c) => {
+    const name = word(c && c.name, 30) || 'A driver', pos = Math.round(+c.pos), grid = Math.round(+c.grid), tyres = String((c && c.tyres) || '').toUpperCase().replace(/[^SMHIW]/g, '').slice(0, 6).split('').join(' → ');
+    if (c && c.dnf) return `${name} retired`;
+    if (!(pos >= 1 && pos <= 30)) return null;
+    return `${name} P${pos}${grid >= 1 && grid <= 30 ? ` from P${grid}` : ''}${tyres ? ` (${tyres})` : ''}`;
+  }).filter(Boolean);
+  if (!cars.length) return null;
+  const day = when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+  const label = word(b.label, 40), winner = word(b.winner, 40), ahead = word(b.ahead, 40);
+  return [`${city} Grand Prix${label ? ` (${label})` : ''} on ${day}: ${cars.join(', ')}.`,
+    b.won ? 'The player\'s team won.' : winner ? `Won by ${winner}.` : '', ahead && ahead !== winner ? `Finished just behind ${ahead}.` : '',
+    b.auto ? 'The agents made every call.' : +b.calls > 0 ? `The player made ${Math.min(99, Math.round(+b.calls))} call${+b.calls === 1 ? '' : 's'}.` : ''].filter(Boolean).join(' ');
+}
 const RACE_MAX = 512 * 1024;
 const races = new Map();   // account id -> { rec, at, cmds: [{ seq, car, cmd }], seq, agentAt }
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -351,6 +378,7 @@ export function serve(port = PORT) {
         if (u.pathname === '/agent/claim' && req.method === 'POST') { const b = await body(req, 2048), r = agentClaim(b.code, b.phone); return send(res, r ? 200 : 404, r ? { id: r.id, team: (r.save || {}).team || null } : { error: 'unknown or expired code' }); }
         if (u.pathname === '/agent/unlink' && req.method === 'POST') { const b = await body(req, 2048); return send(res, 200, { n: agentUnlink(null, String(b.phone || '')) }); }
         if (u.pathname === '/agent/race' && req.method === 'GET') return send(res, 200, raceFor(u.searchParams.get('phone') || ''));
+        if (u.pathname === '/agent/who' && req.method === 'GET') { const ph = u.searchParams.get('phone') || '', l = links(); return send(res, 200, { id: Object.keys(l.byId).find((k) => l.byId[k] === ph) || null }); }
         if (u.pathname === '/agent/pass' && req.method === 'GET') return send(res, 200, { active: !!passOf(String(u.searchParams.get('id') || '')), sell: !!(STRIPE_KEY && STRIPE_HOOK) });
         if (u.pathname === '/agent/passes' && req.method === 'GET') { const p = passes(); return send(res, 200, { passes: Object.entries(p.byId).map(([id, x]) => ({ id, ...x, active: x.until > Date.now() })) }); }
         // the owner's screen: signed-up players with their emails (Core answers only this game's own)
@@ -369,6 +397,16 @@ export function serve(port = PORT) {
         } catch { return send(res, 400, { error: 'bad event' }); }
         return send(res, 200, { received: true });
       });
+    }
+    if (u.pathname === '/api/me/memory' || u.pathname === '/api/me/memory/race') {
+      const s = open(cookies(req)['agp.sid']), who = s && me(s);
+      if (!who || who.guest || !safe(who.id)) return send(res, 200, { on: false, signin: true, items: [] });
+      try {
+        if (u.pathname === '/api/me/memory' && req.method === 'GET') return send(res, 200, { on: true, items: (await memory('GET', '/memory/list?uid=' + who.id)).items.map((x) => ({ id: x.id, text: x.text, at: x.at, kind: x.kind })) });
+        if (u.pathname === '/api/me/memory' && req.method === 'DELETE') { const id = u.searchParams.get('id'); return send(res, 200, await memory('DELETE', '/memory?uid=' + who.id + (id ? '&id=' + encodeURIComponent(id.slice(0, 64)) : ''))); }
+        if (u.pathname === '/api/me/memory/race' && req.method === 'POST') { const text = raceLine(await body(req, 4096)); return send(res, text ? 200 : 400, text ? await memory('POST', '/memory/fact', { uid: who.id, text, kind: 'race' }) : { error: 'bad race' }); }
+      } catch { return send(res, 200, { on: false, items: [] }); }
+      return send(res, 404, {});
     }
     if (u.pathname === '/api/me/pass' || u.pathname === '/api/me/pass/checkout' || u.pathname === '/api/me/pass/manage' || u.pathname === '/api/me/wallet') {
       const s = open(cookies(req)['agp.sid']); const who = s && me(s);

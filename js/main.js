@@ -21,7 +21,7 @@ import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
 import { buildReport, reportHTML, shareText } from './report.js';
 import { PLAYBOOK_CHOICES, playbookOf, dueDailies } from './agent.js';
-import { account, start as accountStart, signIn, signOut, emailStart, emailVerify, mergeAnswer, setProfile as saveProfile, refreshPass, passCheckout, passManage, wallet as fetchWallet } from './account.js';
+import { account, start as accountStart, signIn, signOut, emailStart, emailVerify, mergeAnswer, setProfile as saveProfile, refreshPass, passCheckout, passManage, wallet as fetchWallet, memories as fetchMemories, forget, rememberRace } from './account.js';
 import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLesson, LESSON_TITLES } from './career.js';
 import { fetchBoard, fetchWeek, submitDaily, boardHTML, leagueHTML } from './board.js';
 import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as stopListening, stepAt, secondsToStart, applyDue } from './live.js';
@@ -2115,6 +2115,27 @@ function acChip() {
   return '<button class="ac-chip" data-go="account" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.6"/><path d="M3.2 17.4c.9-3.4 3.6-5.2 6.8-5.2s5.9 1.8 6.8 5.2"/></svg><span>Sign in</span></button>';
 }
 // o.gate: they tried to race, and racing needs an account; o.then runs once they're signed in
+// Team memory on the account screen: what Teague and your drivers remember (server/memory.mjs), each line
+// forgettable on its own, and Forget me (asked twice) for all of it
+async function memoryBox() {
+  const r = await fetchMemories(), el = $('#acMem'); if (!el) return;
+  const items = r && r.on ? r.items || [] : null, n = items ? items.length : 0;
+  const fail = () => toast('Could not reach the game server. Try again in a minute.');
+  el.innerHTML = '<span class="k">Team memory</span>' + (!items ? '<p class="small">Soon Teague and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.</p>'
+    : !n ? '<p class="small">Teague and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.</p>'
+    : `<p class="small">Teague and your drivers remember ${n} thing${n === 1 ? '' : 's'} about you, and bring them up when it fits.</p>
+      <ul class="m-lines">${items.slice(0, 8).map((x) => `<li><span>${esc(x.text)}</span><button class="link m-x" data-id="${esc(x.id)}" type="button">Forget</button></li>`).join('')}</ul>
+      ${n > 8 ? `<p class="small">…and ${n - 8} more.</p>` : ''}
+      <button class="btn ghost" id="acForget" type="button">Forget me</button>`);
+  el.querySelectorAll('.m-x').forEach((b) => b.addEventListener('click', async () => { b.disabled = true; const x = await forget(b.dataset.id); if (x && x.forgot != null) memoryBox(); else { b.disabled = false; fail(); } }));
+  const all = $('#acForget');
+  all?.addEventListener('click', async () => {
+    if (!all.dataset.sure) { all.dataset.sure = '1'; all.textContent = 'Tap again to forget everything'; return; }
+    all.disabled = true;
+    const x = await forget();
+    if (x && x.forgot != null) { toast('Done. Your team has forgotten everything it remembered about you.'); memoryBox(); } else { all.disabled = false; fail(); }
+  });
+}
 function accountSheet(back, o = {}) {
   const done = async () => { toast(`Signed in${account.me && account.me.name ? ' as ' + account.me.name : ''}. Your team follows you to any device.`); agentStatus(); await refreshPass(); if (o.then) o.then(); else back(); };
   const after = (r) => {   // what Core asks next after the code or a merge
@@ -2131,10 +2152,12 @@ function accountSheet(back, o = {}) {
       ${account.pass.active ? `<p class="pass-on"><span class="pass-chip">★ Verified human</span> Anti-Bot Pass ${account.pass.renews ? 'renews on' : 'until'} <b>${esc(new Date(account.pass.until).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }))}</b> <button class="link" id="acPass" type="button">Manage</button></p>`
         : account.pass.sell ? '<p><button class="btn ghost" id="acPass" type="button">★ Get the Anti-Bot Pass</button></p>' : ''}
       <div class="wallet" id="acWallet"><span class="k">Sora wallet</span><p class="small">Loading…</p></div>
+      <div class="wallet mem" id="acMem"><span class="k">Team memory</span><p class="small">Loading…</p></div>
       <div class="actions"><button class="btn ghost" id="acOut" type="button">Sign out of this device</button><button class="btn ghost" id="acBack" type="button">Back</button></div>`);
     $('#acOut').addEventListener('click', async () => { await signOut(); toast('Signed out on this device. Your progress stays with your account.'); back(); });
     $('#acBack').addEventListener('click', back);
     $('#acPass')?.addEventListener('click', () => passSheet(() => accountSheet(back)));
+    memoryBox();
     fetchWallet().then((w) => {
       const el = $('#acWallet'); if (!el) return;
       const when = (t) => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
@@ -3380,6 +3403,14 @@ function results() {
   const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'dailyfull' ? 'Daily #' + G.day + ' · Full distance' : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : G.kind === 'live' ? 'Live Grand Prix' : 'Quick race';
   G.report = buildReport(R, { venue: G.venue, label, mine: ['you-0', 'you-1'] });
   if (G.kind !== 'academy') { S.lastReport = G.report; store.save(); }
+  // the team remembers how it went, so Teague and the drivers can bring it up next time (signed-in players;
+  // the server writes the sentence from these fields)
+  if (signedIn() && G.kind !== 'academy' && G.kind !== 'practice') {
+    const lead = my.filter((x) => !x.dnf).sort((a, b) => a.pos - b.pos)[0], front = lead && res.find((x) => x.pos === lead.pos - 1);
+    rememberRace({ venue: G.venue.city, label, won: !!res[0].car.team.you, winner: res[0].car.team.name, ahead: front && !front.car.team.you ? front.car.team.name : '',
+      auto: !G.assisted, calls: G.report.calls.filter((c) => c.from === 'principal').length,
+      cars: my.map((x) => ({ name: x.car.name, pos: x.pos, grid: x.car.grid, dnf: !!x.dnf, tyres: (x.used || []).join('') })) });
+  }
   G.resShare = share || shareText(G.report, location.origin + location.pathname);
   G.resTab = 'result';
   G.resHead = `

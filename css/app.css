@@ -1346,6 +1346,10 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .w-lines span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .w-lines em { color: var(--mute); font-style: normal; font-size: 12px; }
 .w-lines b { color: var(--ok); }
+.m-lines { list-style: none; margin: 4px 0 10px; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.m-lines li { display: flex; gap: 10px; align-items: baseline; }
+.m-lines span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.m-lines .m-x { flex: none; font-size: 12px; }
 .set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
 .set-row > span { display: grid; gap: 2px; }
 .set-row small { color: var(--mute); font-size: 13px; }
