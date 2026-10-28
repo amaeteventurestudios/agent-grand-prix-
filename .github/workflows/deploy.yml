@@ -41,6 +41,8 @@ jobs:
           NOVENIQUE: ${{ vars.NOVENIQUE_URL || 'https://accounts.129-146-26-28.sslip.io' }}   # Novenique Core's public address; set the variable to change it
           DOMAIN: ${{ vars.SITE_DOMAIN || 'agentgrandprix.com www.agentgrandprix.com' }}
           SIGNIN_REQUIRED: ${{ vars.AGP_SIGNIN_REQUIRED || '1' }}   # racing needs an account (on by default since 2026-10-28; a repo variable of "0" turns it off)
+          STRIPE_KEY: ${{ secrets.STRIPE_SECRET_KEY }}        # Anti-Bot Pass checkout (sk_live_... or sk_test_...)
+          STRIPE_HOOK: ${{ secrets.STRIPE_WEBHOOK_SECRET }}   # whsec_... from the Stripe webhook for /api/stripe/webhook
           WA_NUMBER: ${{ vars.AGENT_WA_NUMBER || '18409992755' }}   # Teague's WhatsApp number (not a secret; a repo variable overrides it), for the game's "Open WhatsApp" button
         run: |
           set -euo pipefail
@@ -58,7 +60,8 @@ jobs:
           JEV=$(printf '%s' "$JEV" | tr -d ' \r\n'); BRAIN=$(printf '%s' "$BRAIN" | tr -d ' \r\n')
           NOVQ=$(printf '%s' "$NOVENIQUE" | tr -d ' \r\n')
           WAN=$(printf '%s' "$WA_NUMBER" | tr -cd '0-9')
-          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\nTYPESAFE_API_KEY=%s\nANTHROPIC_API_KEY=%s\nNOVENIQUE_URL=%s\nAGENT_WA_NUMBER=%s\nSIGNIN_REQUIRED=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" "$JEV" "$BRAIN" "$NOVQ" "$WAN" "$(printf '%s' "$SIGNIN_REQUIRED" | tr -cd '01')" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
+          SK=$(printf '%s' "$STRIPE_KEY" | tr -d ' \r\n'); WH=$(printf '%s' "$STRIPE_HOOK" | tr -d ' \r\n')
+          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\nTYPESAFE_API_KEY=%s\nANTHROPIC_API_KEY=%s\nNOVENIQUE_URL=%s\nAGENT_WA_NUMBER=%s\nSIGNIN_REQUIRED=%s\nSTRIPE_SECRET_KEY=%s\nSTRIPE_WEBHOOK_SECRET=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" "$JEV" "$BRAIN" "$NOVQ" "$WAN" "$(printf '%s' "$SIGNIN_REQUIRED" | tr -cd '01')" "$SK" "$WH" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
           ssh $OPTS "$USER@$HOST" "SITE_DOMAIN='$DOMAIN' bash -s" < server/install.sh
           rm -f key
           echo "::notice::Live at $SITE_URL"

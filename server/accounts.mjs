@@ -237,6 +237,53 @@ function signedInAs(req, r) {
   const sess = { uid, user: r.user, roles: r.roles || [] };
   return { sess, cookies: [setCookie('agp.sid', seal(sess), 400 * 86400), setCookie('agp.here', r.needs_profile && r.ticket ? seal({ t: r.ticket }) : '', r.needs_profile ? 1800 : 0)] };
 }
+// ---------- the Anti-Bot Pass (a year of everything, paid once through Stripe) and the Sora wallet ----------
+// Shown as $0.50 a month, sold as one $5.99 charge for a year with no auto-renewal (a monthly 50-cent charge would mostly
+// go to card fees). Stripe Checkout takes the payment; its signed webhook is what grants the pass, never the browser.
+// Passes live in this service's state directory; the leaderboards and the Command Center ask over local-only routes.
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '', STRIPE_HOOK = process.env.STRIPE_WEBHOOK_SECRET || '';
+const PASS = { cents: 599, monthly: '0.50', yearly: '5.99', days: 365 };
+const passFile = () => path.join(DIR, 'passes.json');
+const passes = () => { try { return JSON.parse(fs.readFileSync(passFile(), 'utf8')); } catch { return { byId: {}, sessions: {} }; } };
+export function passOf(id) { const p = passes().byId[id]; return p && p.until > Date.now() ? p : null; }
+export function grantPass(id, ref, cents = PASS.cents) {
+  const all = passes(); if (all.sessions[ref]) return all.byId[id];
+  const now = Date.now(), cur = all.byId[id], from = cur && cur.until > now ? cur.until : now;
+  all.byId[id] = { until: from + PASS.days * 864e5, since: (cur && cur.since) || now, paid: ((cur && cur.paid) || 0) + cents, ref };
+  all.sessions[ref] = { id, at: now, cents };
+  fs.mkdirSync(DIR, { recursive: true }); fs.writeFileSync(passFile(), JSON.stringify(all));
+  return all.byId[id];
+}
+async function stripeCheckout(id, email) {
+  const f = new URLSearchParams({ mode: 'payment', client_reference_id: id, 'metadata[uid]': id, 'payment_intent_data[metadata][uid]': id, 'payment_intent_data[metadata][game]': 'agp', 'payment_intent_data[statement_descriptor_suffix]': 'AGP',
+    'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': String(PASS.cents),
+    'line_items[0][price_data][product_data][name]': 'Agent Grand Prix Anti-Bot Pass (1 year)',
+    'line_items[0][price_data][product_data][description]': 'Every race mode and the weekly Sora prizes for a year. Paid once, no auto-renewal.',
+    success_url: `${SITE}/?pass=ok`, cancel_url: `${SITE}/?pass=cancel` });
+  if (email) f.set('customer_email', email);
+  const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { authorization: `Bearer ${STRIPE_KEY}`, 'content-type': 'application/x-www-form-urlencoded' }, body: f, signal: AbortSignal.timeout(15000) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || !j.url) throw new Error((j.error && j.error.message) || 'checkout failed');
+  return j.url;
+}
+// Stripe signs each webhook: "t=<time>,v1=<hmac of 't.body'>"; anything older than five minutes or unsigned is refused
+export function stripeVerify(raw, header, secret = STRIPE_HOOK, now = Date.now()) {
+  if (!secret || !header) return false;
+  const parts = Object.fromEntries(String(header).split(',').map((x) => x.split('=')).filter((x) => x.length === 2).map(([k, v]) => [k, v]));
+  const sigs = String(header).split(',').filter((x) => x.startsWith('v1=')).map((x) => x.slice(3));
+  const t = +parts.t; if (!t || Math.abs(now / 1000 - t) > 300) return false;
+  const want = crypto.createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex');
+  return sigs.some((s) => s.length === want.length && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(want)));
+}
+const ECONOMY = (process.env.ECONOMY_URL || '').replace(/\/$/, ''), ECON_TOKEN = process.env.EDITORIAL_SERVICE_TOKEN || '';
+async function wallet(id) {
+  if (!ECONOMY || !ECON_TOKEN) return { on: false };
+  const r = await fetch(`${ECONOMY}/economy/humans/${encodeURIComponent(id)}/account`, { method: 'POST', headers: { 'x-service-token': ECON_TOKEN, 'content-type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(5000) });
+  if (!r.ok) return { on: false };
+  const a = await r.json();
+  return { on: true, sora: (a.balance && a.balance.available) || 0, lines: (a.history || []).slice(0, 30).map((l) => ({ amount: l.amount, memo: l.memo || l.label || l.rule, at: l.created_at })) };
+}
+
 const fail = (res, r) => send(res, r.status >= 400 && r.status < 500 ? r.status : 502, { error: (r.body && r.body.error && r.body.error.message) || 'Sign-in is not available right now. Please try again soon.', code: r.body && r.body.error && r.body.error.code });
 
 export function serve(port = PORT) {
@@ -256,10 +303,42 @@ export function serve(port = PORT) {
         if (u.pathname === '/agent/claim' && req.method === 'POST') { const b = await body(req, 2048), r = agentClaim(b.code, b.phone); return send(res, r ? 200 : 404, r ? { id: r.id, team: (r.save || {}).team || null } : { error: 'unknown or expired code' }); }
         if (u.pathname === '/agent/unlink' && req.method === 'POST') { const b = await body(req, 2048); return send(res, 200, { n: agentUnlink(null, String(b.phone || '')) }); }
         if (u.pathname === '/agent/race' && req.method === 'GET') return send(res, 200, raceFor(u.searchParams.get('phone') || ''));
+        if (u.pathname === '/agent/pass' && req.method === 'GET') return send(res, 200, { active: !!passOf(String(u.searchParams.get('id') || '')), sell: !!(STRIPE_KEY && STRIPE_HOOK) });
+        if (u.pathname === '/agent/passes' && req.method === 'GET') { const p = passes(); return send(res, 200, { passes: Object.entries(p.byId).map(([id, x]) => ({ id, ...x, active: x.until > Date.now() })) }); }
         // the owner's screen: signed-up players with their emails (Core answers only this game's own)
         if (u.pathname === '/agent/players' && req.method === 'GET') return send(res, 200, on() ? await core('/v1/players', null, 'GET') : { players: [] });
         if (u.pathname === '/agent/cmd' && req.method === 'POST') { const b = await body(req, 4096); return send(res, raceCmd(String(b.id || ''), String(b.car || ''), b.cmd) ? 200 : 404, {}); }
       } catch { return send(res, 400, { error: 'bad request' }); }
+      return send(res, 404, {});
+    }
+    if (u.pathname === '/api/stripe/webhook' && req.method === 'POST') {
+      let raw = ''; req.on('data', (d) => { raw += d; if (raw.length > 256 * 1024) req.destroy(); });
+      return req.on('end', () => {
+        if (!stripeVerify(raw, req.headers['stripe-signature'])) return send(res, 400, { error: 'bad signature' });
+        try {
+          const ev = JSON.parse(raw), o = ev.data && ev.data.object;
+          if ((ev.type === 'checkout.session.completed' || ev.type === 'checkout.session.async_payment_succeeded') && o && o.payment_status === 'paid') {
+            const id = (o.metadata && o.metadata.uid) || o.client_reference_id;
+            if (safe(id)) { grantPass(id, o.id, o.amount_total || PASS.cents); console.log(`pass granted to ${id}`); }
+          }
+        } catch { return send(res, 400, { error: 'bad event' }); }
+        return send(res, 200, { received: true });
+      });
+    }
+    if (u.pathname === '/api/me/pass' || u.pathname === '/api/me/pass/checkout' || u.pathname === '/api/me/wallet') {
+      const s = open(cookies(req)['agp.sid']); const who = s && me(s);
+      if (u.pathname === '/api/me/pass' && req.method === 'GET') {
+        const p = who && passOf(who.id);
+        return send(res, 200, { active: !!p, until: p ? p.until : null, sell: !!(STRIPE_KEY && STRIPE_HOOK), price: { monthly: PASS.monthly, yearly: PASS.yearly } });
+      }
+      if (!who || who.guest) return send(res, 401, { error: 'Sign in first' });
+      try {
+        if (u.pathname === '/api/me/pass/checkout' && req.method === 'POST') {
+          if (!STRIPE_KEY || !STRIPE_HOOK) return send(res, 503, { error: 'The pass opens very soon.' });
+          return send(res, 200, { url: await stripeCheckout(who.id, s.user && s.user.email) });
+        }
+        if (u.pathname === '/api/me/wallet' && req.method === 'GET') return send(res, 200, await wallet(who.id));
+      } catch (e) { return send(res, 502, { error: 'Payments are not available right now. Please try again soon.' }); }
       return send(res, 404, {});
     }
     const agentPath = u.pathname === '/api/me/agent' || u.pathname === '/api/me/agent/code' || u.pathname === '/api/me/race';
