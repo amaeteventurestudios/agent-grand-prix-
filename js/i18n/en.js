@@ -2599,4 +2599,6 @@ export default ["Meet your team",
 "Soon your agent and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.",
 "Your agent and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.",
 "Your agent and your drivers remember {0} thing{1} about you, and bring them up when it fits.",
-"Michael, Coach, Sparky…"];
+"Michael, Coach, Sparky…",
+"▶ Watch how (45 s)",
+"✕ Hide the video"];

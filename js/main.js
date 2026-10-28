@@ -2032,6 +2032,8 @@ function waPanel(box, code = null, edit = false) {
     // no agent yet: make one in WhatsApp, name it anything, paste its key here
     box.innerHTML = `<div class="wa-card"><b>📱 Create your own AI agent</b>
       <p>Your race engineer lives in WhatsApp. You make it, you name it, and it follows every race you run here. It takes about two minutes.</p>
+      <button type="button" class="btn ghost wa-watch" data-wa="video">▶ Watch how (45 s)</button>
+      <div class="wa-video" hidden></div>
       <ol class="wa-steps">
         <li>Open <b>WhatsApp</b>, go to <b>Settings › Agents › Create an agent</b>.</li>
         <li>Give it any name you like and a picture. It's yours.</li>
@@ -2059,6 +2061,13 @@ function waPanel(box, code = null, edit = false) {
   };
   box.onclick = async (e) => {
     const b = e.target.closest('[data-wa]'); if (!b) return;
+    if (b.dataset.wa === 'video') {
+      // the how-to film (assets/video, made from a scripted HTML timeline): loaded only when asked for
+      const v = box.querySelector('.wa-video');
+      if (!v.firstChild) v.innerHTML = '<video src="/assets/video/create-your-agent.mp4" poster="/assets/video/create-your-agent.jpg" controls playsinline preload="metadata"></video>';
+      v.hidden = !v.hidden; b.textContent = v.hidden ? '▶ Watch how (45 s)' : '✕ Hide the video';
+      const vid = v.querySelector('video'); if (v.hidden) vid.pause(); else vid.play().catch(() => {});
+    }
     if (b.dataset.wa === 'key') waPanel(box, null, true);
     if (b.dataset.wa === 'cancel') waPanel(box);
     if (b.dataset.wa === 'remove') { if (!confirm(`Remove ${aName()}? It stops following your races here. You can connect it again with its key.`)) return; await fetch('/api/me/agent/own', { method: 'DELETE', credentials: 'same-origin' }).catch(() => null); await agentStatus(); waPanel(box); }
