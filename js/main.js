@@ -147,7 +147,9 @@ const live = {
 // same race from it and its calls (a box, a handover) come back here, where they're made like any
 // other call. When your agents run the team, the agent asks you on WhatsApp before a big call; if
 // it stops following (the agent is down), your agents go back to deciding for themselves.
-const wa = { linked: false, name: 'Teague', wa: null, seq: 0, follow: false, at: 0, busy: false, sent: null, lost: 0 };
+const wa = { linked: false, own: null, name: null, wa: null, seq: 0, follow: false, at: 0, busy: false, sent: null, lost: 0 };
+// the player's agent: the name they gave it, or a plain word until they've made one
+const aName = () => wa.name || 'your agent';
 async function agentStatus() {
   try { const r = await fetch('/api/me/agent', { credentials: 'same-origin' }); if (r.ok) Object.assign(wa, await r.json()); } catch (e) { /* no server: nothing to follow */ }
   return wa;
@@ -178,7 +180,7 @@ function agentSync(R) {
         const car = G.race === R && !R.done && R.byId.get(c.car); if (!car) continue;
         R.command(c.car, c.cmd);
         const t = callText(car, c.cmd);
-        if (t) { addRadio({ from: 'info', text: `📱 ${wa.name} on WhatsApp: ${t}.` }); toast(`📱 ${t}`); }
+        if (t) { addRadio({ from: 'info', text: `📱 ${aName()} on WhatsApp: ${t}.` }); toast(`📱 ${t}`); }
         renderControls(true);
       }
       // nobody on the other end: cars that were waiting for your answer decide for themselves again
@@ -1850,8 +1852,8 @@ const WA_ICON = '<path d="M12 4.2a7.8 7.8 0 0 0-6.7 11.8L4.2 19.8l3.9-1a7.8 7.8 
 function agentCard(where = 'out') {
   const on = wa.linked;
   return `<div class="ag ${where}"><h3>Connect your AI agent</h3>
-    <p>${on ? `${esc(wa.name)} is on your pit wall: it follows every race and texts you the big calls.` : 'Your race engineer on WhatsApp. It follows your race and texts you the big calls, so a 50-lap Grand Prix runs while you live your life.'}</p>
-    <div class="ag-row"><button type="button" class="ag-wa${on ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${on ? 'WhatsApp connected' : 'Connect WhatsApp'}</b><small>${on ? `✓ ${esc(wa.name)} is linked` : 'takes one minute'}</small></span></button>
+    <p>${on ? `${esc(aName())} is on your pit wall: it follows every race and texts you the big calls.` : 'Your race engineer on WhatsApp. It follows your race and texts you the big calls, so a 50-lap Grand Prix runs while you live your life.'}</p>
+    <div class="ag-row"><button type="button" class="ag-wa${on ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${on ? 'WhatsApp connected' : 'Connect WhatsApp'}</b><small>${on ? `✓ ${esc(aName())} is linked` : 'takes one minute'}</small></span></button>
       <span class="ag-soon" title="Coming soon"><i style="--c:#2aabee"><svg viewBox="0 0 24 24" aria-hidden="true">${SOCIAL[0][2]}</svg></i><span><b>Telegram</b><small>coming soon</small></span></span>
       <span class="ag-soon" title="Coming soon"><i style="--c:#1d1f24"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="8" width="12" height="9" rx="3" fill="#fff"/><circle cx="10" cy="12.5" r="1.2" fill="#1d1f24"/><circle cx="14" cy="12.5" r="1.2" fill="#1d1f24"/><path d="M12 5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></i><span><b>Your own bot</b><small>coming soon</small></span></span></div></div>`;
 }
@@ -1995,38 +1997,75 @@ function agentSheet(back) {
 }
 // Connect your AI agent on WhatsApp: a short code you text to it once, then it follows every race
 // you run on this account
-function waPanel(box, code = null) {
+function waPanel(box, code = null, edit = false) {
   if (!box) return;
+  const state = () => JSON.stringify([wa.linked, wa.own]);
+  box.dataset.k = state();
   const open = (txt) => wa.wa ? `https://wa.me/${wa.wa}${txt ? '?text=' + encodeURIComponent(txt) : ''}` : null;
-  if (wa.linked) {
-    box.innerHTML = `<div class="wa-card on"><b>✅ ${esc(wa.name)} is connected on WhatsApp</b>
-      <p>${esc(wa.name)} follows every race you start here, on any device signed in to this account. When you hand the team to your agents, ${esc(wa.name)} texts you the big calls with a pick and a deadline; in Team Principal mode it stays quiet apart from race control.</p>
+  const form = (again) => `<form class="wa-form" autocomplete="off">
+      <label><span>Your agent's name</span><input name="name" maxlength="24" required placeholder="Ada, Coach, Sparky…" value="${esc(wa.own ? wa.own.name : '')}"></label>
+      <label><span>Its API key</span><input name="token" type="password" required spellcheck="false" autocapitalize="off" placeholder="Paste the key from WhatsApp"></label>
+      <div class="actions"><button class="btn" type="submit">${again ? 'Save the new key' : 'Connect my agent'}</button>${again ? '<button class="btn ghost" type="button" data-wa="cancel">Cancel</button>' : ''}</div>
+      <p class="note wa-err" hidden></p>
+      <p class="note">🔒 The key stays on our server and is only used to run your agent. Don't share it anywhere else.</p></form>`;
+  if (wa.own && !edit) {
+    const n = esc(wa.own.name);
+    box.innerHTML = `<div class="wa-card on"><b>✅ ${n} is your agent</b>
+      ${wa.own.chatted ? `<p>${n} follows every race you start here, on any device signed in to this account. When you hand the team to your agents, ${n} texts you the big calls with a pick and a deadline; in Team Principal mode it stays quiet apart from race control.</p>`
+        : `<p><b>Last step:</b> open ${n}'s chat in WhatsApp and say hi. ${n} links itself to your team and follows your races from then on.</p>`}
+      <form class="wa-rename"><label><span>Rename</span><input name="name" maxlength="24" value="${n}"></label><button class="btn ghost" type="submit">Save</button></form>
+      <div class="actions"><button class="btn ghost" type="button" data-wa="key">New API key</button><button class="btn ghost" type="button" data-wa="remove">Remove</button></div></div>`;
+  } else if (wa.own && edit) {
+    box.innerHTML = `<div class="wa-card"><b>New API key for ${esc(wa.own.name)}</b>${form(true)}</div>`;
+  } else if (wa.linked) {
+    box.innerHTML = `<div class="wa-card on"><b>✅ ${esc(aName())} is connected on WhatsApp</b>
+      <p>${esc(aName())} follows every race you start here, on any device signed in to this account. When you hand the team to your agents, ${esc(aName())} texts you the big calls with a pick and a deadline; in Team Principal mode it stays quiet apart from race control.</p>
       <div class="actions"><button class="btn ghost" type="button" data-wa="off">Disconnect</button></div></div>`;
   } else if (code) {
     const link = open('link ' + code);
-    box.innerHTML = `<div class="wa-card"><b>Send this to ${esc(wa.name)} on WhatsApp</b>
+    box.innerHTML = `<div class="wa-card"><b>Send this to your agent on WhatsApp</b>
       <div class="wa-code">link ${esc(code)}</div>
-      <p>Open your chat with ${esc(wa.name)} and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.</p>
+      <p>Open your agent's chat and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.</p>
       <div class="actions">${link ? `<a class="btn" href="${link}" target="_blank" rel="noopener">Open WhatsApp</a>` : ''}<button class="btn ghost" type="button" data-wa="copy">Copy</button></div></div>`;
-    const t = setInterval(async () => { if (!box.isConnected) return clearInterval(t); await agentStatus(); if (wa.linked) { clearInterval(t); toast(`📱 ${wa.name} is connected`); waPanel(box); } }, 3000);
+    const t = setInterval(async () => { if (!box.isConnected) return clearInterval(t); await agentStatus(); if (wa.linked) { clearInterval(t); toast(`📱 ${aName()} is connected`); waPanel(box); } }, 3000);
   } else {
-    const hi = open('hi');
-    box.innerHTML = `<div class="wa-card"><b>📱 Connect your AI agent</b>
-      <p>Link ${esc(wa.name)}, your race engineer on WhatsApp, and it follows the race you run here, one at a time. Hand the team to your agents and make the big calls by text.</p>
-      <div class="actions"><button class="btn" type="button" data-wa="code">Connect WhatsApp</button></div>
-      <p class="note">No agent yet? ${hi ? `<a href="${hi}" target="_blank" rel="noopener">Say hi to ${esc(wa.name)}</a> and it sets you up, then connect here.` : `Say hi to ${esc(wa.name)} on WhatsApp and it sets you up, then connect here.`}</p></div>`;
+    // no agent yet: make one in WhatsApp, name it anything, paste its key here
+    box.innerHTML = `<div class="wa-card"><b>📱 Create your own AI agent</b>
+      <p>Your race engineer lives in WhatsApp. You make it, you name it, and it follows every race you run here. It takes about two minutes.</p>
+      <ol class="wa-steps">
+        <li>Open <b>WhatsApp</b>, go to <b>Settings › Agents › Create an agent</b>.</li>
+        <li>Give it any name you like and a picture. It's yours.</li>
+        <li>Open your agent's chat, tap its name, then <b>API key</b>. Copy the key.</li>
+        <li>Paste the name and key below and tap <b>Connect my agent</b>.</li>
+        <li>Say hi to your agent in WhatsApp. It links itself to your team.</li>
+      </ol>
+      ${form(false)}
+      <p class="note">No <b>Agents</b> in your WhatsApp settings? WhatsApp is still rolling agents out, so they aren't on every phone or in every country yet. Update WhatsApp and look again soon; Telegram and other ways are coming.</p></div>`;
   }
+  box.onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target, err = f.querySelector('.wa-err'), btn = f.querySelector('[type=submit]');
+    btn.disabled = true;
+    if (f.classList.contains('wa-rename')) {
+      const r = await fetch('/api/me/agent/own', { method: 'PATCH', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.name.value }) }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
+      btn.disabled = false;
+      if (r) { wa.own.name = wa.name = r.name; toast(`Your agent is now ${r.name}`); waPanel(box); } else toast('Could not save the name. Try again in a moment.');
+      return;
+    }
+    const r = await fetch('/api/me/agent/own', { method: 'PUT', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name: f.name.value, token: f.token.value.trim() }) }).then((x) => x.json().catch(() => ({}))).catch(() => ({ error: 'Could not reach the server. Try again in a moment.' }));
+    btn.disabled = false;
+    if (r && r.ok) { await agentStatus(); toast(`📱 ${r.name} is connected. Say hi to it in WhatsApp.`); waPanel(box); }
+    else if (err) { err.hidden = false; err.textContent = (r && r.error) || 'That did not work. Try again in a moment.'; }
+  };
   box.onclick = async (e) => {
     const b = e.target.closest('[data-wa]'); if (!b) return;
-    if (b.dataset.wa === 'code') {
-      b.disabled = true;
-      const r = await fetch('/api/me/agent/code', { method: 'POST', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null)).catch(() => null);
-      if (r && r.code) waPanel(box, r.code); else { b.disabled = false; toast('Could not reach the server. Try again in a moment.'); }
-    }
+    if (b.dataset.wa === 'key') waPanel(box, null, true);
+    if (b.dataset.wa === 'cancel') waPanel(box);
+    if (b.dataset.wa === 'remove') { if (!confirm(`Remove ${aName()}? It stops following your races here. You can connect it again with its key.`)) return; await fetch('/api/me/agent/own', { method: 'DELETE', credentials: 'same-origin' }).catch(() => null); await agentStatus(); waPanel(box); }
     if (b.dataset.wa === 'copy') { try { await navigator.clipboard.writeText('link ' + code); toast('Copied'); } catch (err) { toast('link ' + code); } }
     if (b.dataset.wa === 'off') { await fetch('/api/me/agent', { method: 'DELETE', credentials: 'same-origin' }).catch(() => null); wa.linked = false; waPanel(box); }
   };
-  if (!code) agentStatus().then(() => { if (box.isConnected && !box.querySelector('.wa-code') && wa.linked !== box.classList.contains('was-on')) { box.classList.toggle('was-on', wa.linked); waPanel(box); } });
+  if (!code && !edit) agentStatus().then(() => { if (box.isConnected && !box.querySelector('.wa-code, .wa-form input:focus') && box.dataset.k !== state()) waPanel(box); });
 }
 // ---------- Live Grand Prix (js/live.js, server/live.mjs): up to ten teams on one grid ----------
 // Every browser runs the whole race; the room only seats people and gives every call the engine step
@@ -2215,15 +2254,15 @@ function acChip() {
   return '<button class="ac-chip" data-go="account" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.6"/><path d="M3.2 17.4c.9-3.4 3.6-5.2 6.8-5.2s5.9 1.8 6.8 5.2"/></svg><span>Sign in</span></button>';
 }
 // o.gate: they tried to race, and racing needs an account; o.then runs once they're signed in
-// Team memory on the account screen: what Teague and your drivers remember (server/memory.mjs), each line
+// Team memory on the account screen: what your agent and your drivers remember (server/memory.mjs), each line
 // forgettable on its own, and Forget me (asked twice) for all of it
 async function memoryBox() {
   const r = await fetchMemories(), el = $('#acMem'); if (!el) return;
   const items = r && r.on ? r.items || [] : null, n = items ? items.length : 0;
   const fail = () => toast('Could not reach the game server. Try again in a minute.');
-  el.innerHTML = '<span class="k">Team memory</span>' + (!items ? '<p class="small">Soon Teague and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.</p>'
-    : !n ? '<p class="small">Teague and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.</p>'
-    : `<p class="small">Teague and your drivers remember ${n} thing${n === 1 ? '' : 's'} about you, and bring them up when it fits.</p>
+  el.innerHTML = '<span class="k">Team memory</span>' + (!items ? '<p class="small">Soon your agent and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.</p>'
+    : !n ? '<p class="small">Your agent and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.</p>'
+    : `<p class="small">Your agent and your drivers remember ${n} thing${n === 1 ? '' : 's'} about you, and bring them up when it fits.</p>
       <ul class="m-lines">${items.slice(0, 8).map((x) => `<li><span>${esc(x.text)}</span><button class="link m-x" data-id="${esc(x.id)}" type="button">Forget</button></li>`).join('')}</ul>
       ${n > 8 ? `<p class="small">…and ${n - 8} more.</p>` : ''}
       <button class="btn ghost" id="acForget" type="button">Forget me</button>`);
@@ -3516,7 +3555,7 @@ function results() {
   const label = G.kind === 'daily' ? 'Daily #' + G.day : G.kind === 'dailyfull' ? 'Daily #' + G.day + ' · Full distance' : G.kind === 'season' ? 'Round ' + G.round : G.kind === 'academy' ? 'Racing Academy' : G.kind === 'practice' ? 'Free practice' : G.kind === 'live' ? 'Live Grand Prix' : 'Quick race';
   G.report = buildReport(R, { venue: G.venue, label, mine: ['you-0', 'you-1'] });
   if (G.kind !== 'academy') { S.lastReport = G.report; store.save(); }
-  // the team remembers how it went, so Teague and the drivers can bring it up next time (signed-in players;
+  // the team remembers how it went, so your agent and the drivers can bring it up next time (signed-in players;
   // the server writes the sentence from these fields)
   if (signedIn() && G.kind !== 'academy' && G.kind !== 'practice') {
     const lead = my.filter((x) => !x.dnf).sort((a, b) => a.pos - b.pos)[0], front = lead && res.find((x) => x.pos === lead.pos - 1);

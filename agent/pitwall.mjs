@@ -2,9 +2,9 @@
 // becomes a card for you. Every number on a card comes from the running race: the gaps, the tyres,
 // the battery, the forecast, the stop's cost measured on this circuit. Each option says what it
 // leads to, the pick carries a confidence and the reasons for it, and the card runs out: at its
-// deadline Teague's pick (or the safe one) runs, and if the race moves on first the card expires.
-// Your answers teach Teague your habits: three of the same answer to the same kind of call and it
-// becomes Teague's pick. In Team Principal mode none of this is sent: the engineer stays quiet.
+// deadline the agent's pick (or the safe one) runs, and if the race moves on first the card expires.
+// Your answers teach the agent your habits: three of the same answer to the same kind of call and it
+// becomes its pick. In Team Principal mode none of this is sent: the engineer stays quiet.
 import { COMPOUNDS } from '../js/data.js';
 import { LIFE } from '../js/sim.js';
 
@@ -116,7 +116,7 @@ export function plan(L, car, call, why, habits) {
     { key: 'alt', label: `Box for ${COMPOUNDS[alt].name.toLowerCase()}s instead`, box: alt, why: dry && COMPOUNDS[alt].dry ? boxWhy(alt) : alt === 'W' ? 'full wets: for standing water' : 'inters: for a damp or drying track' },
   ];
 
-  // Teague's pick, with the forecast in mind, and how sure: each reason is a checked race fact
+  // the agent's pick, with the forecast in mind, and how sure: each reason is a checked race fact
   let pick = 0; const reasons = []; let score = 0;
   if (kind === 'rain' && f.dryIn && f.dryIn <= 2 && left > 3) { pick = 1; score = 1; reasons.push(`rain stops in about ${plural(f.dryIn, 'lap')}`); }
   else if (kind === 'rain' && call === 'I' && R.rain > 0.65 && (!f.dryIn || f.dryIn > 3)) { pick = 2; score = 2; reasons.push('heavy rain that isn\'t stopping soon: the track will be soaked, so wets save a second stop'); }
@@ -144,7 +144,7 @@ export function plan(L, car, call, why, habits) {
 }
 
 const CONF = { high: '🟢 High', medium: '🟡 Medium', low: '🔴 Low', learned: '🧠 Your usual call' };
-export function cardText({ head, why, cars, q, lap, calib }) {
+export function cardText({ head, why, cars, q, lap, calib, name = 'Teague' }) {
   const who = cars.length > 1 ? 'both cars' : cars[0].code;
   return [
     ...head, '',
@@ -152,7 +152,7 @@ export function cardText({ head, why, cars, q, lap, calib }) {
     `*Box ${who} now?*`,
     ...q.opts.map((o, k) => `${NUM[k]} ${k === q.pick ? '⭐ ' : ''}*${o.label}*\n      ${o.why}`),
     '',
-    `*Teague's pick: ${q.pick + 1}* · Confidence ${CONF[q.conf]}`,
+    `*${name}'s pick: ${q.pick + 1}* · Confidence ${CONF[q.conf]}`,
     calib && calib.total >= 3 ? `_Track record: my "out about P_" calls were right ${calib.right} of ${calib.total} times._` : '',
     q.learned ? `_You chose this the last 3 times on a ${KIND_NAME[q.kind]} call._` : q.reasons.length ? `_Because: ${q.reasons.join(', ')}._` : '',
     '',
