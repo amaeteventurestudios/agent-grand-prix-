@@ -1515,35 +1515,102 @@ const GLANCE = matchMedia('(max-width: 760px), (max-height: 540px)');
 GLANCE.addEventListener?.('change', () => { if (G.attract && /\bhome\b/.test($('#screen').className) && !$('#screen').hidden) home(); });
 // The home screen: the race keeps running behind one notebook card. Play opens every way to race,
 // and the menu under it has the rest. Everything a phone shows fits beside the cars.
+// line icons for the home menu (20x20, drawn with the current colour)
+const IC = {
+  daily: '<rect x="3" y="4.5" width="14" height="12.5" rx="2"/><path d="M3 8.5h14M7 2.5v4M13 2.5v4M7 12h2v2H7z"/>',
+  quick: '<path d="M4 18V3M4 3.5c3-1.5 5 1.5 8 0s4-.5 4-.5v8s-1-1-4 .5-5-1.5-8 0"/>',
+  season: '<path d="M6 3h8v4a4 4 0 0 1-8 0zM6 5H3.5a2.5 2.5 0 0 0 3 3M14 5h2.5a2.5 2.5 0 0 1-3 3M10 11v3M7 17h6M8 14h4v3H8z"/>',
+  live: '<circle cx="7" cy="7" r="2.6"/><circle cx="14" cy="8" r="2.1"/><path d="M2.5 16.5c.6-2.8 2.4-4.3 4.5-4.3s3.9 1.5 4.5 4.3M11.5 13.2c.7-.9 1.5-1.3 2.5-1.3 1.8 0 3.1 1.3 3.5 3.6"/>',
+  dailyfull: '<circle cx="10" cy="11" r="6.5"/><path d="M10 7.5V11l2.5 1.5M8 2.5h4M10 2.5v2"/>',
+  academy: '<path d="M2 7.5 10 4l8 3.5-8 3.5zM5.5 9v4c1.2 1.4 2.8 2 4.5 2s3.3-.6 4.5-2V9M18 7.5v4.5"/>',
+  practice: '<path d="M12.5 3.5a3.5 3.5 0 0 0-3.3 4.7L3.5 14v2.5H6l5.8-5.7a3.5 3.5 0 0 0 4.7-3.3l-2.2 2.2-2.4-.6-.6-2.4z"/>',
+  team: '<path d="M3 5.5A1.5 1.5 0 0 1 4.5 4H8l1.5 2h6A1.5 1.5 0 0 1 17 7.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 3 14.5z"/>',
+  board: '<path d="M3 17h14M5 17V10h3v7M8.5 17V6h3v11M12 17v-5h3v5"/>',
+  account: '<circle cx="10" cy="7" r="3.5"/><path d="M3.5 17.5c.9-3.4 3.4-5.2 6.5-5.2s5.6 1.8 6.5 5.2"/>',
+  pass: '<path d="m10 2.8 2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.1l5-.7z"/>',
+  settings: '<circle cx="10" cy="10" r="2.7"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/>',
+  help: '<circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.8a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.6M10 14.6v.1"/>',
+  more: '<circle cx="5" cy="10" r="1"/><circle cx="10" cy="10" r="1"/><circle cx="15" cy="10" r="1"/>',
+};
+const icon = (k) => `<svg class="ic" viewBox="0 0 20 20" aria-hidden="true">${IC[k] || ''}</svg>`;
+// The home screen, after CityRT: the live race fills the screen; a notebook panel on the left holds Continue
+// and every way to race; the Anti-Bot Pass sits on the right, Get the app and Join us in the middle. On a phone
+// the panel shows Continue and the main modes (the rest behind "All modes"), and can be tucked away to watch.
 function home() {
   const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n], first = firstVisit();
-  const locked = account.pass.sell && !account.pass.active;
-  const today = done ? `Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)} · you finished P${done.best}` : `Today: Daily Grand Prix #${n} · ${dv.flag} ${esc(dv.city)}`;
+  const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
+  const lr = S.lastRace && venueById(S.lastRace.venue), nAc = doneCount(S), newcomer = first && !S.stats.starts && !nAc;
+  const next = !done ? { go: 'daily', what: `Daily Grand Prix #${n}`, where: `${dv.flag} ${esc(dv.city)}` }
+    : !seasonOver && !passLocked('season') ? { go: 'season', what: `Championship round ${S.season.round}`, where: `${sv.flag} ${esc(sv.city)}` }
+    : { go: 'daily', what: `Daily #${n} again`, where: `${dv.flag} ${esc(dv.city)} · you finished P${done.best}` };
+  const item = (go, ic, title, sub, pri) => `<button type="button" class="lp-i${pri ? ' pri' : ''}${passLocked(go) ? ' locked' : ''}" data-go="${go}">${icon(ic)}<span><b>${title}</b><small>${sub}</small></span>${star(go)}</button>`;
+  const car = carModel() || 'falcon';
+  const cont = newcomer
+    ? `<div class="lp-cont"><span class="k">${icon('daily')} Welcome to the paddock</span><h2>Your team awaits</h2>
+        <p>Two AI drivers race for you. You make the calls: tyres, pit stops, battery and the weather.</p>
+        <button class="btn lp-go" data-go="play" type="button">▶ Start here</button></div>`
+    : `<div class="lp-cont"><span class="k">${icon('daily')} Continue</span>
+        <div class="lp-row"><div><h2>${esc(first ? 'Your team' : team().name)}</h2>
+          <p class="lp-meta">${S.stats.starts} starts · ${S.stats.wins} wins</p><p class="lp-meta">Next: <b>${next.what}</b><br>${next.where}</p></div>
+          <img src="assets/cars/${car}.webp" alt="" width="120" height="68" decoding="async"></div>
+        <button class="btn lp-go" data-go="${next.go}" type="button">▶ Continue</button></div>`;
+  const pr = account.pass.price || { monthly: '0.50', yearly: '5.99' };
   const sh = show(`
-    <div class="nb-top"><h1 class="brand">AGENT <em>GRAND PRIX</em></h1><p class="tag">Your drivers race. You command.</p></div>
-    ${awayCard()}
-    <div class="nb">
-      <div class="nb-paper">
-        <span class="k">${today}</span>
-        <h2>${first ? 'Your team awaits' : `${esc(team().name)} awaits`}</h2>
-        <p>Free to play: the Daily Grand Prix every day, and your agent races the ones you miss.${locked ? ' <b>★ The Anti-Bot Pass</b> opens every mode.' : ''}</p>
-        <button class="btn big nb-play" data-go="play" type="button"><span aria-hidden="true">▶</span> Play</button>
-      </div>
-      <nav class="nb-menu" aria-label="Menu">
-        <button data-go="garage" type="button"><i aria-hidden="true">🚗</i>Garage</button>
-        <button data-go="dna" type="button"><i aria-hidden="true">🧬</i>Driver DNA</button>
-        <button data-go="help" type="button"><i aria-hidden="true">❓</i>How to play</button>
-        <button data-go="pass" type="button" class="nb-pass"><i aria-hidden="true">★</i>Anti-Bot Pass${account.pass.active ? ' <u class="vh">✓</u>' : ''}</button>
-        <button data-go="account" type="button"><i aria-hidden="true">👤</i>My account</button>
-        <button data-go="rules" type="button"><i aria-hidden="true">📜</i>Support &amp; rules</button>
-        ${installItem()}
-        ${langPicker()}
+    <aside class="lp" aria-label="Menu">
+      <div class="lp-head"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><p class="lp-tag">racing team management</p>
+        <button type="button" class="lp-hide" data-go="peek" aria-label="Hide the menu and watch the race">Watch ▾</button></div>
+      ${awayCard()}
+      ${cont}
+      <nav class="lp-list">
+        ${item('daily', 'daily', 'Daily Challenge', done ? `#${n} ${dv.flag} ${esc(dv.city)} · you finished P${done.best}` : `#${n} ${dv.flag} ${esc(dv.city)} · free for everyone`, 1)}
+        ${item('quick', 'quick', 'New race', `any of ${VENUES.length} circuits${lr ? `, last: ${esc(lr.city)}` : ''}`, 1)}
+        ${item('season', 'season', 'Season & career', seasonOver ? 'season over: see the standings' : `round ${S.season.round} of ${CALENDAR.length}: ${sv.flag} ${esc(sv.city)}`, 1)}
+        ${item('live', 'live', 'Live Grand Prix', 'ten real teams on one grid', 1)}
+        ${item('dailyfull', 'dailyfull', 'Full distance', 'today’s Daily, a whole Grand Prix')}
+        ${item('academy', 'academy', 'Racing Academy', `five short lessons${nAc ? ` · ${nAc}/${LESSONS.length} done` : ''}`)}
+        ${item('practice', 'practice', 'Free practice', 'no points, no pressure')}
+        <hr>
+        ${item('team', 'team', first ? 'Build my team' : 'My team', first ? 'name it, pick a car and colours' : 'drivers, car, colours, garage')}
+        ${item('board', 'board', 'Leaderboard', 'today and the weekly Sora prizes')}
+        ${item('account', 'account', signedIn() ? 'Profile & wallet' : 'Profile', signedIn() ? 'your account and Sora' : 'sign in so your team follows you')}
+        ${item('pass', 'pass', 'Anti-Bot Pass', account.pass.active ? 'active: verified human' : `every mode for $${esc(pr.monthly)} a month`)}
+        <button type="button" class="lp-i lp-more" data-go="play">${icon('more')}<span><b>All modes &amp; more</b><small>full distance, academy, practice, your team…</small></span></button>
+        <hr>
+        <div class="lp-pair"><button type="button" data-go="settings">${icon('settings')} Settings</button><button type="button" data-go="help">${icon('help')} How to play</button></div>
+        <p class="lp-links"><button type="button" class="link" data-go="garage">Garage</button> · <button type="button" class="link" data-go="dna">Driver DNA</button> · <button type="button" class="link" data-go="agent">My agent</button> · <button type="button" class="link" data-go="rules">Support &amp; rules</button></p>
       </nav>
-    </div>
-    ${joinUs()}${acChip()}`, 'home nbhome');
+      ${joinUs('in')}
+      <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(true)}</div>
+    </aside>
+    <button type="button" class="lp-show" data-go="unpeek">☰ Menu</button>
+    ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
+    ${appCard()}
+    ${passCard()}
+    ${joinUs('out')}${acChip()}`, `home nbhome${G.peek ? ' peek' : ''}`);
   sh.onclick = homeClick;
   sh.onchange = langChange;
   bootDone();
+}
+// the Anti-Bot Pass on the home screen's right
+function passCard() {
+  const P_ = account.pass, pr = P_.price || { monthly: '0.50', yearly: '5.99' };
+  const until = P_.until ? new Date(P_.until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  return `<div class="pc"><div class="pc-top"><span class="pass-chip">★ Anti-Bot Pass</span><span class="pc-v">✓ verified human</span></div>
+    <h3>${P_.active ? 'You’re a verified human' : 'All of Agent Grand Prix'}</h3>
+    <ul class="pc-list"><li><b>New races</b> on all ${VENUES.length} circuits</li><li><b>The Championship</b>, all ${CALENDAR.length} rounds</li><li><b>Live Grand Prix</b> against people</li><li><b>Full-distance</b> races</li><li>A share of the <b>weekly Sora prizes</b></li></ul>
+    ${P_.active ? `<p class="pc-fine">${P_.renews ? 'Renews' : 'Active until'} ${esc(until)}.</p><button class="btn pc-buy" data-go="pass" type="button">Manage pass</button>`
+      : P_.sell ? `<div class="pc-price"><b>$${esc(pr.monthly)}</b><span>per month</span></div><button class="btn pc-buy" data-go="pass" type="button">Unlock everything</button>
+        <p class="pc-fine">$${esc(pr.yearly)} a year, renews yearly. Cancel any time.</p>`
+      : '<p class="pc-fine">Opens very soon. Every mode is free until then.</p>'}</div>`;
+}
+// Get the app: the game installs from the browser, no store needed
+function appCard() {
+  if (standalone()) return '';
+  return `<div class="gc"><h3>Get the app</h3><p>full screen, one tap from your home screen</p>
+    <div class="gc-row"><button type="button" data-go="install:desk"><i>${'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg>'}</i><b>Computer</b><small>Chrome or Edge</small></button>
+      <button type="button" data-go="install:ios"><i>${'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>'}</i><b>iPhone</b><small>Safari</small></button>
+      <button type="button" data-go="install:android"><i>${'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2"/><path d="M6.5 5.5h11M6.5 18h11"/></svg>'}</i><b>Android</b><small>Chrome</small></button></div>
+    <button type="button" class="gc-play" data-go="play"><span aria-hidden="true">▶</span> Or play in the browser</button></div>`;
 }
 // Play: every way to race. A first visit gets the three ways in first; locked modes carry a ★ Pass tag.
 const PASS_GATED = new Set(['quick', 'season', 'dailyfull', 'live', 'again']);
@@ -1681,9 +1748,16 @@ function langPicker(bare) {
 function langChange(e) { if (!e.target.matches('select.lang')) return; S.settings.lang = e.target.value; store.save(); document.documentElement.lang = S.settings.lang; }
 
 // Join us: the community channels, greyed out until they open
-const SOCIAL = ['Telegram', 'Discord', 'TikTok', 'YouTube', 'Instagram'];
-function joinUs() {
-  return `<div class="join" aria-label="Join us: coming soon"><b>Join us</b><span>${SOCIAL.map((n) => `<em title="${n}: coming soon">${n}</em>`).join('')}</span><small>Coming soon</small></div>`;
+const SOCIAL = [
+  ['Telegram', '#2aabee', '<path d="M4 11.5 19 5.5l-2.6 13-4.6-3.6-2.4 2.3.3-3.6 6.6-6-8.3 5z" fill="#fff"/>'],
+  ['Discord', '#5865f2', '<path d="M7 8.2c3-1.4 7-1.4 10 0 1 2 1.6 4.2 1.4 7-1.2.9-2.4 1.4-3.6 1.7l-.8-1.3c-2.6.8-4.4.8-7 0l-.8 1.3c-1.2-.3-2.4-.8-3.6-1.7-.2-2.8.4-5 1.4-7z" fill="#fff"/><circle cx="9.6" cy="12.4" r="1.2" fill="#5865f2"/><circle cx="14.4" cy="12.4" r="1.2" fill="#5865f2"/>'],
+  ['TikTok', '#111', '<path d="M13.5 4.5c.4 2 1.7 3.3 3.7 3.5v2.4c-1.4 0-2.6-.4-3.7-1.1v5.2a4.3 4.3 0 1 1-4.3-4.3h.5v2.5h-.5a1.8 1.8 0 1 0 1.8 1.8V4.5z" fill="#fff"/>'],
+  ['YouTube', '#ff0033', '<rect x="4.5" y="7" width="15" height="10" rx="3" fill="#fff"/><path d="m10.5 9.8 4 2.2-4 2.2z" fill="#ff0033"/>'],
+  ['Instagram', '#d62976', '<rect x="6" y="6" width="12" height="12" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="15.3" cy="8.7" r=".9" fill="#fff"/>'],
+];
+function joinUs(where = 'out') {
+  return `<div class="join ${where}" aria-label="Join us: coming soon"><h3>Join us</h3><p>player chats, news and race videos: coming soon</p>
+    <div class="join-i">${SOCIAL.map(([n, c, g]) => `<span title="${n}: coming soon"><i style="--c:${c}"><svg viewBox="0 0 24 24" aria-hidden="true">${g}</svg></i>${n}</span>`).join('')}</div></div>`;
 }
 
 // Installing the game as an app: Chrome and Edge (desktop and Android) offer a real install prompt;
@@ -1697,15 +1771,15 @@ function installItem(row) {
   return row ? '<div class="set-row"><span><b>Install the app</b><small>Opens full screen from your home screen</small></span><button class="btn ghost" data-go="install" type="button">Install</button></div>'
     : '<button data-go="install" type="button" class="nb-install"><i aria-hidden="true">📲</i>Install the app</button>';
 }
-async function doInstall(back) {
-  if (installEvt) { const ev = installEvt; ev.prompt(); const r = await ev.userChoice.catch(() => ({})); installEvt = null; if (r.outcome !== 'accepted') toast('No problem. You can install it any time from the menu.'); return back(); }
-  const sh = show(`<h2>Add to your Home Screen</h2>
-    <p class="lede">Agent Grand Prix opens full screen, like an app, straight from your Home Screen.</p>
-    <ol class="ios-steps">
-      <li>Tap the <b>Share</b> button <span class="ios-share" aria-hidden="true">⬆︎</span> at the bottom of Safari (at the top on iPad).</li>
-      <li>Scroll down and tap <b>Add to Home Screen</b>.</li>
-      <li>Tap <b>Add</b>. The game's icon is now on your Home Screen.</li>
-    </ol>
+async function doInstall(back, kind = isIOS ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desk') {
+  if (installEvt && kind !== 'ios') { const ev = installEvt; ev.prompt(); const r = await ev.userChoice.catch(() => ({})); installEvt = null; if (r.outcome !== 'accepted') toast('No problem. You can install it any time from the menu.'); return back(); }
+  const how = {
+    ios: ['Add to your Home Screen', 'On iPhone and iPad, open agentgrandprix.com in <b>Safari</b>, then:', ['Tap the <b>Share</b> button <span class="ios-share" aria-hidden="true">⬆︎</span> (bottom of the screen; top on iPad).', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>. The game’s icon is now on your Home Screen.']],
+    android: ['Install on Android', 'Open agentgrandprix.com in <b>Chrome</b>, then:', ['Tap the <b>⋮</b> menu at the top right.', 'Tap <b>Install app</b> (or <b>Add to Home screen</b>).', 'Tap <b>Install</b>. The game opens full screen from its icon.']],
+    desk: ['Install on your computer', 'Open agentgrandprix.com in <b>Chrome</b> or <b>Edge</b>, then:', ['Click the <b>install</b> icon at the right end of the address bar (a screen with a down arrow).', 'Or open the browser menu and choose <b>Install Agent Grand Prix</b> (Edge: Apps › Install).', 'Click <b>Install</b>. The game gets its own window and a shortcut.']],
+  }[kind] || [];
+  const sh = show(`<h2>${how[0]}</h2><p class="lede">${how[1]}</p>
+    <ol class="ios-steps">${how[2].map((x) => `<li>${x}</li>`).join('')}</ol>
     <div class="actions"><button class="btn" id="iosOk" type="button">Got it</button></div>`);
   $('#iosOk').addEventListener('click', back);
   return sh;
@@ -2159,6 +2233,10 @@ function homeClick(e) {
   if (go === 'rules') return rulesSheet(back);
   if (go === 'settings') return settingsSheet(back);
   if (go === 'install') return doInstall(back);
+  if (go.startsWith('install:')) return doInstall(home, go.slice(8));
+  if (go === 'peek') { G.peek = true; return $('#screen').classList.add('peek'); }
+  if (go === 'unpeek') { G.peek = false; return $('#screen').classList.remove('peek'); }
+  if (go === 'signout') return signOut().then(() => { toast('Signed out on this device. Your progress stays with your account.'); home(); });
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
   if (go === 'daily') needTeam(() => pre({ kind: 'daily', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
   if (go === 'dailyfull') needTeam(() => pre({ kind: 'dailyfull', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
