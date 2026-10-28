@@ -1563,6 +1563,7 @@ function home() {
         <button type="button" class="lp-hide" data-go="peek" aria-label="Hide the menu and watch the race">Watch ▾</button><span class="lp-grab" aria-hidden="true"></span></div>
       ${awayCard()}
       ${cont}
+      ${agentCard('in')}
       <nav class="lp-list">
         ${item('daily', 'daily', 'Daily Challenge', done ? `#${n} ${dv.flag} ${esc(dv.city)} · you finished P${done.best}` : `#${n} ${dv.flag} ${esc(dv.city)} · free for everyone`, 1)}
         ${item('quick', 'quick', 'New race', `any of ${VENUES.length} circuits${lr ? `, last: ${esc(lr.city)}` : ''}`, 1)}
@@ -1588,15 +1589,15 @@ function home() {
     ${langNote()}
     <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
       <span class="lp-grab" aria-hidden="true"></span>
-      <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div></div>
+      <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div><button type="button" class="lp-mwa${wa.linked ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i>${wa.linked ? 'Agent linked' : 'AI agent'}</button></div>
       <div class="lp-macts"><button class="btn lp-go" data-go="${newcomer ? 'play' : next.go}" type="button">▶ ${newcomer ? 'Start here' : 'Play'}</button><button type="button" class="lp-mmenu" data-go="unpeek" aria-label="Open the menu">☰ Menu</button></div>
       ${legalLinks()}
     </div>
     ${legalLinks(' pg')}
     ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
     ${appCard()}
-    ${passCard()}
-    ${joinUs('out')}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
+    <div class="rcol">${passCard()}${joinUs('out')}</div>
+    ${agentCard()}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
   sh.onclick = homeClick;
   sheetSwipe(sh);
   sh.onchange = langChange;
@@ -1654,7 +1655,7 @@ function passCard() {
   const until = P_.until ? new Date(P_.until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   return `<div class="pc"><div class="pc-top"><span class="pass-chip">★ Anti-Bot Pass</span><span class="pc-v">✓ verified human</span></div>
     <h3>${P_.active ? 'You’re a verified human' : 'All of Agent Grand Prix'}</h3>
-    <ul class="pc-list"><li><b>New races</b> on all ${VENUES.length} circuits</li><li><b>The Championship</b>, all ${CALENDAR.length} rounds</li><li><b>Live Grand Prix</b> against people</li><li><b>Full-distance</b> races</li><li>A share of the <b>weekly Sora prizes</b></li></ul>
+    <ul class="pc-list"><li><b>New races</b> on all ${VENUES.length} circuits</li><li><b>The Championship</b>, all ${CALENDAR.length} rounds</li><li><b>Live Grand Prix</b> against people</li><li><b>Full-distance races</b></li><li>A share of the <b>weekly Sora prizes</b></li></ul>
     ${P_.active ? `<p class="pc-fine">${P_.renews ? 'Renews' : 'Active until'} ${esc(until)}.</p><button class="btn pc-buy" data-go="pass" type="button">Manage pass</button>`
       : P_.sell ? `<div class="pc-price"><b>$${esc(pr.monthly)}</b><span>per month</span></div><button class="btn pc-buy" data-go="pass" type="button">Unlock everything</button>
         <p class="pc-fine">$${esc(pr.yearly)} a year, renews yearly. Cancel any time.</p>`
@@ -1817,6 +1818,18 @@ const SOCIAL = [
   ['YouTube', '#ff0033', '<rect x="4.5" y="7" width="15" height="10" rx="3" fill="#fff"/><path d="m10.5 9.8 4 2.2-4 2.2z" fill="#ff0033"/>'],
   ['Instagram', '#d62976', '<rect x="6" y="6" width="12" height="12" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="2.8" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="15.3" cy="8.7" r=".9" fill="#fff"/>'],
 ];
+// Connect your AI agent: the heart of the game. Your race engineer on WhatsApp follows the race and
+// texts you the big calls, so a 50-lap Grand Prix doesn't need you glued to the screen.
+// Telegram and your own bot come next, for players who can't use WhatsApp.
+const WA_ICON = '<path d="M12 4.2a7.8 7.8 0 0 0-6.7 11.8L4.2 19.8l3.9-1a7.8 7.8 0 1 0 3.9-14.6z" fill="#fff"/><path d="M9.4 8.3c.2-.4.4-.4.6-.4h.5c.2 0 .4 0 .5.4l.7 1.7c.1.2 0 .4-.1.5l-.4.5c-.1.1-.2.3 0 .5.5.8 1.1 1.4 2 1.9.2.1.4.1.5 0l.6-.7c.1-.2.3-.2.5-.1l1.6.8c.2.1.3.2.3.4 0 .6-.3 1.2-.8 1.5-.6.3-1.4.4-2.3 0-1.7-.7-3-1.9-3.9-3.4-.6-1.1-.6-2 .1-2.6z" fill="#1267f4"/>';
+function agentCard(where = 'out') {
+  const on = wa.linked;
+  return `<div class="ag ${where}"><h3>Connect your AI agent</h3>
+    <p>${on ? `${esc(wa.name)} is on your pit wall: it follows every race and texts you the big calls.` : 'Your race engineer on WhatsApp. It follows your race and texts you the big calls, so a 50-lap Grand Prix runs while you live your life.'}</p>
+    <div class="ag-row"><button type="button" class="ag-wa${on ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${on ? 'WhatsApp connected' : 'Connect WhatsApp'}</b><small>${on ? `✓ ${esc(wa.name)} is linked` : 'takes one minute'}</small></span></button>
+      <span class="ag-soon" title="Coming soon"><i style="--c:#2aabee"><svg viewBox="0 0 24 24" aria-hidden="true">${SOCIAL[0][2]}</svg></i><span><b>Telegram</b><small>coming soon</small></span></span>
+      <span class="ag-soon" title="Coming soon"><i style="--c:#1d1f24"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="8" width="12" height="9" rx="3" fill="#fff"/><circle cx="10" cy="12.5" r="1.2" fill="#1d1f24"/><circle cx="14" cy="12.5" r="1.2" fill="#1d1f24"/><path d="M12 5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></i><span><b>Your own bot</b><small>coming soon</small></span></span></div></div>`;
+}
 function joinUs(where = 'out') {
   return `<div class="join ${where}" aria-label="Join us: coming soon"><h3>Join us</h3><p>player chats, news and race videos: coming soon</p>
     <div class="join-i">${SOCIAL.map(([n, c, g]) => `<span title="${n}: coming soon"><i style="--c:${c}"><svg viewBox="0 0 24 24" aria-hidden="true">${g}</svg></i>${n}</span>`).join('')}</div></div>`;

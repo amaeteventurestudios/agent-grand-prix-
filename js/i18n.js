@@ -123,7 +123,8 @@ function attrs(el) {
     const v = el.getAttribute(a);
     if (!v || !letters.test(v)) continue;
     const r = look(norm(v));
-    if (r) el.setAttribute(a, r);
+    // setting an attribute to its own value still fires the observer: write only real changes
+    if (r && r !== v) el.setAttribute(a, r);
   }
 }
 function walk(root) {
