@@ -6,6 +6,7 @@
 // It also serves the drivers' AI brain at /api/radio/talk once ANTHROPIC_API_KEY is set (Anthropic's
 // SDK, MIT, installed beside the app by install.sh). Node 18+.
 import http from 'node:http';
+import { open as openSession } from './accounts.mjs';
 
 const KEY = process.env.TYPESAFE_API_KEY || '';
 const PORT = +(process.env.RADIO_PORT || 8140);
@@ -74,25 +75,35 @@ export async function interpret(text, cars, sel, { key = KEY, fetchImpl = fetch 
 const AKEY = process.env.ANTHROPIC_API_KEY || '';
 const BRAIN = process.env.BRAIN_MODEL || 'claude-haiku-5-5';
 let claude = null;
-export async function talk(j, { fetchModel } = {}) {
+// the team's long-term memory (server/memory.mjs): a signed-in boss is remembered across races. Recall is local and
+// fast; if it isn't back in 400 ms the driver answers without it. What was said is handed back to be remembered.
+const MEMORY = (process.env.MEMORY_URL || 'http://127.0.0.1:8144').replace(/\/$/, '');
+const memo = (route, b, ms) => fetch(MEMORY + route, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b), signal: AbortSignal.timeout(ms) }).then((r) => (r.ok ? r.json() : null));
+export async function recall(uid, q) {
+  if (!uid) return [];
+  try { return ((await memo('/memory/recall', { uid, q, k: 5 }, 400)) || {}).items?.map((x) => x.text) || []; } catch { return []; }
+}
+export async function talk(j, { fetchModel, uid = null, known = null } = {}) {
   const { system, user, SCHEMA, accept } = await import('./talk.mjs');
   const facts = j.facts && typeof j.facts === 'object' ? j.facts : null;
   if (!facts || (facts.id !== 'you-0' && facts.id !== 'you-1')) return null;
   const driver = { name: clean(j.driver?.name, 30) || 'Driver', tone: ['f', 'c', 'e'].includes(j.driver?.tone) ? j.driver.tone : 'e', dna: clean(j.driver?.dna, 120) };
   const memory = (Array.isArray(j.memory) ? j.memory : []).slice(0, 6).map((m) => clean(m, 160));
   const t0 = Date.now();
+  known ??= await recall(uid, clean(j.said, 300));
   let raw;
-  if (fetchModel) raw = await fetchModel(system(driver), user(facts, memory, clean(j.said, 300)));
+  if (fetchModel) raw = await fetchModel(system(driver), user(facts, memory, clean(j.said, 300), known));
   else {
     if (!claude) { const { default: Anthropic } = await import('@anthropic-ai/sdk'); claude = new Anthropic({ apiKey: AKEY, timeout: 2600, maxRetries: 0 }); }
     const r = await claude.messages.create({
       model: BRAIN, max_tokens: 300, thinking: { type: 'disabled' }, system: system(driver),
-      messages: [{ role: 'user', content: user(facts, memory, clean(j.said, 300)) }],
+      messages: [{ role: 'user', content: user(facts, memory, clean(j.said, 300), known) }],
       output_config: { format: { type: 'json_schema', schema: SCHEMA } },
     });
     raw = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
   }
   const ok = accept(raw, facts);
+  if (ok && uid) memo('/memory/talk', { uid, source: 'driver', turns: [{ role: 'user', content: `(to driver ${driver.name}) ${clean(j.said, 300)}` }, { role: 'assistant', content: ok.text }] }, 3000).catch(() => {});
   return ok ? { ...ok, ms: Date.now() - t0 } : null;
 }
 
@@ -108,6 +119,12 @@ const vhits = new Map(); // the spoken replies: a sentence each, 40 a minute
 const vlimited = (ip) => { const now = Date.now(), h = (vhits.get(ip) || []).filter((x) => now - x < 60000); h.push(now); vhits.set(ip, h); if (vhits.size > 5000) vhits.clear(); return h.length > 40; };
 let voiceOn = false;
 const send = (res, code, body) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store' }); res.end(JSON.stringify(body)); };
+// who is talking: only a signed-in player (the game's session cookie, the same one the accounts service sets) has a memory
+const signedIn = (req) => {
+  const c = String(req.headers.cookie || '').split(';').map((x) => x.trim()).find((x) => x.startsWith('agp.sid='));
+  const s = c && openSession(decodeURIComponent(c.slice(8)));
+  return s && s.uid && /^[A-Za-z0-9_-]{1,64}$/.test(s.uid) ? s.uid : null;
+};
 const clean = (s, n) => String(s ?? '').replace(/[^\p{L}\p{N} .,'?!-]/gu, '').slice(0, n);
 
 export function serve(port = PORT) {
@@ -139,7 +156,7 @@ export function serve(port = PORT) {
     req.on('end', async () => {
       try {
         const j = JSON.parse(body);
-        if (isTalk) { const r = await talk(j); return send(res, r ? 200 : 422, r || { error: 'no usable reply' }); }
+        if (isTalk) { const r = await talk(j, { uid: signedIn(req) }); return send(res, r ? 200 : 422, r || { error: 'no usable reply' }); }
         const cars = (Array.isArray(j.cars) ? j.cars : []).filter((c) => c.id === 'you-0' || c.id === 'you-1').map((c) => ({ id: c.id, name: clean(c.name, 30), code: clean(c.code, 4) }));
         const text = clean(j.text, 200), sel = j.sel === 'you-1' ? 'you-1' : 'you-0';
         if (!text.trim() || cars.length !== 2) return send(res, 400, {});

@@ -30,6 +30,33 @@ must(/Lagos it is/.test(out) && /LAGOS GRAND PRIX/.test(out), 'free talk starts 
 W.races.clear();
 console.log('chat ok');
 
+// long-term memory: Teague recalls what it knows, hands the chat back to be remembered, lists it and forgets on request
+const mem = { calls: [], items: { } };
+W.setMemory(async (method, route, body) => {
+  mem.calls.push([method, route, body]);
+  if (route === '/memory/recall') return { items: [{ text: 'Likes to be called Ace' }] };
+  if (route.startsWith('/memory/list')) return { items: (mem.items[route.split('uid=')[1]] || []).map((text) => ({ text })) };
+  if (method === 'DELETE') { const k = route.split('uid=')[1], n = (mem.items[k] || []).length; delete mem.items[k]; return { forgot: n }; }
+  return { ok: true };
+});
+let seen = '';
+W.setChatModel(async (sys, user) => { seen = user; return JSON.stringify({ say: 'Morning, Ace!', action: 'none', city: null, tyre: null, car: null, team: null }); });
+await W.handle('t5', 'good morning teague, ready to win?'); out = said();
+must(/Morning, Ace/.test(out) && /remember about this player.*Likes to be called Ace/.test(seen), 'memories reach the model', seen);
+await new Promise((r) => setTimeout(r, 10));
+const talk = mem.calls.find((c) => c[1] === '/memory/talk');
+must(talk && /^wa-[A-Za-z0-9_-]{24}$/.test(talk[2].uid) && !talk[2].uid.includes('t5') && talk[2].turns.length === 2, 'the chat is handed back to be remembered, under a hash of the number', JSON.stringify(talk));
+mem.items[talk[2].uid] = ['Likes to be called Ace', 'Wants to beat Kestrel Racing'];
+await W.handle('t5', 'memories'); out = said();
+must(/What I remember/.test(out) && /Kestrel/.test(out), 'memories list', out);
+await W.handle('t5', 'forget me'); out = said();
+must(/forgotten the 2 things/.test(out) && !mem.items[talk[2].uid], 'forget me', out);
+W.setMemory(async () => { throw new Error('down'); });
+await W.handle('t5', 'how are you?'); out = said();
+must(/Morning, Ace/.test(out), 'chat still works with memory down', out);
+W.setChatModel(null);
+console.log('memory ok');
+
 // words as answers
 const PW = await import('./pitwall.mjs');
 const q = { pick: 0, opts: [{ box: 'H' }, { box: null }, { box: 'M' }] };

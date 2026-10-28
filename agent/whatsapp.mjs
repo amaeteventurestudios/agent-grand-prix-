@@ -8,6 +8,7 @@
 //      WA_API (default https://api.whatsapp.com/agent/v1), STATE_FILE (default agent/state.json),
 //      RACE_SPEED (default 1: real time, about four minutes a race).
 import { readFileSync, writeFileSync, renameSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { CALENDAR, VENUES, COMPOUNDS } from '../js/data.js';
 import { hashString } from '../js/rng.js';
@@ -247,6 +248,13 @@ function finish(L) {
   p.results.push({ day: L.kind === 'daily' ? L.day : null, venue: L.venue.id, pos: my.map((x) => (x.dnf ? 'DNF' : x.pos)), pts });
   p.results = p.results.slice(-50);
   save();
+  if (!L.mirror) {
+    const ahead = my.filter((x) => !x.dnf).sort((a, b) => a.pos - b.pos)[0], front = ahead && res.find((x) => x.pos === ahead.pos - 1);
+    const line = `${L.venue.city} Grand Prix (${L.kind === 'daily' ? 'Daily #' + L.day + ', ' : ''}raced on WhatsApp) on ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}: `
+      + my.map((x) => `${x.car.name} ${x.dnf ? 'retired' : `P${x.pos} from P${x.car.grid}`}`).join(', ') + `. Won by ${res[0].car.team.name || res[0].car.code}.`
+      + (front && front.pos > 1 ? ` Finished just behind ${front.car.team.name || front.car.code}.` : '') + (p.auto ? ' The agents made the calls.' : '');
+    memoryApi('POST', '/memory/fact', { uid: memKey(L.to, p), text: line, kind: 'race' }).catch(() => {});
+  }
   const cards = L.cards || [], mine = cards.filter((q) => q.how === 'you'), timed = cards.filter((q) => q.how === 'timeout');
   const against = mine.filter((q) => q.answer !== q.pick);
   const st = L.stints || {};
@@ -307,6 +315,8 @@ const HELP = [
   '• *results* · your last races',
   '• *link CODE* · follow your races in the game (code: menu › My agent)',
   '• *updates every 3 laps* · how often I message you (or *updates off*)',
+  '• *memories* · what I remember about you',
+  '• *forget me* · I forget everything I remember about you',
   '',
   '📻 *During a race*',
   '• *box softs* · pit (or mediums, hards, inters, wets)',
@@ -366,7 +376,7 @@ function handle(from, text, name, { noChat = false } = {}) {
   if (L && (m = t.match(/^(?:car|follow|switch)\s+(\w+)$/))) { const c = pickCar(L, m[1]); if (c) { L.sel = c.id; return send(from, `Now calling for ${c.code}.`); } }
   if (L && /^(status|gap|where)$/.test(t)) return send(from, summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`));
   if ((m = t.match(/^link\s+([a-z0-9]{6})$/))) return linkAccount(from, p, m[1]);
-  if (/^unlink$/.test(t)) { accountsApi('POST', '/agent/unlink', { phone: from }).catch(() => {}); p.linked = false; if (L && L.mirror) races.delete(from); save(); return send(from, '🔌 Unlinked. I won\'t follow your races on the web any more. Connect again any time from the game: menu › My agent.'); }
+  if (/^unlink$/.test(t)) { accountsApi('POST', '/agent/unlink', { phone: from }).catch(() => {}); p.linked = false; p.uid = null; if (L && L.mirror) races.delete(from); save(); return send(from, '🔌 Unlinked. I won\'t follow your races on the web any more. Connect again any time from the game: menu › My agent.'); }
   if (L && L.mirror && /^(stop|quit|abandon)$/.test(t)) { p.muted = L.mirror.key; races.delete(from); save(); return send(from, `OK, I'll stop following this one. The race carries on in the game.`); }
   if (L && /^(stop|quit|abandon)$/.test(t)) { races.delete(from); return send(from, 'Race stopped. Reply *today* or *race* for another.'); }
   if (/^(auto|autonomous|hand over|handover)$/.test(t)) { p.auto = true; p.ask = true; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: true }); } return send(from, '🤖 Your agents have the race. I\'ll only message you when there\'s a big call, with my pick and a deadline. Reply *quiet* to let them decide everything, or *take over* to make every call yourself.'); }
@@ -377,6 +387,8 @@ function handle(from, text, name, { noChat = false } = {}) {
     p.team = { ...DEFAULT_TEAM, name: nm, short: nm.replace(/[^A-Za-z]/g, '').slice(0, 3).toUpperCase() || 'YOU' }; save();
     return send(from, `Your team is now *${nm}*.`);
   }
+  if (/^(forget me|forget everything|forget all|delete my memories|wipe my memory)$/.test(t)) return forgetMe(from, p);
+  if (/^(memories|memory|what do you remember( about me)?)$/.test(t)) return showMemories(from, p);
   if (/^(results|history)$/.test(t)) {
     const r = p.results.slice(-5).reverse();
     return send(from, r.length ? '🏆 *Your last races*\n\n' + r.map((x) => { const v = VENUES.find((q) => q.id === x.venue); return `• ${v?.flag || ''} *${v?.city}*${x.day ? ` (Daily #${x.day})` : ''}\n   ${x.pos.map((q) => (q === 'DNF' ? 'DNF' : 'P' + q)).join(' and ')} · +${x.pts} pts`; }).join('\n') : 'No races yet. Reply *today* to start one.');
@@ -439,13 +451,52 @@ async function converse(from, p, text) {
   if (chatLimited(from)) return send(from, "Let's take a breather, I need a few minutes. Commands still work: reply *help*.");
   const L = races.get(from);
   const hist = (p.chat ||= []);
+  const key = await memUid(from, p), known = await recallFor(key, text);
   let r = null;
-  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES }); } catch (e) { log('chat failed', e.message); }
+  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES, known }); } catch (e) { log('chat failed', e.message); }
   if (!r) return send(from, L ? RACE_HELP : welcome(p));
   hist.push({ player: text.slice(0, 300) }, { you: r.say.slice(0, 300) });
   p.chat = hist.slice(-12); save();
   send(from, r.say);
+  memoryApi('POST', '/memory/talk', { uid: key, source: 'teague', turns: [{ role: 'user', content: text.slice(0, 500) }, { role: 'assistant', content: r.say }] }).catch(() => {});
   if (r.command) handle(from, r.command, null, { noChat: true });
+}
+
+// ---------- the team's long-term memory (server/memory.mjs) ----------
+// A number linked to an account shares the account's memory with the drivers in the game; a number that
+// isn't linked has its own (keyed by a hash of the number, never the number) until it links.
+const MEMORY = (process.env.MEMORY_URL || 'http://127.0.0.1:8144').replace(/\/$/, '');
+async function memoryHttp(method, route, body) {
+  const r = await fetch(MEMORY + route, { method, headers: body ? { 'content-type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(method === 'POST' && route === '/memory/recall' ? 600 : 5000) });
+  if (!r.ok) throw new Error('memory ' + r.status);
+  return r.json();
+}
+let memoryApi = memoryHttp;
+export function setMemory(f) { memoryApi = f; }   // tests hand in a fake memory
+const memKey = (from, p) => p.uid || 'wa-' + createHash('sha256').update('agp-wa:' + from).digest('base64url').slice(0, 24);
+// a number linked before memory existed: ask the game server once which account it belongs to
+async function memUid(from, p) {
+  if (p.linked && !p.uid && !p.uidAsked) {
+    p.uidAsked = true;
+    try { const r = await accountsApi('GET', '/agent/who?phone=' + encodeURIComponent(from)); if (r && r.id) { p.uid = r.id; save(); } } catch { p.uidAsked = false; }
+  }
+  return memKey(from, p);
+}
+async function recallFor(key, q) { try { return ((await memoryApi('POST', '/memory/recall', { uid: key, q: String(q).slice(0, 400), k: 6 })) || {}).items?.map((x) => x.text) || []; } catch { return []; } }
+async function showMemories(from, p) {
+  let items = null;
+  try { items = (await memoryApi('GET', '/memory/list?uid=' + (await memUid(from, p)))).items; } catch {}
+  if (!items) return send(from, "I can't reach my notes just now. Try again in a minute.");
+  if (!items.length) return send(from, "🧠 I don't remember anything about you yet. Chat with me and race, and I'll start to.");
+  return send(from, ['🧠 *What I remember about you*', '', ...items.slice(0, 12).map((x) => '• ' + x.text), ...(items.length > 12 ? [`_…and ${items.length - 12} more_`] : []), '', 'Reply *forget me* and I\'ll forget all of it.'].join('\n'));
+}
+async function forgetMe(from, p) {
+  const keys = [...new Set([await memUid(from, p), memKey(from, { })])];
+  let n = 0, failed = false;
+  for (const k of keys) { try { n += (await memoryApi('DELETE', '/memory?uid=' + k)).forgot || 0; } catch { failed = true; } }
+  p.chat = []; save();
+  if (failed && !n) return send(from, "I couldn't reach my notes just now, so nothing was forgotten. Try again in a minute.");
+  return send(from, `🧽 Done. I've forgotten ${n ? `the ${n} thing${n === 1 ? '' : 's'} I remembered about you` : 'everything'}${p.uid ? ', here and with your drivers in the game' : ''}. Your races and team stay as they are.`);
 }
 
 function pickCar(L, w) {
@@ -474,9 +525,11 @@ async function linkAccount(from, p, code) {
   let r;
   try { r = await accountsApi('POST', '/agent/claim', { code: code.toUpperCase(), phone: from }); }
   catch (e) { return send(from, e.status === 404 ? "That code didn't work or has expired. Get a fresh one in the game: menu › *My agent* › *Connect WhatsApp*." : "I couldn't reach the game server just now. Try again in a minute."); }
-  p.linked = true; p.muted = null;
+  const was = memKey(from, p);
+  p.linked = true; p.muted = null; p.uid = r.id || null;
   if (r.team && r.team.name && Array.isArray(r.team.drivers)) p.team = r.team;
   save();
+  if (p.uid && was !== p.uid) memoryApi('POST', '/memory/move', { from: was, into: p.uid }).catch(() => {});   // what I knew about this number joins the account
   return send(from, [`🔗 *Linked${r.team && r.team.name ? ` to ${r.team.name}` : ''}*`, '', 'From now on I follow every race you start on the website, on any device signed in to that account.', '', '• Hand the team to your agents in the game and I\'ll text you the big calls, with my pick and a deadline.', '• In Team Principal mode I stay quiet apart from race control.', '', 'Reply *unlink* to stop.'].join('\n'));
 }
 

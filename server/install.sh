@@ -95,6 +95,13 @@ SDK_V=1.3.0 KOKORO_V=1.2.1
 if ! grep -qs "\"version\": \"$SDK_V\"" "$APP/node_modules/@anthropic-ai/sdk/package.json" || ! grep -qs "\"version\": \"$KOKORO_V\"" "$APP/node_modules/kokoro-js/package.json"; then
   sudo env PATH="$NODE_DIR/bin:$PATH" npm install --prefix "$APP" --no-save --no-audit --no-fund --omit=dev "@anthropic-ai/sdk@$SDK_V" "kokoro-js@$KOKORO_V" >/dev/null 2>&1 || echo 'Could not install the AI brain packages (drivers fall back to the rules brain and recorded clips)'
 fi
+# the team's long-term memory runs on mem0 (Apache 2.0) with SQLite (better-sqlite3, MIT), in a folder of their own so
+# they never disturb the packages above; its search model comes from transformers.js, already installed with kokoro-js
+MEM_DIR=/opt/agp-memory MEM0_V=3.3.1 SQLITE_V=12.11.1
+if ! grep -qs "\"version\": \"$MEM0_V\"" "$MEM_DIR/node_modules/mem0ai/package.json" || ! grep -qs "\"version\": \"$SQLITE_V\"" "$MEM_DIR/node_modules/better-sqlite3/package.json"; then
+  sudo mkdir -p "$MEM_DIR"
+  sudo env PATH="$NODE_DIR/bin:$PATH" npm install --prefix "$MEM_DIR" --no-save --no-audit --no-fund --omit=dev --legacy-peer-deps "mem0ai@$MEM0_V" "better-sqlite3@$SQLITE_V" >/dev/null 2>&1 || echo 'Could not install the memory packages (the team plays on without long-term memory)'
+fi
 # ---- team radio interpreter + drivers' AI brain (always runs; each part waits for its key) ----
 sudo tee /etc/systemd/system/agp-radio.service >/dev/null <<UNIT
 [Unit]
@@ -103,6 +110,9 @@ After=network-online.target
 Wants=network-online.target
 [Service]
 EnvironmentFile=/etc/agent-grand-prix.env
+# the session key, so the drivers know which signed-in player they're talking to (for the team's memory)
+EnvironmentFile=-/etc/novenique/clients/agp.env
+EnvironmentFile=-/etc/agp-session.env
 ExecStart=$NODE_DIR/bin/node $APP/server/radio.mjs
 WorkingDirectory=$APP
 Environment=HF_CACHE=/var/lib/agp-radio/models
@@ -151,6 +161,31 @@ Restart=always
 RestartSec=5
 DynamicUser=yes
 StateDirectory=agp-accounts
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# ---- the team's long-term memory (server/memory.mjs): Teague and the drivers remember each signed-in player ----
+# local only (no web address); reading chats uses ANTHROPIC_API_KEY, capped per player a day; race results need no key
+sudo tee /etc/systemd/system/agp-memory.service >/dev/null <<UNIT
+[Unit]
+Description=Agent Grand Prix team memory (mem0)
+After=network-online.target
+Wants=network-online.target
+[Service]
+EnvironmentFile=/etc/agent-grand-prix.env
+ExecStart=$NODE_DIR/bin/node $APP/server/memory.mjs
+WorkingDirectory=$APP
+Environment=MEMORY_DIR=/var/lib/agp-memory
+Environment=MEMORY_MODULES=$MEM_DIR
+Environment=HF_CACHE=/var/lib/agp-memory/models
+Environment=HOME=/var/lib/agp-memory
+Environment=MEM0_TELEMETRY=false
+Environment=MEMORY_DAILY_CAP=8
+Restart=always
+RestartSec=5
+DynamicUser=yes
+StateDirectory=agp-memory
 [Install]
 WantedBy=multi-user.target
 UNIT
@@ -229,6 +264,8 @@ sleep 3
 sudo systemctl is-active caddy
 sudo systemctl enable agp-accounts >/dev/null && sudo systemctl restart agp-accounts
 sleep 1; curl -fsS http://127.0.0.1:8141/api/me/health && echo ' <- accounts (false until the Novenique secret is set)' || echo 'Accounts service not answering yet'
+sudo systemctl enable agp-memory >/dev/null && sudo systemctl restart agp-memory
+sleep 1; curl -fsS http://127.0.0.1:8144/memory/health && echo ' <- team memory (on: mem0 loaded, learns: reads chats)' || echo 'Team memory not answering yet'
 sudo systemctl enable agp-board >/dev/null && sudo systemctl restart agp-board
 sleep 1; curl -fsS http://127.0.0.1:8142/api/board/health && echo ' <- leaderboards' || echo 'Leaderboard service not answering yet'
 sudo systemctl enable agp-live >/dev/null && sudo systemctl restart agp-live

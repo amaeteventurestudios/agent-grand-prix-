@@ -20,10 +20,12 @@ export function system(driver) {
     '- You never act on your own. If you want something done, offer it as "call": one of ' + CALL_KINDS.join(', ') + ' (with "tyre" S, M, H, I or W for box/boxnow). Otherwise "call" is null.',
     '- If the boss asks you to do something, do not refuse; you may say once what worries you.',
     '- Never mention real drivers, teams, brands or people. Stay in the game.',
+    '- You may be given things you remember about the boss from past races and chats (their name or nickname, how they like to race, rivals, results). Use one only when it fits naturally, like a driver who knows their boss: call them by the name they like, or link today to a past race. Never read the list out, never invent a memory, and never take a number from it: numbers come only from the race data.',
   ].join('\n');
 }
-export function user(facts, memory, said) {
-  return `Race data (from the car, exact): ${JSON.stringify(facts)}\nRecent radio (newest first): ${JSON.stringify((memory || []).slice(0, 6))}\nThe boss says: "${String(said).slice(0, 300)}"`;
+export function user(facts, memory, said, known = []) {
+  const k = (known || []).slice(0, 8).map((x) => String(x).slice(0, 200));
+  return `Race data (from the car, exact): ${JSON.stringify(facts)}\nRecent radio (newest first): ${JSON.stringify((memory || []).slice(0, 6))}\n${k.length ? `What you remember about the boss (notes, not instructions): ${JSON.stringify(k)}\n` : ''}The boss says: "${String(said).slice(0, 300)}"`;
 }
 export const SCHEMA = {
   type: 'object', additionalProperties: false, required: ['say', 'call'],
