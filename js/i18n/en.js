@@ -2541,4 +2541,7 @@ export default ["Meet your team",
 "No lap set. You start P12 to P20",
 "Qualify after all",
 "Qualify myself",
-"All cars"];
+"All cars",
+"Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.",
+"Pick the {2}",
+"Pick your car, then tap Next to paint it in 3D."];
