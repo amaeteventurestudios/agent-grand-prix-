@@ -43,7 +43,7 @@ jobs:
           SIGNIN_REQUIRED: ${{ vars.AGP_SIGNIN_REQUIRED || '1' }}   # racing needs an account (on by default since 2026-10-28; a repo variable of "0" turns it off)
           STRIPE_KEY: ${{ secrets.STRIPE_SECRET_KEY }}        # Anti-Bot Pass checkout (sk_live_... or sk_test_...)
           STRIPE_HOOK: ${{ secrets.STRIPE_WEBHOOK_SECRET }}   # whsec_... from the Stripe webhook for /api/stripe/webhook
-          STRIPE_PRICE_YEAR: ${{ vars.AGP_STRIPE_PRICE_YEAR || '' }}   # price_... of the yearly pass in Stripe's product catalog (not a secret)
+          STRIPE_PRICE_YEAR: ${{ vars.AGP_STRIPE_PRICE_YEAR || 'price_1UVZYwK7r3L8izVdOGIk57Jl' }}   # price_... of the yearly pass in Stripe's product catalog (not a secret)
           WA_NUMBER: ${{ vars.AGENT_WA_NUMBER || '18409992755' }}   # Teague's WhatsApp number (not a secret; a repo variable overrides it), for the game's "Open WhatsApp" button
         run: |
           set -euo pipefail
