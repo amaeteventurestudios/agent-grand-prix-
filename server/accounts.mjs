@@ -350,6 +350,20 @@ export function stripeVerify(raw, header, secret = STRIPE_HOOK, now = Date.now()
   const want = crypto.createHmac('sha256', secret).update(`${t}.${raw}`).digest('hex');
   return sigs.some((s) => s.length === want.length && crypto.timingSafeEqual(Buffer.from(s), Buffer.from(want)));
 }
+// The pass lives in Novenique Core once PASS_VIA_CORE=1: one Stripe account and one pass system for every Novenique game.
+// This service then asks Core, and passes Stripe's webhook on to it unchanged (Core checks the same signature), so the
+// webhook address in Stripe stays as it is. The passes sold here before the move are copied to Core once.
+const viaCore = () => on() && process.env.PASS_VIA_CORE === '1';
+export async function importPasses() {
+  const all = passes();
+  if (!viaCore() || all.imported) return false;
+  const list = Object.entries(all.byId).map(([id, p]) => ({ id, plan: p.plan, sub: p.sub, customer: p.customer, since: p.since, until: p.until, renews: p.renews, paid: p.paid }));
+  for (let i = 0; i < Math.max(list.length, 1); i += 100) await core('/v1/pass/import', { passes: list.slice(i, i + 100), events: i ? [] : all.events.slice(-200) });
+  all.imported = Date.now(); keep(all);
+  console.log(`passes copied to Novenique Core: ${list.length}`);
+  return true;
+}
+const corePass = (id) => core('/v1/pass?user_id=' + encodeURIComponent(id), null, 'GET');
 const ECONOMY = (process.env.ECONOMY_URL || '').replace(/\/$/, ''), ECON_TOKEN = process.env.EDITORIAL_SERVICE_TOKEN || '';
 async function wallet(id) {
   if (!ECONOMY || !ECON_TOKEN) return { on: false };
@@ -379,8 +393,15 @@ export function serve(port = PORT) {
         if (u.pathname === '/agent/unlink' && req.method === 'POST') { const b = await body(req, 2048); return send(res, 200, { n: agentUnlink(null, String(b.phone || '')) }); }
         if (u.pathname === '/agent/race' && req.method === 'GET') return send(res, 200, raceFor(u.searchParams.get('phone') || ''));
         if (u.pathname === '/agent/who' && req.method === 'GET') { const ph = u.searchParams.get('phone') || '', l = links(); return send(res, 200, { id: Object.keys(l.byId).find((k) => l.byId[k] === ph) || null }); }
-        if (u.pathname === '/agent/pass' && req.method === 'GET') return send(res, 200, { active: !!passOf(String(u.searchParams.get('id') || '')), sell: !!(STRIPE_KEY && STRIPE_HOOK) });
-        if (u.pathname === '/agent/passes' && req.method === 'GET') { const p = passes(); return send(res, 200, { passes: Object.entries(p.byId).map(([id, x]) => ({ id, ...x, active: x.until > Date.now() })) }); }
+        if (u.pathname === '/agent/pass' && req.method === 'GET') {
+          const id = String(u.searchParams.get('id') || '');
+          if (viaCore()) { const p = safe(id) ? await corePass(id) : { active: false }; return send(res, 200, { active: !!p.active, sell: !!p.sell }); }
+          return send(res, 200, { active: !!passOf(id), sell: !!(STRIPE_KEY && STRIPE_HOOK) });
+        }
+        if (u.pathname === '/agent/passes' && req.method === 'GET') {
+          if (viaCore()) return send(res, 200, { passes: (await core('/v1/passes', null, 'GET')).passes });
+          const p = passes(); return send(res, 200, { passes: Object.entries(p.byId).map(([id, x]) => ({ id, ...x, active: x.until > Date.now() })) });
+        }
         // the owner's screen: signed-up players with their emails (Core answers only this game's own)
         if (u.pathname === '/agent/players' && req.method === 'GET') return send(res, 200, on() ? await core('/v1/players', null, 'GET') : { players: [] });
         if (u.pathname === '/agent/cmd' && req.method === 'POST') { const b = await body(req, 4096); return send(res, raceCmd(String(b.id || ''), String(b.car || ''), b.cmd) ? 200 : 404, {}); }
@@ -389,7 +410,13 @@ export function serve(port = PORT) {
     }
     if (u.pathname === '/api/stripe/webhook' && req.method === 'POST') {
       let raw = ''; req.on('data', (d) => { raw += d; if (raw.length > 256 * 1024) req.destroy(); });
-      return req.on('end', () => {
+      return req.on('end', async () => {
+        if (viaCore()) {
+          try {
+            const r = await fetch(CORE_IN + '/stripe/webhook', { method: 'POST', headers: { 'content-type': 'application/json', 'stripe-signature': String(req.headers['stripe-signature'] || '') }, body: raw, signal: AbortSignal.timeout(15000) });
+            return send(res, r.status, await r.json().catch(() => ({})));
+          } catch { return send(res, 502, { error: 'try again' }); }   // Stripe retries
+        }
         if (!stripeVerify(raw, req.headers['stripe-signature'])) return send(res, 400, { error: 'bad signature' });
         try {
           const r = passEvent(JSON.parse(raw));
@@ -410,6 +437,12 @@ export function serve(port = PORT) {
     }
     if (u.pathname === '/api/me/pass' || u.pathname === '/api/me/pass/checkout' || u.pathname === '/api/me/pass/manage' || u.pathname === '/api/me/wallet') {
       const s = open(cookies(req)['agp.sid']); const who = s && me(s);
+      if (u.pathname === '/api/me/pass' && req.method === 'GET' && viaCore()) {
+        try {
+          const p = await corePass(who && !who.guest && safe(who.id) ? who.id : 'nobody');
+          return send(res, 200, { active: !!p.active, until: p.until, renews: !!p.renews, manage: !!p.manage, sell: !!p.sell, plans: p.plans, price: p.price });
+        } catch { return send(res, 200, { active: false, sell: false, plans: [], price: null }); }
+      }
       if (u.pathname === '/api/me/pass' && req.method === 'GET') {
         const p = who && passOf(who.id), plans = planList(), y = plans.find((x) => x.id === 'year') || plans[0];
         return send(res, 200, { active: !!p, until: p ? p.until : null, renews: !!(p && p.renews), manage: !!(p && p.customer), sell: !!(STRIPE_KEY && STRIPE_HOOK && plans.length), plans,
@@ -417,6 +450,12 @@ export function serve(port = PORT) {
       }
       if (!who || who.guest) return send(res, 401, { error: 'Sign in first' });
       try {
+        if (u.pathname === '/api/me/pass/checkout' && req.method === 'POST' && viaCore()) {
+          const b = await body(req, 1024).catch(() => ({}));
+          const r = await coreTry('/v1/pass/checkout', { user_id: who.id, email: s.user && s.user.email, plan: String((b && b.plan) || 'year') });
+          return r.status === 200 ? send(res, 200, { url: r.body.url }) : send(res, r.status === 503 ? 503 : 502, { error: r.status === 503 ? 'The pass opens very soon.' : 'Payments are not available right now. Please try again soon.' });
+        }
+        if (u.pathname === '/api/me/pass/manage' && req.method === 'POST' && viaCore()) return send(res, 200, { url: (await core('/v1/pass/manage', { user_id: who.id })).url });
         if (u.pathname === '/api/me/pass/checkout' && req.method === 'POST') {
           if (!STRIPE_KEY || !STRIPE_HOOK) return send(res, 503, { error: 'The pass opens very soon.' });
           const b = await body(req, 1024).catch(() => ({}));
@@ -530,5 +569,7 @@ export function serve(port = PORT) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   serve();
-  console.log(`accounts on 127.0.0.1:${PORT}, ${on() ? 'live against ' + CORE : 'off (no NOVENIQUE_URL, client secret or SITE_URL)'}`);
+  console.log(`accounts on 127.0.0.1:${PORT}, ${on() ? 'live against ' + CORE : 'off (no NOVENIQUE_URL, client secret or SITE_URL)'}${viaCore() ? ', pass in Novenique Core' : ''}`);
+  const copy = (n) => importPasses().catch((e) => { console.error('copying passes to Core:', e.message); if (n < 20) setTimeout(() => copy(n + 1), 30000); });
+  copy(0);
 }

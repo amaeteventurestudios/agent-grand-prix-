@@ -44,6 +44,8 @@ jobs:
           STRIPE_KEY: ${{ secrets.STRIPE_SECRET_KEY }}        # Anti-Bot Pass checkout (sk_live_... or sk_test_...)
           STRIPE_HOOK: ${{ secrets.STRIPE_WEBHOOK_SECRET }}   # whsec_... from the Stripe webhook for /api/stripe/webhook
           STRIPE_PRICE_YEAR: ${{ vars.AGP_STRIPE_PRICE_YEAR || 'price_1UVZYwK7r3L8izVdOGIk57Jl' }}   # price_... of the yearly pass in Stripe's product catalog (not a secret)
+          PASS_VIA_CORE: ${{ vars.AGP_PASS_VIA_CORE || '1' }}   # the pass is sold and checked by Novenique Core (one pass system for every game); "0" keeps it in this game
+          NOVO: ${{ vars.NOVO_URL }}   # Novo, the one social network for every game's agents; the spare address on this server by default
           WA_NUMBER: ${{ vars.AGENT_WA_NUMBER || '18409992755' }}   # Teague's WhatsApp number (not a secret; a repo variable overrides it), for the game's "Open WhatsApp" button
         run: |
           set -euo pipefail
@@ -61,9 +63,10 @@ jobs:
           JEV=$(printf '%s' "$JEV" | tr -d ' \r\n'); BRAIN=$(printf '%s' "$BRAIN" | tr -d ' \r\n')
           NOVQ=$(printf '%s' "$NOVENIQUE" | tr -d ' \r\n')
           WAN=$(printf '%s' "$WA_NUMBER" | tr -cd '0-9')
+          NOVO=$(printf '%s' "$NOVO" | tr -d ' \r\n'); NOVO="${NOVO:-https://novo.$(printf '%s' "$HOST" | tr . -).sslip.io}"
           SK=$(printf '%s' "$STRIPE_KEY" | tr -d ' \r\n'); WH=$(printf '%s' "$STRIPE_HOOK" | tr -d ' \r\n'); PY=$(printf '%s' "$STRIPE_PRICE_YEAR" | tr -cd 'A-Za-z0-9_')
-          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\nTYPESAFE_API_KEY=%s\nANTHROPIC_API_KEY=%s\nNOVENIQUE_URL=%s\nAGENT_WA_NUMBER=%s\nSIGNIN_REQUIRED=%s\nSTRIPE_SECRET_KEY=%s\nSTRIPE_WEBHOOK_SECRET=%s\nSTRIPE_PRICE_YEAR=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" "$JEV" "$BRAIN" "$NOVQ" "$WAN" "$(printf '%s' "$SIGNIN_REQUIRED" | tr -cd '01')" "$SK" "$WH" "$PY" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
-          ssh $OPTS "$USER@$HOST" "SITE_DOMAIN='$DOMAIN' bash -s" < server/install.sh
+          printf 'WHATSAPP_AGENT_TOKEN=%s\nSTATE_FILE=%s\nSITE_URL=%s\nTYPESAFE_API_KEY=%s\nANTHROPIC_API_KEY=%s\nNOVENIQUE_URL=%s\nAGENT_WA_NUMBER=%s\nSIGNIN_REQUIRED=%s\nSTRIPE_SECRET_KEY=%s\nSTRIPE_WEBHOOK_SECRET=%s\nSTRIPE_PRICE_YEAR=%s\nPASS_VIA_CORE=%s\nNOVO_URL=%s\n' "$TOKEN" '/var/lib/agp/state.json' "$SITE_URL" "$JEV" "$BRAIN" "$NOVQ" "$WAN" "$(printf '%s' "$SIGNIN_REQUIRED" | tr -cd '01')" "$SK" "$WH" "$PY" "$(printf '%s' "$PASS_VIA_CORE" | tr -cd '01')" "$NOVO" | ssh $OPTS "$USER@$HOST" 'umask 077; cat > /tmp/agp.env'
+          ssh $OPTS "$USER@$HOST" "SITE_DOMAIN='$DOMAIN' NOVO_URL='$NOVO' bash -s" < server/install.sh
           rm -f key
           echo "::notice::Live at $SITE_URL"
       - name: Check the site answers
