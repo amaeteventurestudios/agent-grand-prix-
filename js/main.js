@@ -1976,7 +1976,7 @@ function agentSheet(back) {
   S.agent ||= { since: dayNumber(), playbook: {}, reports: [], unseen: [] };
   const pb = playbookOf(S), n = dayNumber(), nv = dailyVenue(S.daily.days[n] ? n + 1 : n);
   const row = (key, title) => `<div class="sub">${title}</div><div class="vpick pb">${PLAYBOOK_CHOICES[key].map(([v, name, note]) => `<button type="button" data-pb="${key}" data-v="${v}" class="${pb[key] === v ? 'on' : ''}"><b>${name}</b><span>${note}</span></button>`).join('')}</div>`;
-  const sh = show(`<h2>My agent</h2>
+  const sh = show(`<button type="button" class="sh-x" id="pbX" aria-label="Close">×</button><h2>My agent</h2>
     ${account.on ? '<div class="wa-link"></div>' : ''}
     <div class="sub">Missed Dailies</div>
     <p class="lede">Busy? If you haven't raced the Daily Grand Prix by your cover time, your agent races it for you on Autonomous, with your team, car and Driver DNA, and writes the report. It keeps your streak; its results are marked as the agent's. It can't change your Driver DNA or enter other races.</p>
@@ -1992,7 +1992,7 @@ function agentSheet(back) {
     const b = e.target.closest('[data-pb]');
     if (b) { const k = b.dataset.pb; set(k, k === 'cover' ? +b.dataset.v : b.dataset.v); $$(`[data-pb="${k}"]`, sh).forEach((x) => x.classList.toggle('on', x === b)); return; }
     const a = e.target.closest('[data-ar]'); if (a) { const r = S.agent.reports.find((x) => String(x.n) === a.dataset.ar); if (r) reportSheet(r.report, () => agentSheet(back)); }
-    if (e.target.closest('#pbDone')) { back(); agentCatchUp(); }
+    if (e.target.closest('#pbDone, #pbX')) { back(); agentCatchUp(); }
   };
 }
 // Connect your AI agent on WhatsApp: a short code you text to it once, then it follows every race
@@ -2003,7 +2003,7 @@ function waPanel(box, code = null, edit = false) {
   box.dataset.k = state();
   const open = (txt) => wa.wa ? `https://wa.me/${wa.wa}${txt ? '?text=' + encodeURIComponent(txt) : ''}` : null;
   const form = (again) => `<form class="wa-form" autocomplete="off">
-      <label><span>Your agent's name</span><input name="name" maxlength="24" required placeholder="Ada, Coach, Sparky…" value="${esc(wa.own ? wa.own.name : '')}"></label>
+      <label><span>Your agent's name</span><input name="name" maxlength="24" required placeholder="Michael, Coach, Sparky…" value="${esc(wa.own ? wa.own.name : '')}"></label>
       <label><span>Its API key</span><input name="token" type="password" required spellcheck="false" autocapitalize="off" placeholder="Paste the key from WhatsApp"></label>
       <div class="actions"><button class="btn" type="submit">${again ? 'Save the new key' : 'Connect my agent'}</button>${again ? '<button class="btn ghost" type="button" data-wa="cancel">Cancel</button>' : ''}</div>
       <p class="note wa-err" hidden></p>
