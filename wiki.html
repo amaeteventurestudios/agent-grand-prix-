@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Racing wiki · Agent Grand Prix</title>
+<meta name="description" content="Every racing word and team radio command in Agent Grand Prix, explained in a sentence: undercut, slipstream, safety car, tyres, boost and more.">
+<link rel="canonical" href="https://agentgrandprix.com/wiki">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@1,800&family=Barlow:wght@400;600&display=swap">
+<style>
+  :root { --bg: #f4f5f7; --ink: #16181d; --mute: #5d6470; --line: #dde0e6; --accent: #1463ff; --card: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f1115; --ink: #eef0f4; --mute: #9aa1ad; --line: #262a33; --accent: #5b93ff; --card: #171a20; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Barlow, system-ui, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 56px; }
+  h1 { font: 800 italic 40px/1 'Barlow Condensed', sans-serif; margin: 0 0 8px; }
+  h2 { font: 800 italic 24px/1.1 'Barlow Condensed', sans-serif; margin: 28px 0 10px; }
+  p.lede { color: var(--mute); margin: 0 0 18px; }
+  input { width: 100%; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); }
+  ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  li { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; scroll-margin-top: 16px; }
+  li:target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+  li b { display: block; font-weight: 600; }
+  li span { color: var(--mute); font-size: 14px; display: block; }
+  li em { display: block; font-style: normal; font-size: 13px; color: var(--accent); margin-top: 6px; }
+  a { color: var(--accent); }
+  .tip { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 0 0 18px; font-size: 15px; }
+  .back { display: inline-block; margin-top: 28px; font-weight: 600; }
+  .meta { color: var(--mute); font-size: 14px; margin-top: 24px; }
+  .none { color: var(--mute); display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Racing wiki</h1>
+  <p class="lede">Every racing word and command in Agent Grand Prix, in a sentence. New to racing? Start with the commands.</p>
+  <p class="tip">💬 Your agent knows every word here. Ask it on WhatsApp (<b>what is an undercut?</b>) or on the team radio in a race (<b>what does dirty air mean?</b>) and it answers straight away. Reply <b>wiki</b> for the list.</p>
+  <input id="q" type="search" placeholder="Search: undercut, safety car, boost…" aria-label="Search the wiki">
+  <p class="none" id="none">No word matches that yet. Write to <a href="mailto:hello@agentgrandprix.com">hello@agentgrandprix.com</a> and we'll add it.</p>
+  <section data-cat="commands"><h2>📻 Commands you can give</h2><ul>
+    <li id="box" data-k="box box box pit pit stop pitstop boxing come in"><b>Box</b><span>Come into the pit lane this lap for fresh tyres. A normal stop costs about a quarter of a lap.</span><em>Say: box, box softs, box mediums, box hards, box inters, box wets</em></li>
+    <li id="stay-out" data-k="stay out no box cancel box stay out"><b>Stay out</b><span>Cancel a pit stop you asked for and keep running on the tyres you have.</span><em>Say: stay out</em></li>
+    <li id="push" data-k="push push push pushing flat out quali mode"><b>Push</b><span>Drive at full pace. Faster laps, but the tyres wear quicker and get hot.</span><em>Say: push</em></li>
+    <li id="save" data-k="save save tyres tyre saving manage lift and coast conserve"><b>Save</b><span>Drive a little slower to make the tyres last longer. Good on a long stint.</span><em>Say: save</em></li>
+    <li id="normal" data-k="normal normal pace"><b>Normal</b><span>Back to the usual race pace: not pushing, not saving.</span><em>Say: normal</em></li>
+    <li id="attack" data-k="attack attacking go for it send it"><b>Attack</b><span>Go for the pass on the car ahead. Passes come more often, but so does contact.</span><em>Say: attack</em></li>
+    <li id="defend" data-k="defend defending cover shut the door close the door"><b>Defend</b><span>Protect your place from the car behind. Harder to pass, a little slower.</span><em>Say: defend</em></li>
+    <li id="neutral" data-k="neutral"><b>Neutral</b><span>Neither attack nor defend: race clean and keep out of trouble.</span><em>Say: neutral</em></li>
+    <li id="boost" data-k="boost overtake mode deploy full power"><b>Boost</b><span>Use the battery for 12 seconds of extra speed. Best within a second of the car ahead, or to defend.</span><em>Say: boost</em></li>
+    <li id="harvest" data-k="harvest charge recharge charging"><b>Harvest</b><span>Recharge the battery as you drive, so you have power ready for a fight.</span><em>Say: harvest</em></li>
+    <li id="swap-places" data-k="swap places swap let him through let her through let them through"><b>Swap places</b><span>A team order: your two cars running nose to tail trade places, so the faster one can chase.</span><em>Say: swap (on the radio or the team buttons)</em></li>
+    <li id="hold-position" data-k="hold position hold positions no fighting"><b>Hold position</b><span>A team order: your two cars stop racing each other and keep the order they are in.</span><em>Say: hold position</em></li>
+    <li id="status" data-k="status gap gaps"><b>Status</b><span>Ask for a quick report: places, gaps, tyres and battery.</span><em>Say: status</em></li>
+    <li id="hand-over" data-k="hand the team to your agents auto autonomous handover hand over take over take it back quiet"><b>Hand the team to your agents</b><span>Your AI agents race and make the calls while you are away. They ask you before big calls, unless you say quiet. Say take over to make every call yourself again.</span><em>Say: auto, quiet, take over</em></li>
+  </ul></section>
+  <section data-cat="tyres"><h2>🛞 Tyres</h2><ul>
+    <li id="compound" data-k="compound compounds tyre compound tire compound"><b>Compound</b><span>The type of rubber a tyre is made of. Softer is faster but wears out sooner; harder lasts but is slower.</span></li>
+    <li id="softs" data-k="soft tyres soft softs reds red tyres"><b>Soft tyres</b><span>The fastest dry tyre (red). Great grip, short life. Good for gaining places early or for a final sprint.</span></li>
+    <li id="mediums" data-k="medium tyres medium mediums yellows yellow tyres"><b>Medium tyres</b><span>The middle dry tyre (yellow). A balance of speed and life, and the safe choice to start.</span></li>
+    <li id="hards" data-k="hard tyres hard hards whites white tyres"><b>Hard tyres</b><span>The slowest dry tyre (white) but the longest lasting. Good for a long stint to the flag.</span></li>
+    <li id="inters" data-k="intermediate tyres inter inters intermediate intermediates greens"><b>Intermediate tyres</b><span>Tyres for a damp track (green). Grooves clear light water; too slow when it is dry, not enough when it pours.</span></li>
+    <li id="wets" data-k="wet tyres wet wets full wets blues"><b>Wet tyres</b><span>Tyres for heavy rain (blue). Deep grooves push the water away. Very slow on a drying track.</span></li>
+    <li id="slicks" data-k="slicks slick slick tyres dry tyres"><b>Slicks</b><span>The smooth dry tyres: soft, medium and hard. No grooves, so the most rubber on the road.</span></li>
+    <li id="tyre-wear" data-k="tyre wear wear tyre life tire wear tyre deg degradation deg"><b>Tyre wear</b><span>Tyres lose grip as they wear. The game shows how much life is left. Under about 25% the grip falls away fast.</span></li>
+    <li id="cliff" data-k="the cliff cliff tyre cliff falling off a cliff"><b>The cliff</b><span>The point where a worn tyre suddenly loses grip and lap times drop sharply. Box before you reach it.</span></li>
+    <li id="tyre-temperature" data-k="tyre temperature tyre temp tyre temps warm tyres cold tyres overheating warm up"><b>Tyre temperature</b><span>Tyres grip best in a warm window. Cold tyres after a stop slide; pushing or following closely makes them too hot.</span></li>
+    <li id="puncture" data-k="puncture punctures flat tyre flat tire"><b>Puncture</b><span>A tyre losing its air. It can happen when a tyre is almost worn out, and it can end your race.</span></li>
+    <li id="two-compounds" data-k="two-compound rule two compound rule two compounds mandatory stop compound rule"><b>Two-compound rule</b><span>In a dry race each car must use two different dry tyres, which means at least one stop. Skip it and you get a 20-second penalty.</span></li>
+  </ul></section>
+  <section data-cat="strategy"><h2>🧠 Strategy</h2><ul>
+    <li id="strategy" data-k="strategy race strategy plan race plan"><b>Strategy</b><span>Your plan for the race: which tyres, how many stops and when, and when to push or save.</span></li>
+    <li id="stint" data-k="stint stints"><b>Stint</b><span>The laps a car runs on one set of tyres, between the start, its stops and the flag.</span></li>
+    <li id="one-stop" data-k="one-stop one stop one stopper two stop two-stop two stopper"><b>One-stop</b><span>How many pit stops a plan uses. One stop saves time in the pits; two stops means fresher, faster tyres.</span></li>
+    <li id="undercut" data-k="undercut the undercut"><b>Undercut</b><span>Pit a lap before the car ahead. Fresh tyres are about a second a lap faster, so you can come out in front when they stop.</span></li>
+    <li id="overcut" data-k="overcut the overcut"><b>Overcut</b><span>Stay out longer than the car ahead and pit later, using clear track to set fast laps while they warm up new tyres.</span></li>
+    <li id="pit-window" data-k="pit window window pit stop window"><b>Pit window</b><span>The range of laps when stopping makes the most sense for your tyres and the cars around you.</span></li>
+    <li id="cheap-stop" data-k="cheap stop free stop cheap pit stop"><b>Cheap stop</b><span>A stop under the safety car costs about half the usual time, because everyone else is driving slowly.</span></li>
+    <li id="split-strategy" data-k="split strategy split the cars splitting strategy"><b>Split strategy</b><span>Put your two cars on different tyres or stop on different laps, so if luck goes against one, the other gains.</span></li>
+    <li id="pace" data-k="pace race pace lap time lap times"><b>Pace</b><span>How fast a car is lapping. The game shows each car's last lap and the time to the chequered flag.</span></li>
+    <li id="gap" data-k="gap interval gap to leader gaps"><b>Gap</b><span>Time between two cars. Interval is to the car just ahead; gap to the leader is to first place.</span></li>
+    <li id="track-position" data-k="track position"><b>Track position</b><span>Being physically ahead on the road. On narrow circuits it is worth more than fresher tyres, because passing is hard.</span></li>
+  </ul></section>
+  <section data-cat="racing"><h2>🏎️ Racecraft</h2><ul>
+    <li id="overtake" data-k="overtake overtaking pass passing a pass"><b>Overtake</b><span>Passing the car ahead on track. Easiest on a straight, with the slipstream, fresher tyres or a boost.</span></li>
+    <li id="slipstream" data-k="slipstream tow draft drafting"><b>Slipstream</b><span>Right behind another car on a straight there is less air to push through, so you go faster and can line up a pass.</span></li>
+    <li id="dirty-air" data-k="dirty air turbulent air following"><b>Dirty air</b><span>The messy air behind a car. In corners it takes grip away from the car following and heats its tyres.</span></li>
+    <li id="overtaking-aid" data-k="overtaking aid drs wing open wing"><b>Overtaking aid</b><span>Within about 30 metres of the car ahead on a straight, the car following gets a small extra push of speed (like DRS in real racing).</span></li>
+    <li id="racing-line" data-k="racing line line the line"><b>Racing line</b><span>The fastest path around a corner: wide on the way in, close to the inside at the apex, wide on the way out.</span></li>
+    <li id="apex" data-k="apex apexes apices"><b>Apex</b><span>The point where a car is closest to the inside of a corner.</span></li>
+    <li id="contact" data-k="contact crash collision crashes accident"><b>Contact</b><span>Two cars touching. It can damage a car or end its race. Attack makes it more likely.</span></li>
+    <li id="lapped" data-k="lapped car lapped backmarker backmarkers lapping"><b>Lapped car</b><span>A car a whole lap behind the leader. It lets faster cars through.</span></li>
+    <li id="team-orders" data-k="team orders team order"><b>Team orders</b><span>Instructions to your two drivers about each other: swap places, hold position, or race freely.</span></li>
+    <li id="pit-exit" data-k="pit exit pit-exit pit exit fight rejoin"><b>Pit exit</b><span>Where cars rejoin after a stop. Cold tyres make you easy to pass there, so defend and boost for the first lap.</span></li>
+  </ul></section>
+  <section data-cat="energy"><h2>⚡ Battery and speed</h2><ul>
+    <li id="ers" data-k="ers (battery) ers battery energy hybrid energy recovery"><b>ERS (battery)</b><span>The car's battery. It charges from braking (harvest) and gives extra power when you deploy it or boost.</span></li>
+    <li id="deploy" data-k="deploy deployment battery mode"><b>Deploy</b><span>A battery mode that uses charge for extra speed all lap. Balanced keeps it level; harvest fills it.</span></li>
+    <li id="balanced" data-k="balanced balanced mode standard battery"><b>Balanced</b><span>The everyday battery mode: it charges and spends about the same.</span></li>
+    <li id="top-speed" data-k="top speed speed trap straight line speed"><b>Top speed</b><span>How fast a car goes at the end of a long straight. Boost, the slipstream and the overtaking aid all add to it.</span></li>
+  </ul></section>
+  <section data-cat="control"><h2>🚩 Race control and flags</h2><ul>
+    <li id="safety-car" data-k="safety car sc safety car period"><b>Safety car</b><span>After a crash, a road car leads the field at low speed while the track is cleared. No passing, and pit stops are cheap.</span></li>
+    <li id="vsc" data-k="virtual safety car vsc virtual safety"><b>Virtual safety car</b><span>Every car must slow to a set speed without a real safety car on track. Gaps stay roughly the same and stops are cheaper.</span></li>
+    <li id="yellow-flag" data-k="yellow flag yellow yellows flag double yellow"><b>Yellow flag</b><span>Danger ahead: slow down and no passing in that part of the track.</span></li>
+    <li id="red-flag" data-k="red flag red flag"><b>Red flag</b><span>The race is stopped and every car returns slowly to the pit lane.</span></li>
+    <li id="blue-flag" data-k="blue flag blue flags"><b>Blue flag</b><span>Shown to a lapped car: a faster car is about to lap you, let it through.</span></li>
+    <li id="chequered-flag" data-k="chequered flag checkered flag chequered checkered the flag finish"><b>Chequered flag</b><span>The black and white flag at the finish. The race timer shows how long until the leader and your car take it.</span></li>
+    <li id="penalty" data-k="penalty penalties time penalty"><b>Penalty</b><span>Seconds added to a car's race time for breaking a rule, such as skipping the two-compound rule.</span></li>
+    <li id="dnf" data-k="dnf did not finish retire retired retirement"><b>DNF</b><span>Did not finish: the car is out of the race, after a crash, a failure or a puncture.</span></li>
+    <li id="race-control" data-k="race control"><b>Race control</b><span>The officials who run the race: they call the flags, the safety car and the penalties.</span></li>
+  </ul></section>
+  <section data-cat="weekend"><h2>🏁 The race weekend</h2><ul>
+    <li id="grand-prix" data-k="grand prix gp grand prix"><b>Grand Prix</b><span>A race weekend at one circuit, named after its city or country.</span></li>
+    <li id="qualifying" data-k="qualifying quali qualy"><b>Qualifying</b><span>The timed session before the race. The fastest lap starts at the front of the grid.</span></li>
+    <li id="pole" data-k="pole position pole p1 on the grid"><b>Pole position</b><span>First place on the starting grid, earned with the fastest qualifying lap.</span></li>
+    <li id="grid" data-k="grid starting grid the grid"><b>Grid</b><span>The starting order, two by two, set by qualifying.</span></li>
+    <li id="fastest-lap" data-k="fastest lap fl"><b>Fastest lap</b><span>The quickest single lap anyone sets in the race.</span></li>
+    <li id="p1" data-k="p1, p2, p3… p1 p2 p3 position podium"><b>P1, P2, P3…</b><span>P is for position: P1 is first. The top three stand on the podium.</span></li>
+    <li id="points" data-k="points championship points standings championship"><b>Points</b><span>Scored for finishing near the front. The Season adds them up over 25 rounds.</span></li>
+    <li id="full-distance" data-k="full distance race length full race short race long race"><b>Full distance</b><span>Races come in short, medium, long and full distance. Full distance runs a real Grand Prix length.</span></li>
+  </ul></section>
+  <section data-cat="game"><h2>🎮 Agent Grand Prix</h2><ul>
+    <li id="ai-agent" data-k="ai agent agent agents ai agents my agent your agent"><b>AI agent</b><span>Your AI agents race your cars and run the team when you hand it to them. You can also make your own agent in WhatsApp and race by message.</span></li>
+    <li id="team-principal" data-k="team principal principal team boss boss"><b>Team principal</b><span>That's you: the boss of the team, making the strategy calls for both cars.</span></li>
+    <li id="engineer" data-k="race engineer engineer strategist"><b>Race engineer</b><span>Your voice on the radio: race updates, a plan before the start, and advice when you ask for it.</span></li>
+    <li id="team-radio" data-k="team radio radio voice radio mic"><b>Team radio</b><span>Hold the mic button (or say “Radio” in hands-free mode) and talk to your drivers by name: “Nova, box for mediums”.</span></li>
+    <li id="driver-dna" data-k="driver dna dna"><b>Driver DNA</b><span>Each driver's style and personality: how hard they push, how they look after tyres, how they fight.</span></li>
+    <li id="daily" data-k="daily grand prix daily daily gp today"><b>Daily Grand Prix</b><span>One race a day, the same circuit, grid and weather for everyone, with a share card for your result.</span></li>
+    <li id="season" data-k="season season mode"><b>Season</b><span>A 25-round championship from Abu Dhabi to Abuja.</span></li>
+    <li id="academy" data-k="racing academy academy lessons"><b>Racing Academy</b><span>Five short guided lessons on a real race, taught by your engineer.</span></li>
+    <li id="sora" data-k="sora coins currency"><b>Sora</b><span>The game's own currency, for prizes. It has no cash value.</span></li>
+    <li id="anti-bot-pass" data-k="anti-bot pass the pass pass card"><b>Anti-Bot Pass</b><span>The pass that shows you are a real person. It unlocks full-distance races and more.</span></li>
+  </ul></section>
+  <p class="meta">78 words. Written in our own words for Agent Grand Prix, an independent game not connected to any racing series. <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="credits.html">Credits</a></p>
+  <a class="back" href="./">← Back to the game</a>
+</main>
+<script>
+  const q = document.getElementById('q');
+  q.addEventListener('input', () => {
+    const v = q.value.trim().toLowerCase(); let any = false;
+    for (const s of document.querySelectorAll('section')) {
+      let n = 0;
+      for (const li of s.querySelectorAll('li')) { const on = !v || li.dataset.k.includes(v) || li.textContent.toLowerCase().includes(v); li.hidden = !on; n += on; }
+      s.hidden = !n; any ||= n > 0;
+    }
+    document.getElementById('none').style.display = any ? 'none' : 'block';
+  });
+</script>
+</body>
+</html>

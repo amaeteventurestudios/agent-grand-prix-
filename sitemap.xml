@@ -7,4 +7,8 @@
       <image:loc>https://agentgrandprix.com/assets/brand/agent-grand-prix-thumbnail.jpg</image:loc>
     </image:image>
   </url>
+  <url>
+    <loc>https://agentgrandprix.com/wiki</loc>
+    <lastmod>2026-10-28</lastmod>
+  </url>
 </urlset>

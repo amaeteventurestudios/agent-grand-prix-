@@ -171,4 +171,14 @@ W.races.clear();
   W.setChatModel(null);
   console.log('own agents ok');
 }
+
+// the racing wiki answers instantly, with no AI model at all
+{
+  W.setChatModel(null);
+  await W.handle('w1', 'what is an undercut?'); let o = said();
+  must(/Undercut\*: Pit a lap before/.test(o), 'wiki answers a racing word', o);
+  await W.handle('w1', 'wiki'); o = said();
+  must(/RACING WIKI/.test(o) && /Slipstream/.test(o), 'wiki lists every word', o);
+  console.log('wiki ok');
+}
 process.exit(0);
