@@ -256,6 +256,8 @@ export function serve(port = PORT) {
         if (u.pathname === '/agent/claim' && req.method === 'POST') { const b = await body(req, 2048), r = agentClaim(b.code, b.phone); return send(res, r ? 200 : 404, r ? { id: r.id, team: (r.save || {}).team || null } : { error: 'unknown or expired code' }); }
         if (u.pathname === '/agent/unlink' && req.method === 'POST') { const b = await body(req, 2048); return send(res, 200, { n: agentUnlink(null, String(b.phone || '')) }); }
         if (u.pathname === '/agent/race' && req.method === 'GET') return send(res, 200, raceFor(u.searchParams.get('phone') || ''));
+        // the owner's screen: signed-up players with their emails (Core answers only this game's own)
+        if (u.pathname === '/agent/players' && req.method === 'GET') return send(res, 200, on() ? await core('/v1/players', null, 'GET') : { players: [] });
         if (u.pathname === '/agent/cmd' && req.method === 'POST') { const b = await body(req, 4096); return send(res, raceCmd(String(b.id || ''), String(b.car || ''), b.cmd) ? 200 : 404, {}); }
       } catch { return send(res, 400, { error: 'bad request' }); }
       return send(res, 404, {});
