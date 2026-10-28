@@ -1,5 +1,6 @@
 // Agent Grand Prix: the page. Home screen over a live race, the race itself with the pit
 // wall, results, the season and the Daily Grand Prix.
+import { LANGS, LOCALE, lang as LANG, setLang, guessed as langGuessed, keepLang } from './i18n.js';   // first: the page translates as it draws
 import { startHere } from './here.js';
 import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
@@ -28,7 +29,8 @@ import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as sto
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
-import { parseCall, radioSupported, listen, wakeSplit } from './teamradio.js';
+import { parseCall, radioSupported, listen, wakeSplit, setRadioLang } from './teamradio.js';
+setRadioLang(LANG);
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { plans as briefPlans } from './briefing.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
@@ -665,7 +667,7 @@ function talkStart() {
   $('#talkBtn').classList.add('on'); talkSaid('Listening…');
   try {
     talk.rec = listen({
-      lang: /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
+      lang: LANG !== 'en' ? LOCALE[LANG] : /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
       onStart: () => mark('mic'),
       onWords: (text, final, alts) => {
         mark('words'); talk.heard = text; talkSaid('“' + text.trim() + '”');
@@ -722,7 +724,7 @@ function freeTick() {
   const mine = () => free.n === n && free.rec;
   try {
     free.rec = listen({
-      lang: /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
+      lang: LANG !== 'en' ? LOCALE[LANG] : /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
       onStart: () => { if (mine()) free.fails = 0; },
       onWords: (text, final, alts) => {
         if (!mine() || free.done) return;
@@ -1580,17 +1582,21 @@ function home() {
         <p class="lp-links"><button type="button" class="link" data-go="garage">Garage</button> · <button type="button" class="link" data-go="dna">Driver DNA</button> · <button type="button" class="link" data-go="agent">My agent</button> · <button type="button" class="link" data-go="rules">Support &amp; rules</button></p>
       </nav>
       ${joinUs('in')}
-      <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(true)}</div>
+      <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(false)}</div>
+      ${legalLinks()}
     </aside>
+    ${langNote()}
     <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
       <span class="lp-grab" aria-hidden="true"></span>
       <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div></div>
       <div class="lp-macts"><button class="btn lp-go" data-go="${newcomer ? 'play' : next.go}" type="button">▶ ${newcomer ? 'Start here' : 'Play'}</button><button type="button" class="lp-mmenu" data-go="unpeek" aria-label="Open the menu">☰ Menu</button></div>
+      ${legalLinks()}
     </div>
+    ${legalLinks(' pg')}
     ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
     ${appCard()}
     ${passCard()}
-    ${joinUs('out')}${acChip()}`, `home nbhome${homePeek() ? ' peek' : ''}`);
+    ${joinUs('out')}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
   sh.onclick = homeClick;
   sheetSwipe(sh);
   sh.onchange = langChange;
@@ -1599,8 +1605,11 @@ function home() {
 // On a phone the menu starts tucked away, so the race is the first thing you see: a small bar with
 // Play stays at the bottom (at the left when sideways). Tap it or swipe it up for the menu; swipe the
 // menu down (or left, sideways) to put it away. The race behind can be turned and zoomed with a finger.
+// the small print on the front page, as on most game sites
+const SUPPORT = 'support@agentgrandprix.com';
+const legalLinks = (c = '') => `<p class="lp-legal${c}"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="mailto:${SUPPORT}">Support</a></p>`;
 const homePeek = () => (G.peek === undefined ? GLANCE.matches : G.peek);
-function setPeek(on) { G.peek = on; $('#screen').classList.toggle('peek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
+function setPeek(on) { G.peek = on; $('#screen').classList.toggle('hpeek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
 function sheetSwipe(sh) {
   const lp = $('.lp', sh), mini = $('.lp-mini', sh);
   if (!lp || !mini) return;
@@ -1769,7 +1778,7 @@ function settingsSheet(back) {
       ${sw('sound', S.settings.sound !== false, 'Sound', 'Engines, the crowd and the radio')}
       ${sw('voice', S.settings.voice !== false, 'Engineer’s voice', 'Your race engineer speaks the calls')}
       ${sw('coach', S.settings.coach !== false, 'Race coach', 'Tips during your first races and quick races')}
-      <div class="set-row"><span><b>Language</b><small>More languages are on the way</small></span>${langPicker(true)}</div>
+      <div class="set-row"><span><b>Language</b><small>English, Français, Español, Português, العربية, Naijá</small></span>${langPicker(true)}</div>
       ${installItem(true)}
       <div class="actions"><button class="btn" id="seBack" type="button">Done</button></div>`);
     sh.onclick = (e) => {
@@ -1787,13 +1796,18 @@ function settingsSheet(back) {
   draw();
 }
 
-// Languages: English for now. The picker and S.settings.lang are where translations will plug in.
-const LANGS = [['en', 'English']];
+// Languages (js/i18n.js): the picker saves the choice and reloads the page in that language. Each
+// language's name is written in itself, so the picker is never translated.
 function langPicker(bare) {
-  const sel = `<select class="lang" aria-label="Language">${LANGS.map(([k, n]) => `<option value="${k}"${(S.settings.lang || 'en') === k ? ' selected' : ''}>${n}</option>`).join('')}<option disabled>More languages soon</option></select>`;
+  const sel = `<select class="lang" aria-label="Language" translate="no">${LANGS.map(([k, n]) => `<option value="${k}"${LANG === k ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
   return bare ? sel : `<label class="nb-lang"><i aria-hidden="true">🌐</i>${sel}</label>`;
 }
-function langChange(e) { if (!e.target.matches('select.lang')) return; S.settings.lang = e.target.value; store.save(); document.documentElement.lang = S.settings.lang; }
+function langChange(e) { if (!e.target.matches('select.lang')) return; S.settings.lang = e.target.value; store.save(); setLang(e.target.value); }
+// the first visit in a language we picked from the player's country: one tap back to English
+function langNote() {
+  if (!langGuessed || G.langNoted) return '';
+  return `<div class="lang-note" translate="no"><span>🌐 ${LANGS.find(([k]) => k === LANG)[1]}</span><button type="button" data-go="lang:en">English</button><button type="button" data-go="lang:keep" aria-label="OK">✓</button></div>`;
+}
 
 // Join us: the community channels, greyed out until they open
 const SOCIAL = [
@@ -2298,6 +2312,7 @@ function accountSheet(back, o = {}) {
 // racing needs an account when the server says so (a guest can still watch and read everything)
 const GATED = new Set(['daily', 'dailyfull', 'season', 'quick', 'just', 'practice', 'again', 'live', 'academy', 'build', 'team']);
 function homeClick(e) {
+  if (e.target.closest?.('a[href]')) return;   // the small print links open on their own
   const b = e.target.closest('[data-go]'); if (!b) return;
   const go = b.dataset.go, n = dayNumber(), back = b.closest('.pm') ? playMenu : home;   // sheets opened from Play return to Play
   if (account.ways.need && !signedIn() && (GATED.has(go) || go.startsWith('v:'))) return accountSheet(back, { gate: true, then: () => homeClick({ target: b }) });
@@ -2309,6 +2324,8 @@ function homeClick(e) {
   if (go === 'settings') return settingsSheet(back);
   if (go === 'install') return doInstall(back);
   if (go.startsWith('install:')) return doInstall(home, go.slice(8));
+  if (go === 'lang:en') { S.settings.lang = 'en'; store.save(); return setLang('en'); }
+  if (go === 'lang:keep') { keepLang(); G.langNoted = true; return b.closest('.lang-note')?.remove(); }
   if (go === 'peek') return setPeek(true);
   if (go === 'unpeek') return setPeek(false);
   if (go === 'signout') return signOut().then(() => { toast('Signed out on this device. Your progress stays with your account.'); home(); });
@@ -2507,16 +2524,15 @@ function onboard(step = 'team', then) {
     }, back);
   }
   if (step === 'car') {
-    const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.')}
+    const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.')}
       ${carTiles()}${wizFoot('Choose this car')}`, 'wizp');
-    // colours are painted in the showroom, so choosing a car there skips the colour step
-    wireCarTiles(sh, () => onboard('car'), { label: 'Next: your drivers', go: () => go(2) });
+    wireCarTiles(sh);
     wizWire(sh, () => go(1), back);
   }
   if (step === 'colours') {
     // the showroom, with your car turning while you paint it: main, accent and the colour of the lights
     openShowroom({ S, show, save: store.save, team }, { id: carModel() || 'falcon', lite, back,
-      wizard: { head: hdr('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), next: () => go(1) } });
+      wizard: { head: hdr('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), nextLabel: 'Save', next: () => go(1) } });
   }
   if (step === 'drivers') {
     const prof = activeProfiles(S), style = SLOTS.map((sl) => { const o = (prof[sl] && prof[sl].origin || '').replace('preset:', ''); return OB_STYLES.includes(o) ? o : 'balanced'; });
@@ -2870,13 +2886,14 @@ function freePractice() {
 }
 
 // the garage tiles: tap a name to race that car, the picture for the 3D showroom
-function wireCarTiles(sh, back, onward) {
+function wireCarTiles(sh) {
   $$('[data-car-model]', sh).forEach((b) => b.addEventListener('click', () => {
     S.settings.car = b.dataset.carModel || null; store.save();
     $$('[data-car-model]', sh).forEach((x) => { x.closest('.car-tile').classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
     if (world) world.setModel(carModel());
   }));
-  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => showroom(back, b.dataset.show, onward)));
+  // the picture picks the car too; Next then opens it in 3D to paint
+  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => $(`[data-car-model="${b.dataset.show}"]`, sh)?.click()));
 }
 const modeHTML = (auto) => `<div class="mode">
       <button type="button" data-m="0" class="${auto ? '' : 'on'}"><b>Team Principal</b><span>You call pit stops, tyres and tactics. Your engineer advises.</span></button>
@@ -2889,7 +2906,7 @@ function carTiles() {
   const cur = carModel() || '';
   // tap the picture to spin the car round in 3D; tap its name to race it
   const tile = (c) => `<div class="car-tile ${cur === c.id ? 'on' : ''}">
-    <button type="button" class="ct-img" data-show="${c.id}" aria-label="See the ${c.name} in 3D, all the way round"><img src="assets/cars/${c.id}.webp" alt="" width="320" height="180" loading="lazy" decoding="async"><span class="ct-3d">360°</span></button>
+    <button type="button" class="ct-img" data-show="${c.id}" aria-label="Pick the ${c.name}"><img src="assets/cars/${c.id}.webp" alt="" width="320" height="180" loading="lazy" decoding="async"><span class="ct-3d">360°</span></button>
     <button type="button" class="ct-pick" data-car-model="${c.id}" aria-pressed="${cur === c.id}"><b>${c.name}</b><span>${esc(c.line)}</span>
       <span class="ct-bars">${strengthBars(c.id).map(([k, v]) => `<i title="${k}"><u style="width:${v}%"></u><small>${k}</small></i>`).join('')}</span></button></div>`;
   return `<div class="garage">${MODELS.map(tile).join('')}
@@ -2950,10 +2967,11 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   G.laps = raceLaps(trackFor(o.venue), length);
 
   if (step === 'car') {
-    const sh = show(`${head('<p class="lede">Your car is ready. Change it here, or tap a picture to spin it round in 3D.</p>')}
+    const sh = show(`${head('<p class="lede">Pick your car, then tap Next to paint it in 3D.</p>')}
       ${carTiles()}${wizFoot('Next')}`, 'wizp');
-    wireCarTiles(sh, () => pre(o, 'car'), { label: `Next: ${steps[i + 1] === 'quali' ? 'qualifying' : 'tyres'}`, go: () => go(1) });
-    wizWire(sh, () => go(1), back);
+    wireCarTiles(sh);
+    // Next opens the chosen car in the showroom; Save there moves on to qualifying (simple cars skip it)
+    wizWire(sh, () => (carModel() ? showroom(() => pre(o, 'car'), carModel(), { label: 'Save', go: () => go(1) }) : go(1)), back);
     return;
   }
   if (step === 'quali') {

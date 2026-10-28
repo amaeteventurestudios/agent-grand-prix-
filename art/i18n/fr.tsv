@@ -1,0 +1,2550 @@
+id	en	fr
+0	Meet your team	Votre écurie
+1	What a team principal does: two cars, their calls, the battery and a pit stop.	Le rôle d'un directeur d'écurie : deux voitures, leurs consignes, la batterie et un arrêt au stand.
+2	Push is faster but wears the tyres	Attaquer est plus rapide mais use les pneus
+3	BOOST spends the battery for 12 seconds of speed	BOOST vide la batterie pour 12 secondes de vitesse
+4	Pick tyres, then BOX: the crew does the rest	Choisissez les pneus, puis BOX : l'équipe fait le reste
+5	You can say every call on the radio	Chaque consigne se donne aussi à la radio
+6	Next	Suivant
+7	Welcome to the pit wall. I'm your race engineer. Your two AI drivers drive the cars.	Bienvenue sur le muret des stands. Je suis votre ingénieur de course. Vos deux pilotes IA conduisent les voitures.
+8	You are the team principal: you make the calls.	Vous êtes le directeur d'écurie : c'est vous qui décidez.
+9	You run	Vous gérez
+10	two cars	deux voitures
+11	to follow your second car.	pour suivre votre deuxième voiture.
+12	Lights out	Extinction des feux
+13	Each car takes its own calls: whichever car you follow is the one you're talking to. Ready to race?	Chaque voiture reçoit ses propres consignes : la voiture que vous suivez est celle à qui vous parlez. Prêt pour la course ?
+14	We're racing. Tell your driver to go faster: tap	La course est lancée. Dites à votre pilote d'aller plus vite : touchez
+15	Push	Attaquer
+16	Got it	Compris
+17	is faster, but the tyres wear quicker. Keep an eye on	est plus rapide, mais les pneus s'usent plus vite. Surveillez
+18	tyre life	l'usure des pneus
+19	Save tyres	Économiser les pneus
+20	does the opposite.	fait l'inverse.
+21	Now the battery. Tap	Maintenant la batterie. Touchez
+22	BOOST	BOOST
+23	for 12 seconds of extra electric power.	pour 12 secondes de puissance électrique en plus.
+24	BOOST empties the battery. It fills up again as the car brakes for corners, like regen in an electric car.	BOOST vide la batterie. Elle se recharge quand la voiture freine dans les virages, comme une voiture électrique.
+25	Time for a pit stop. Pick	C'est l'heure de l'arrêt au stand. Choisissez
+26	Soft	Tendre
+27	, then tap	, puis touchez
+28	BOX	BOX
+29	Copied: your driver pits at the end of this lap. The pit entry is just before the start line.	Reçu : votre pilote rentre au stand à la fin de ce tour. L'entrée des stands est juste avant la ligne de départ.
+30	Watch the crew. Your car drives down the fast lane to its own box. New tyres in about three seconds.	Regardez l'équipe. Votre voiture descend la voie rapide jusqu'à son garage. Pneus neufs en trois secondes environ.
+31	Fresh tyres, and back out on the fast lane. A whole stop costs about 8 seconds (a quarter of a lap).	Pneus neufs, et retour en piste par la voie rapide. Un arrêt complet coûte environ 8 secondes (un quart de tour).
+32	Skip	Passer
+33	You can say every call.	Chaque consigne peut se dire.
+34	Hold the mic	Maintenez le micro
+35	and say "	et dites «
+36	" or "	» ou «
+37	Box box	Box box
+38	". Let go when you've said it.	». Relâchez quand vous avez fini.
+39	That's the job: pace, battery, tyres and pit stops, for two cars.	Voilà le métier : le rythme, la batterie, les pneus et les arrêts, pour deux voitures.
+40	Lesson 1 complete.	Leçon 1 terminée.
+41	Command your drivers	Commandez vos pilotes
+42	Attack, defend, and team orders between your two cars.	Attaque, défense et consignes d'équipe entre vos deux voitures.
+43	Attack makes a driver go for gaps, and costs a little tyre	Attaquer pousse le pilote à saisir les ouvertures, au prix d'un peu de pneus
+44	BOOST helps a pass when you are within a second	BOOST aide à dépasser quand vous êtes à moins d'une seconde
+45	Defend makes your car about half as easy to pass	Défendre rend votre voiture deux fois plus dure à dépasser
+46	Hold positions stops your two cars fighting each other	Garder les positions empêche vos deux voitures de se battre
+47	Swap places lets a faster teammate through	Échanger les places laisse passer un équipier plus rapide
+48	Your drivers race everyone, including each other.	Vos pilotes affrontent tout le monde, y compris entre eux.
+49	You decide when they fight.	C'est vous qui décidez quand ils se battent.
+50	Attack	Attaquer
+51	Attack makes a pass more likely, but wears the tyres a little faster and risks contact. Within a second of the car ahead? Add	Attaquer rend un dépassement plus probable, mais use un peu plus les pneus et risque le contact. À moins d'une seconde de la voiture devant ? Ajoutez
+52	Defend	Défendre
+53	Neutral	Neutre
+54	when the fight is over.	quand le duel est fini.
+55	Your own two cars can fight each other and lose time. Tap	Vos deux voitures peuvent se battre et perdre du temps. Touchez
+56	Hold positions	Garder les positions
+57	to stop that.	pour l'éviter.
+58	When the car behind is faster (fresher tyres, say),	Quand la voiture derrière est plus rapide (pneus plus frais, par exemple),
+59	Swap places	Échanger les places
+60	tells the one in front to let it by. It works when your cars run nose to tail.	demande à celle de devant de la laisser passer. Ça marche quand vos voitures se suivent de près.
+61	All of these work on the radio: hold the mic and say "	Tout cela marche à la radio : maintenez le micro et dites «
+62	hold positions	garder les positions
+63	Attack, defend, hold and swap:	Attaquer, défendre, garder et échanger :
+64	Lesson 2 complete.	Leçon 2 terminée.
+65	Master the circuit	Maîtrisez le circuit
+66	How Driver DNA changes what your drivers do on track.	Comment l'ADN pilote change ce que font vos pilotes en piste.
+67	Driver DNA is how each driver drives: brakes, corners, passing, tyres	L'ADN pilote, c'est la façon de conduire : freinage, virages, dépassements, pneus
+68	Late braking gains time but can lock the wheels	Freiner tard fait gagner du temps mais peut bloquer les roues
+69	Tyre care makes a set last longer	Ménager les pneus fait durer un train plus longtemps
+70	You tune DNA between races, not during one	Vous réglez l'ADN entre les courses, pas pendant
+71	The Proving Ground tests a change over many races first	Le banc d'essai teste d'abord un changement sur de nombreuses courses
+72	Every driver has a	Chaque pilote a un
+73	Driver DNA	ADN pilote
+74	: how late they brake, how hard they take corners, how eager they are to pass, how kind they are to tyres. It changes what they do on track.	: à quel point il freine tard, attaque les virages, cherche à dépasser, ménage ses pneus. Cela change ce qu'il fait en piste.
+75	Attacker	Attaquant
+76	Tyre Whisperer	Ami des pneus
+77	: gentle, and makes a set last.	: en douceur, il fait durer un train de pneus.
+78	Open Driver DNA	Ouvrir l'ADN pilote
+79	You set DNA between races in	Vous réglez l'ADN entre les courses dans
+80	Proving Ground	Banc d'essai
+81	tests a change over many races before you use it.	teste un changement sur de nombreuses courses avant de l'utiliser.
+82	Back to the race	Retour à la course
+83	These are your drivers' own saved styles: the Attacker and the Tyre Whisperer were only lent for this lesson. Have a look round, then tap	Voici les styles enregistrés de vos pilotes : l'Attaquant et l'Ami des pneus n'étaient prêtés que pour cette leçon. Jetez un œil, puis touchez
+84	Done	Terminé
+85	Your drivers' DNA, tuned to the circuit:	L'ADN de vos pilotes, réglé pour le circuit :
+86	Lesson 3 complete.	Leçon 3 terminée.
+87	Strategy	Stratégie
+88	Tyres, the two-compound rule, the safety car and rain.	Les pneus, la règle des deux gommes, la voiture de sécurité et la pluie.
+89	In a dry race you must use two dry compounds, or take 20 seconds	Sur piste sèche, il faut utiliser deux gommes sèches, sinon 20 secondes de pénalité
+90	A stop under the safety car costs about half	Un arrêt sous voiture de sécurité coûte environ moitié moins
+91	Damp track: Inters. Soaked: Wets	Piste humide : Intermédiaires. Détrempée : Pluie
+92	The weather chip warns you before the rain	La pastille météo vous prévient avant la pluie
+93	Races are won on strategy.	Les courses se gagnent sur la stratégie.
+94	tyres are fastest and wear quickest,	sont les plus rapides et s'usent le plus vite,
+95	Medium	Medium
+96	is the all-rounder,	est le plus polyvalent,
+97	Hard	Dur
+98	is slowest and lasts longest.	est le plus lent et dure le plus longtemps.
+99	In a dry race every car must use	Sur piste sèche, chaque voiture doit utiliser
+100	two different dry compounds	deux gommes sèches différentes
+101	, or take a 20-second penalty. So everyone stops at least once.	, sinon 20 secondes de pénalité. Donc tout le monde s'arrête au moins une fois.
+102	A normal stop costs about 8 seconds (a quarter of a lap). The trick is	Un arrêt normal coûte environ 8 secondes (un quart de tour). Tout l'art est de choisir
+103	Safety car!	Voiture de sécurité !
+104	The field slows down, so a stop now costs about half. Pick a different dry tyre (	Le peloton ralentit, donc un arrêt coûte maintenant environ moitié moins. Choisissez un autre pneu sec (
+105	), then	), puis
+106	Boxing under the safety car: the cheapest stop of the race.	Arrêt sous voiture de sécurité : l'arrêt le moins cher de la course.
+107	Watch the stop. The field is bunched up behind the safety car, so you drop places now, but every car ahead still has a full-price stop to make. And with a second compound fitted, the tyre rule is done.	Regardez l'arrêt. Le peloton est regroupé derrière la voiture de sécurité : vous perdez des places maintenant, mais chaque voiture devant doit encore faire un arrêt à plein tarif. Et avec une deuxième gomme montée, la règle des pneus est respectée.
+108	Now look at the	Regardez maintenant la
+109	weather chip	pastille météo
+110	at the top. Rain is coming. On a wet track, slick tyres have no grip.	en haut. La pluie arrive. Sur piste mouillée, les pneus slicks n'ont aucune adhérence.
+111	It's raining. Pick	Il pleut. Choisissez
+112	Inter	Intermédiaire
+113	, Wets (blue).	, Pluie (bleu).
+114	Inters on. When the rain stops and a dry line appears, the first car back on slicks gains the most.	Intermédiaires montés. Quand la pluie s'arrête et qu'une trajectoire sèche apparaît, la première voiture en slicks gagne le plus.
+115	Tyres, the two-compound rule, the safety car and the rain:	Les pneus, la règle des deux gommes, la voiture de sécurité et la pluie :
+116	Lesson 4 complete.	Leçon 4 terminée.
+117	Your first Grand Prix	Votre premier Grand Prix
+118	A full race with the coach beside you, then your summary and Academy badge.	Une course complète avec le coach à vos côtés, puis votre bilan et le badge de l'Académie.
+119	You ran a whole Grand Prix from the pit wall	Vous avez dirigé un Grand Prix entier depuis le muret des stands
+120	Two cars, their pace, battery and battles	Deux voitures, leur rythme, la batterie et les duels
+121	A pit stop at the right moment	Un arrêt au bon moment
+122	Push to the flag on the last lap	Attaquer jusqu'au drapeau dans le dernier tour
+123	will tip you off at the right moments. No championship points: just you and the race.	vous donnera des conseils au bon moment. Pas de points au championnat : juste vous et la course.
+124	Hide	Masquer
+125	Run your cars. Keep an eye on tyre life, and box when the pit window opens.	Gérez vos voitures. Surveillez l'usure des pneus et rentrez au stand quand la fenêtre s'ouvre.
+126	Racing. The last lap is when it all counts.	La course est lancée. C'est le dernier tour qui compte.
+127	Last lap!	Dernier tour !
+128	Tyre wear doesn't matter now.	L'usure des pneus ne compte plus.
+129	both cars.	les deux voitures.
+130	Bring it home.	Ramène-la à la maison.
+131	Chequered flag.	Drapeau à damier.
+132	You ran a Grand Prix from the pit wall.	Vous avez dirigé un Grand Prix depuis le muret des stands.
+133	Something went wrong. Please try again.	Un problème est survenu. Veuillez réessayer.
+134	Could not reach the game server. Check your connection and try again.	Impossible de joindre le serveur du jeu. Vérifiez votre connexion et réessayez.
+135	Payments are not available right now. Please try again soon.	Les paiements ne sont pas disponibles pour le moment. Réessayez bientôt.
+136	Follow Plan A	Suivre le plan A
+137	The engineer's briefing plan for each car.	Le plan de l'ingénieur pour chaque voiture.
+138	Strategist decides	Le stratège décide
+139	Stops when the tyres say so.	S'arrête quand les pneus le disent.
+140	Cautious	Prudent
+141	Rain tyres at the first spots of rain.	Pneus pluie dès les premières gouttes.
+142	Normal	Normal
+143	Rain tyres once the track is properly wet.	Pneus pluie une fois la piste bien mouillée.
+144	Bold	Audacieux
+145	Stays on slicks as long as it dares.	Reste en slicks aussi longtemps qu'il ose.
+146	Race freely	Course libre
+147	Your two cars may fight each other.	Vos deux voitures peuvent se battre.
+148	No fighting between your cars.	Pas de bagarre entre vos voitures.
+149	Careful	Prudent
+150	Saves tyres, avoids fights.	Économise les pneus, évite les duels.
+151	Pushes in the last laps.	Attaque dans les derniers tours.
+152	Aggressive	Agressif
+153	Attacks all race, pushes and deploys at the end.	Attaque toute la course, pousse et vide la batterie à la fin.
+154	Verified human: Anti-Bot Pass	Humain vérifié : Pass Anti-Bot
+155	✓ Human	✓ Humain
+156	DNF	Abandon
+157	Full distance	Distance complète
+158	This week	Cette semaine
+159	The leaderboard is not reachable right now. Your race is saved on this device either way.	Le classement est injoignable pour le moment. Votre course est de toute façon enregistrée sur cet appareil.
+160	No agent has raced today yet.	Aucun agent n'a encore couru aujourd'hui.
+161	Nobody has raced today yet. Be first.	Personne n'a encore couru aujourd'hui. Soyez le premier.
+162	team has	écurie a
+163	teams have	écuries ont
+164	by agent	par l'agent
+165	Daily	Quotidien
+166	Dailies	Quotidiens
+167	Today is the last Daily of the week.	Aujourd'hui, c'est le dernier Quotidien de la semaine.
+168	Prize pot	Cagnotte
+169	Prizes come later.	Les prix arrivent plus tard.
+170	No one has raced a Daily this week yet.	Personne n'a encore couru de Quotidien cette semaine.
+171	Nobody has raced today's full distance yet. Be first.	Personne n'a encore couru la distance complète aujourd'hui. Soyez le premier.
+172	Tyres are at	Les pneus sont à
+173	Battery is at	La batterie est à
+174	Gap to the car ahead:	Écart avec la voiture devant :
+175	Gap to the car behind:	Écart avec la voiture derrière :
+176	Nobody ahead. We're leading.	Personne devant. On est en tête.
+177	Nobody close behind.	Personne de proche derrière.
+178	We're	On est
+179	My teammate is	Mon équipier est
+180	My teammate is out of the race.	Mon équipier a abandonné.
+181	Plenty of laps to go.	Il reste beaucoup de tours.
+182	They feel fresh.	Ils sont frais.
+183	Still plenty of grip.	Encore plein d'adhérence.
+184	They're starting to go off.	Ils commencent à décrocher.
+185	They're finished. I'm sliding everywhere.	Ils sont finis. Je glisse partout.
+186	Track is dry.	La piste est sèche.
+187	Track is damp.	La piste est humide.
+188	Track is wet.	La piste est mouillée.
+189	It's soaked out here.	C'est détrempé ici.
+190	Radar shows rain coming.	Le radar annonce de la pluie.
+191	No rain on the radar.	Pas de pluie au radar.
+192	Safety car is out.	La voiture de sécurité est en piste.
+193	Car's mega! Let's go and get them.	La voiture est géniale ! Allons les chercher.
+194	Car feels balanced. All under control.	La voiture est équilibrée. Tout est sous contrôle.
+195	Car feels good, boss.	La voiture est bonne, chef.
+196	It's hard work out here.	C'est dur ici.
+197	Yes! Give me the boost and I'll send it.	Oui ! Donne-moi le boost et je tente.
+198	I can do it. I'll set it up for the straight.	Je peux le faire. Je prépare ça pour la ligne droite.
+199	I think so. I'm close enough.	Je crois. Je suis assez près.
+200	He's too far ahead for now. I need to close the gap first.	Il est trop loin pour l'instant. Je dois d'abord combler l'écart.
+201	Not without battery. Let me charge first.	Pas sans batterie. Laisse-moi recharger d'abord.
+202	My tyres are too worn to fight him.	Mes pneus sont trop usés pour me battre.
+203	There's nobody to pass. We're leading!	Personne à dépasser. On est en tête !
+204	That's my teammate ahead. Your call on team orders.	C'est mon équipier devant. À toi de décider des consignes.
+205	It's wet and I'm on slicks. Box me?	C'est mouillé et je suis en slicks. Je rentre ?
+206	There is a dry line. I want slicks.	Il y a une trajectoire sèche. Je veux des slicks.
+207	These tyres are done. I'd box now.	Ces pneus sont finis. Je rentrerais maintenant.
+208	I can stretch these a few more laps.	Je peux les faire durer quelques tours de plus.
+209	He's right there. Let me attack with the boost.	Il est juste là. Laisse-moi attaquer avec le boost.
+210	I'm close. Let me attack on the next straight.	Je suis près. Laisse-moi attaquer dans la prochaine ligne droite.
+211	I'm close behind. Let me attack.	Je suis juste derrière. Laisse-moi attaquer.
+212	He's all over me. Let me defend.	Il est sur moi. Laisse-moi défendre.
+213	Battery is low. Let me harvest for a lap.	La batterie est faible. Laisse-moi recharger un tour.
+214	Tyres are good. Let me push.	Les pneus sont bons. Laisse-moi attaquer.
+215	Long way to go. I'd save the tyres for now.	C'est encore long. J'économiserais les pneus pour l'instant.
+216	All good. I'd keep it as it is.	Tout va bien. Je garderais tout comme ça.
+217	We're already boxing, like you called.	On rentre déjà au stand, comme tu l'as demandé.
+218	Rain's coming. I'd stay out until it hits.	La pluie arrive. Je resterais en piste jusqu'à ce qu'elle tombe.
+219	I'm faster than my teammate. Can we swap?	Je suis plus rapide que mon équipier. On échange ?
+220	Say do it, and I'll go.	Dis « vas-y » et j'y vais.
+221	Your call, boss.	À toi de décider, chef.
+222	Really? I'm right on his gearbox. Okay, saving.	Vraiment ? Je suis collé à lui. D'accord, j'économise.
+223	Are you sure? I'm faster. Fine, letting them through.	Tu es sûr ? Je suis plus rapide. Bon, je le laisse passer.
+224	Hold? I'm quicker than my teammate. Okay, holding.	Garder ? Je suis plus rapide que mon équipier. D'accord, je garde.
+225	Copy, harvesting. But he's close behind me.	Reçu, je recharge. Mais il est juste derrière moi.
+226	Copy, defending. It will cost me some time.	Reçu, je défends. Ça va me coûter du temps.
+227	Copy. But these tyres won't last long like this.	Reçu. Mais ces pneus ne vont pas durer longtemps comme ça.
+228	Copy. But it's still wet out here.	Reçu. Mais c'est encore mouillé ici.
+229	Copy. But I think it's too dry for those.	Reçu. Mais je pense que c'est trop sec pour ça.
+230	No complaints, boss. Just racing.	Rien à signaler, chef. Je fais ma course.
+231	Like I said:	Comme je disais :
+232	My orders:	Mes consignes :
+233	push,	attaquer,
+234	save tyres,	économiser les pneus,
+235	normal pace,	rythme normal,
+236	harvest,	recharger,
+237	deploy,	déployer,
+238	balanced battery,	batterie équilibrée,
+239	and attack.	et attaquer.
+240	and defend.	et défendre.
+241	and race clean.	et rester propre.
+242	And we box this lap.	Et on rentre au stand ce tour-ci.
+243	Holding position with my teammate.	Je garde ma position avec mon équipier.
+244	You haven't changed anything yet.	Vous n'avez encore rien changé.
+245	Yes! Let's keep going!	Oui ! On continue !
+246	Thanks. Focus on the next lap.	Merci. Concentre-toi sur le prochain tour.
+247	Thanks, boss!	Merci, chef !
+248	Leave it with me!	Je m'en occupe !
+249	Copy. I'm doing everything I can.	Reçu. Je fais tout ce que je peux.
+250	On it, boss.	J'y vais, chef.
+251	Sorry, boss. I know. I will fix it.	Désolé, chef. Je sais. Je vais corriger ça.
+252	Boss, the tyres are going. I'll need a stop soon.	Chef, les pneus lâchent. Il me faudra un arrêt bientôt.
+253	It's raining and I'm on slicks!	Il pleut et je suis en slicks !
+254	nearly zero.	presque zéro.
+255	percent.	pour cent.
+256	3 seconds.	3 secondes.
+257	More than fifteen seconds.	Plus de quinze secondes.
+258	Harvesting.	Je recharge.
+259	Deploying.	Je déploie.
+260	SMH	SMH
+261	In the pits now.	Au stand maintenant.
+262	I'm saving the tyres, like you asked.	J'économise les pneus, comme demandé.
+263	tyres:	pneus :
+264	rain:	pluie :
+265	Gamble on Inters for the drying track	Parier sur les Intermédiaires pour une piste qui sèche
+266	Full Wets for safety in the spray	Pneus pluie pour la sécurité dans les gerbes d'eau
+267	Rookie	Débutant
+268	Learning the car and the calendar.	Découvre la voiture et le calendrier.
+269	Racer	Pilote
+270	Knows the circuits and keeps it clean.	Connaît les circuits et reste propre.
+271	Contender	Prétendant
+272	Reads a race and fights for places.	Lit une course et se bat pour les places.
+273	Veteran	Vétéran
+274	Master	Maître
+275	Everything learned, and little left to teach.	Il a tout appris, il reste peu à enseigner.
+276	Laps raced	Tours courus
+277	Finished	Arrivées
+278	Wet race	Course sous la pluie
+279	Race win	Victoire
+280	Podium	Podium
+281	Clean race	Course propre
+282	A new circuit	Un nouveau circuit
+283	Braking later costs more than it gains	Freiner plus tard coûte plus que ça ne rapporte
+284	Lock-ups a race	Blocages par course
+285	Steady laps beat spectacular ones	Des tours réguliers valent mieux que des tours spectaculaires
+286	Mistakes a race	Erreurs par course
+287	Looking after the tyres wins more races than raw pace	Ménager les pneus gagne plus de courses que la vitesse pure
+288	Pit stops a race	Arrêts par course
+289	Leaving room wheel to wheel	Laisser de la place roue contre roue
+290	Contacts a race	Contacts par course
+291	Waiting for the straight makes passes stick	Attendre la ligne droite fait réussir les dépassements
+292	Passes that stick	Dépassements réussis
+293	Confidence in the rain, earned	Confiance sous la pluie, méritée
+294	Wet races	Courses sous la pluie
+295	Spins	Têtes-à-queue
+296	Holding a place under pressure	Tenir sa place sous la pression
+297	Overtaken a race	Fois dépassé par course
+298	Clean enough to take more chances	Assez propre pour prendre plus de risques
+299	Clean races	Courses propres
+300	Passes a race	Dépassements par course
+301	Races	Courses
+302	Rank	Rang
+303	Kind to the tyres	Doux avec les pneus
+304	Strong in the rain	Fort sous la pluie
+305	Steady lap after lap	Régulier tour après tour
+306	An overtaker	Un dépasseur
+307	Hard to pass	Dur à dépasser
+308	Keeps it clean	Reste propre
+309	Falcon	
+310	Wheel pods, big glass canopy	Pontons de roues, grande verrière
+311	Vortex	
+312	Needle nose, open wheels	Nez effilé, roues découvertes
+313	Spectre	
+314	Graphite wheel pods	Pontons graphite
+315	Raptor	
+316	Hooked fenders, light strips	Ailes en crochet, bandes lumineuses
+317	Arrowhead	
+318	Fighter-jet scoop	Prise d'air d'avion de chasse
+319	Manta	
+320	Wing on curved hoops	Aileron sur arceaux courbes
+321	Kestrel	
+322	Wing-like fenders	Ailes en forme d'ailerons
+323	Stratos	
+324	Light-framed intakes	Prises d'air à cadre léger
+325	Peregrine	
+326	Built for top speed	Conçue pour la vitesse de pointe
+327	Tempest	
+328	Turbine fan, red tunnels	Ventilateur à turbine, tunnels rouges
+329	Corners	Virages
+330	Braking	Freinage
+331	Straights	Lignes droites
+332	Contacts	Contacts
+333	Passing attempts	Tentatives de dépassement
+334	Lock-ups	Blocages de roues
+335	Tyre wear per lap	Usure des pneus par tour
+336	Running wide	Sorties de trajectoire
+337	Other mistakes	Autres erreurs
+338	Mistakes	Erreurs
+339	Pit stops	Arrêts au stand
+340	Times overtaken	Fois dépassé
+341	Places lost from the grid	Places perdues depuis la grille
+342	Places gained from the grid	Places gagnées depuis la grille
+343	Overtakes made	Dépassements réalisés
+344	Places lost	Places perdues
+345	Team Strategist	Stratège de l'écurie
+346	AI Strategist	Stratège IA
+347	Coming later	Bientôt
+348	Survival cell	Cellule de survie
+349	The carbon tub the driver sits in.	La coque en carbone où s'assoit le pilote.
+350	Layers of carbon fibre and honeycomb, baked hard. Everything else bolts to it: the engine behind, the suspension at both ends.	Des couches de fibre de carbone et de nid d'abeille, cuites pour durcir. Tout le reste s'y fixe : le moteur derrière, la suspension aux deux bouts.
+351	It weighs about as much as a child, yet takes crash loads of many tonnes.	Elle pèse à peu près le poids d'un enfant, mais encaisse des chocs de plusieurs tonnes.
+352	Driver	Pilote
+353	Lying almost flat, feet up in the nose.	Presque allongé, les pieds levés dans le nez.
+354	Lying low keeps the weight down and the car narrow. The steering wheel carries the buttons for the battery, the radio and the brakes.	Être allongé garde le poids bas et la voiture étroite. Le volant porte les boutons de la batterie, de la radio et des freins.
+355	Drivers feel up to five times their own weight in fast corners.	Les pilotes subissent jusqu'à cinq fois leur poids dans les virages rapides.
+356	Halo	Halo
+357	A titanium hoop over the driver's head.	Un arceau en titane au-dessus de la tête du pilote.
+358	It sits above the cockpit and deflects a loose wheel or a car that lands on top. The canopy covers it on our cars.	Il est placé au-dessus du cockpit et dévie une roue détachée ou une voiture qui atterrit dessus. La verrière le recouvre sur nos voitures.
+359	It can hold the weight of a double-decker bus.	Il peut supporter le poids d'un bus à impériale.
+360	Fuel cell	Réservoir
+361	A rubber bag of fuel behind the seat.	Une poche de carburant en caoutchouc derrière le siège.
+362	A tough, flexible bag inside the tub, so a crash bends it instead of splitting it. Pumps inside keep fuel flowing in every corner.	Une poche solide et souple dans la coque : en cas de choc, elle se plie au lieu de se déchirer. Des pompes à l'intérieur alimentent le moteur dans chaque virage.
+363	It holds about 100 kg of fuel at the start, enough for the whole race.	Elle contient environ 100 kg de carburant au départ, assez pour toute la course.
+364	Battery	Batterie
+365	Stores energy saved under braking.	Stocke l'énergie récupérée au freinage.
+366	Under braking, the electric motor turns the car's speed back into electricity and fills this battery. BOOST spends it again.	Au freinage, le moteur électrique transforme la vitesse en électricité et remplit cette batterie. BOOST la dépense à nouveau.
+367	It gives back about 160 extra horsepower for a few seconds each lap.	Elle rend environ 160 chevaux de plus pendant quelques secondes à chaque tour.
+368	Power unit	Groupe propulseur
+369	A small turbo engine plus electric motors.	Un petit moteur turbo plus des moteurs électriques.
+370	About 1000 horsepower from an engine smaller than a family car’s.	Environ 1000 chevaux d'un moteur plus petit que celui d'une voiture familiale.
+371	Turbo	Turbo
+372	Exhaust gas spins it to push more air in.	Les gaz d'échappement le font tourner pour pousser plus d'air.
+373	It spins up to 125,000 times a minute.	Il tourne jusqu'à 125 000 fois par minute.
+374	Electric motor	Moteur électrique
+375	Charges the battery, then pushes the car.	Charge la batterie, puis pousse la voiture.
+376	Geared to the engine: it brakes the car and makes electricity, then turns the other way round and helps the engine when you press BOOST.	Relié au moteur : il freine la voiture et produit de l'électricité, puis tourne dans l'autre sens et aide le moteur quand vous appuyez sur BOOST.
+377	It can harvest about 2 megajoules a lap, enough to boil a kettle five times.	Il récupère environ 2 mégajoules par tour, de quoi faire bouillir une bouilloire cinq fois.
+378	Radiators	Radiateurs
+379	Air from the side intakes cools everything.	L'air des prises latérales refroidit tout.
+380	Air enters the side intakes, passes through the radiators' thin fins, and carries away the heat from the water, oil and battery.	L'air entre par les prises latérales, traverse les fines ailettes des radiateurs et emporte la chaleur de l'eau, de l'huile et de la batterie.
+381	The water inside runs at about 120 °C, kept from boiling by pressure.	L'eau tourne à environ 120 °C, sans bouillir grâce à la pression.
+382	Gearbox	Boîte de vitesses
+383	Eight gears, shifts in milliseconds.	Huit rapports, passés en quelques millisecondes.
+384	Bolted to the back of the engine, it also holds the rear suspension and the rear wing. Driveshafts carry the power out to the wheels.	Fixée à l'arrière du moteur, elle porte aussi la suspension et l'aileron arrière. Les arbres de transmission envoient la puissance aux roues.
+385	A gear change takes a few hundredths of a second, faster than a blink.	Un changement de rapport prend quelques centièmes de seconde, plus vite qu'un clignement d'œil.
+386	Exhaust	Échappement
+387	Hot gas out of the back.	Les gaz chauds sortent par l'arrière.
+388	After spinning the turbo, the exhaust leaves through one tailpipe under the rear wing. It glows at full throttle.	Après avoir fait tourner le turbo, les gaz sortent par un seul pot sous l'aileron arrière. Il rougeoie à plein régime.
+389	The gas leaves at around 900 °C.	Les gaz sortent à environ 900 °C.
+390	Suspension	Suspension
+391	Arms that hold each wheel to the car.	Des bras qui tiennent chaque roue à la voiture.
+392	The car runs only a few centimetres off the road, so it is set very stiff.	La voiture roule à quelques centimètres du sol, elle est donc réglée très ferme.
+393	Brakes	Freins
+394	Carbon discs that glow red hot.	Des disques en carbone chauffés au rouge.
+395	Six-piston callipers squeeze carbon discs inside each wheel. The electric motor helps at the rear and saves energy while it does.	Des étriers à six pistons serrent des disques en carbone dans chaque roue. Le moteur électrique aide à l'arrière et récupère de l'énergie au passage.
+396	The discs reach about 1000 °C and stop the car from 300 km/h in about 4 seconds.	Les disques atteignent environ 1000 °C et arrêtent la voiture de 300 km/h en environ 4 secondes.
+397	Front wing	Aileron avant
+398	Presses the front tyres into the road.	Plaque les pneus avant sur la route.
+399	Shaped like an upside-down aeroplane wing: air pushes it down, giving the front tyres more grip in corners.	En forme d'aile d'avion à l'envers : l'air le pousse vers le bas et donne aux pneus avant plus d'adhérence en virage.
+400	At top speed the whole car makes enough downforce to drive upside down.	À pleine vitesse, la voiture produit assez d'appui pour rouler au plafond.
+401	Rear wing	Aileron arrière
+402	Grip for the rear, with a flap for speed.	De l'adhérence à l'arrière, avec un volet pour la vitesse.
+403	Like the front wing, it pushes the rear tyres down. On straights a flap opens to cut drag and add speed.	Comme l'aileron avant, il plaque les pneus arrière. En ligne droite, un volet s'ouvre pour réduire la traînée et gagner de la vitesse.
+404	Opening the flap is worth 10 to 15 km/h on a long straight.	Ouvrir le volet vaut 10 à 15 km/h sur une longue ligne droite.
+405	Floor	Fond plat
+406	Tunnels underneath suck the car down.	Des tunnels dessous aspirent la voiture vers le sol.
+407	Air speeds up through shaped tunnels under the car, which lowers the pressure there and pulls the car to the track.	L'air accélère dans des tunnels sous la voiture, ce qui baisse la pression et colle la voiture à la piste.
+408	More than half the car's grip comes from the floor.	Plus de la moitié de l'adhérence vient du fond plat.
+409	Tyres	Pneus
+410	Soft, medium, hard, and two for rain.	Tendre, medium, dur, et deux pour la pluie.
+411	Softer rubber grips more but wears out sooner. Choosing when to change them is the biggest call you make in a race.	Une gomme plus tendre accroche plus mais s'use plus vite. Choisir quand les changer est la plus grande décision de la course.
+412	A pit crew changes all four in about two seconds.	Une équipe change les quatre en environ deux secondes.
+413	FL	AVG
+414	FR	AVD
+415	RL	ARG
+416	RR	ARD
+417	Abu Dhabi	Abou Dabi
+418	UAE	Émirats arabes unis
+419	Middle East	Moyen-Orient
+420	Marina Twilight Circuit	
+421	The season opener. Starts at sunset, finishes under the lights.	L'ouverture de la saison. Départ au coucher du soleil, arrivée sous les projecteurs.
+422	Kigali	
+423	Rwanda	Rwanda
+424	East Africa	Afrique de l'Est
+425	Thousand Hills Circuit	
+426	Green ridges on every side and 1,500 m of altitude. Showers roll in off the hills.	Des crêtes vertes tout autour et 1 500 m d'altitude. Les averses descendent des collines.
+427	Abidjan	
+428	Côte d'Ivoire	Côte d'Ivoire
+429	West Africa	Afrique de l'Ouest
+430	Ébrié Lagoon Circuit	
+431	Along the lagoon with the Plateau towers across the water. Humid, and rain is never far.	Le long de la lagune, face aux tours du Plateau. Humide, et la pluie n'est jamais loin.
+432	Sakhir	
+433	Bahrain	Bahreïn
+434	Desert Lights Circuit	
+435	Floodlit desert night. Abrasive surface: tyres wear fast.	Nuit illuminée dans le désert. Revêtement abrasif : les pneus s'usent vite.
+436	Jeddah	Djeddah
+437	Saudi Arabia	Arabie saoudite
+438	Red Sea Corniche	Corniche de la mer Rouge
+439	A fast night street circuit on the Red Sea shore. Walls are close.	Un circuit urbain rapide de nuit au bord de la mer Rouge. Les murs sont tout près.
+440	Suzuka	
+441	Japan	Japon
+442	East Asia	Asie de l'Est
+443	Ise Bay Circuit	
+444	Flowing corners in green hills, a big wheel over the paddock, and typhoon-season rain.	Des virages fluides dans les collines vertes, une grande roue au-dessus du paddock, et la pluie de la saison des typhons.
+445	Shanghai	
+446	China	Chine
+447	Huangpu Circuit	
+448	Wide riverside layout with the skyline on the far bank.	Un tracé large au bord du fleuve, avec les gratte-ciel sur l'autre rive.
+449	Kingston	
+450	Jamaica	Jamaïque
+451	Caribbean	Caraïbes
+452	Port Royal Circuit	
+453	Harbour-side between the sea and the Blue Mountains. Tropical showers and big crowds.	Entre la mer et les Blue Mountains, au bord du port. Averses tropicales et grande foule.
+454	Mexico City	Mexico
+455	Mexico	Mexique
+456	North America	Amérique du Nord
+457	Altiplano Circuit	
+458	2,200 m up: thin air means less grip in the corners and more speed on the straights.	À 2 200 m : l'air raréfié donne moins d'adhérence en virage et plus de vitesse en ligne droite.
+459	Montréal	
+460	Canada	
+461	St. Lawrence Island Run	
+462	An island circuit on the river. Walls close by and weather that changes by the lap.	Un circuit sur une île du fleuve. Des murs tout près et une météo qui change à chaque tour.
+463	Monte Carlo	
+464	Monaco	
+465	Europe	Europe
+466	Riviera Harbour Circuit	
+467	Tight streets, yachts in the harbour. Overtaking is hard: track position is everything.	Rues étroites, yachts dans le port. Dépasser est difficile : la position en piste fait tout.
+468	Barcelona	
+469	Spain	Espagne
+470	Catalonia Hills	Collines de Catalogne
+471	Warm rolling hills and long fast corners that eat the front tyres.	Des collines douces et chaudes, et de longs virages rapides qui dévorent les pneus avant.
+472	Spielberg	
+473	Austria	Autriche
+474	Styrian Alps Ring	
+475	A short, quick lap in an alpine bowl. Mountain storms arrive fast.	Un tour court et rapide dans une cuvette alpine. Les orages de montagne arrivent vite.
+476	Northamptonshire	
+477	Great Britain	Grande-Bretagne
+478	Midlands Airfield Circuit	
+479	Flat old airfield country, high-speed corners and the classic British drizzle.	Un vieux pays d'aérodromes tout plat, des virages à haute vitesse et la bruine britannique classique.
+480	Budapest	
+481	Hungary	Hongrie
+482	Danube Valley Ring	
+483	Twisty, hot and dusty. Hard to pass, so strategy wins it.	Sinueux, chaud et poussiéreux. Difficile de dépasser, donc la stratégie fait la différence.
+484	Ardennes	
+485	Belgium	Belgique
+486	Ardennes Forest Circuit	
+487	Deep forest and its own weather: it can rain on one side of the track and not the other.	Forêt profonde et sa propre météo : il peut pleuvoir d'un côté du circuit et pas de l'autre.
+488	Zandvoort	
+489	Netherlands	Pays-Bas
+490	North Sea Dunes	Dunes de la mer du Nord
+491	Between the dunes and the North Sea. Sand blows onto the track and showers blow in.	Entre les dunes et la mer du Nord. Le sable vole sur la piste et les averses arrivent.
+492	Monza	
+493	Italy	Italie
+494	Lombardy Park Circuit	
+495	Royal parkland and the fastest straights of the year. Slipstream is king.	Un parc royal et les lignes droites les plus rapides de l'année. L'aspiration est reine.
+496	Baku	
+497	Azerbaijan	Azerbaïdjan
+498	Caspian	Caspienne
+499	Caspian Boulevard	
+500	Seafront street circuit at sunset, a huge straight, and three flame-shaped towers.	Circuit urbain en bord de mer au coucher du soleil, une immense ligne droite et trois tours en forme de flamme.
+501	Singapore	Singapour
+502	South-East Asia	Asie du Sud-Est
+503	Marina Night Circuit	
+504	Under the lights in the city. Hot, humid, and the heaviest rain on the calendar.	Sous les projecteurs en ville. Chaud, humide, et les plus fortes pluies du calendrier.
+505	Anchorage	
+506	Alaska, USA	Alaska, États-Unis
+507	Midnight Sun Circuit	
+508	Racing at 11 pm in broad daylight. Cold track, low wear, snow on the peaks.	On court à 23 h en plein jour. Piste froide, peu d'usure, neige sur les sommets.
+509	Honolulu	
+510	Hawaii, USA	Hawaï, États-Unis
+511	Pacific	Pacifique
+512	Waikīkī Coast Circuit	
+513	Ocean on one side, an old volcano on the other. Trade-wind showers come and go.	L'océan d'un côté, un vieux volcan de l'autre. Les averses des alizés vont et viennent.
+514	São Paulo	
+515	Brazil	Brésil
+516	South America	Amérique du Sud
+517	Paulista Heights	
+518	A bowl in the hills with the city all around. Famous for chaos in the rain.	Une cuvette dans les collines, la ville tout autour. Célèbre pour le chaos sous la pluie.
+519	Buenos Aires	
+520	Argentina	Argentine
+521	Río de la Plata Circuit	
+522	Wide avenues by the great river, and a strong wind off the water.	De larges avenues au bord du grand fleuve, et un vent fort venu de l'eau.
+523	Abuja	
+524	Nigeria	Nigeria
+525	Aso Rock Ring	
+526	The season finale in the green capital, under the granite face of Aso Rock with the city skyline beyond. Hot track, sudden storms.	La finale de la saison dans la capitale verte, sous la paroi de granit d'Aso Rock avec la ville au loin. Piste chaude, orages soudains.
+527	Lagos	
+528	Lagoon City Circuit	
+529	Golden hour on the lagoon: a white cable-stayed bridge, the causeway traffic and the island towers across the water.	L'heure dorée sur la lagune : un pont à haubans blanc, la circulation sur la digue et les tours de l'île de l'autre côté de l'eau.
+530	Dakar	
+531	Senegal	Sénégal
+532	Corniche Circuit	
+533	Along the Atlantic corniche: red cliffs and surf, baobabs over the track and a lighthouse on the headland.	Le long de la corniche atlantique : falaises rouges et vagues, baobabs au-dessus de la piste et un phare sur le cap.
+534	Nairobi	
+535	Kenya	Kenya
+536	Highlands Circuit	
+537	Flat-topped acacias, the city on its ridge and a snow-capped peak far away. Thin air at 1,700 m.	Des acacias au sommet plat, la ville sur sa crête et un pic enneigé au loin. Air raréfié à 1 700 m.
+538	Cape Town	Le Cap
+539	South Africa	Afrique du Sud
+540	Southern Africa	Afrique australe
+541	Table Bay Circuit	
+542	Under the flat top of Table Mountain, past painted houses and the harbour. The wind off the bay is strong.	Sous le sommet plat de la montagne de la Table, devant les maisons peintes et le port. Le vent de la baie est fort.
+543	Tokyo	
+544	Bay Lights Circuit	
+545	Neon and rain at dusk, under the red lattice tower and the stacked expressways.	Néons et pluie au crépuscule, sous la tour rouge en treillis et les autoroutes superposées.
+546	Reykjanes	
+547	Iceland	Islande
+548	Basalt Coast Circuit	
+549	Black basalt columns, moss, a glacier in the mist and sea stacks in the surf. Cold track, low grip.	Colonnes de basalte noir, mousse, un glacier dans la brume et des aiguilles rocheuses dans les vagues. Piste froide, peu d'adhérence.
+550	New Delhi	New Delhi
+551	India	Inde
+552	South Asia	Asie du Sud
+553	Yamuna Circuit	
+554	Wide and fast beside the Yamuna, with the capital spreading to the horizon. Hot, dusty air.	Large et rapide au bord de la Yamuna, la capitale s'étend jusqu'à l'horizon. Air chaud et poussiéreux.
+555	Sochi	
+556	Russia	Russie
+557	Black Sea Circuit	Circuit de la mer Noire
+558	Between the Black Sea and the snowy Caucasus. Smooth tarmac, gentle on tyres.	Entre la mer Noire et le Caucase enneigé. Asphalte lisse, doux pour les pneus.
+559	Miami	
+560	USA	États-Unis
+561	Biscayne Bay Circuit	
+562	Palms, yachts and towers on the bay. Steamy, with thunderstorms that build by the afternoon.	Palmiers, yachts et tours sur la baie. Moite, avec des orages qui montent dans l'après-midi.
+563	Austin	
+564	Hill Country Circuit	
+565	A steep climb to turn one and rolling Texas hill country all around.	Une montée raide jusqu'au premier virage et les collines du Texas tout autour.
+566	Las Vegas	
+567	Neon Strip Circuit	
+568	Flat out down the Strip at night. A cold track makes the tyres hard to warm up.	À fond sur le Strip la nuit. Une piste froide rend les pneus difficiles à chauffer.
+569	Melbourne	
+570	Australia	Australie
+571	Oceania	Océanie
+572	Albert Lake Circuit	
+573	Round a park lake with the city skyline behind. Four seasons in one day.	Autour d'un lac dans un parc, la ville en arrière-plan. Quatre saisons en une journée.
+574	Lusail	
+575	Qatar	
+576	Pearl Lights Circuit	
+577	Fast sweeping corners under floodlights. Heavy on the tyres.	Des courbes rapides sous les projecteurs. Dur pour les pneus.
+578	Imola	
+579	Santerno Valley Circuit	
+580	Old-school and narrow, climbing through the hills by the river. Hard to pass.	À l'ancienne et étroit, il grimpe dans les collines au bord de la rivière. Difficile de dépasser.
+581	Madrid	
+582	Meseta Circuit	
+583	Part street, part park, on the high plain. Hot and dry.	Mi-rue, mi-parc, sur le haut plateau. Chaud et sec.
+584	Istanbul	
+585	Türkiye	Turquie
+586	Bosphorus Circuit	
+587	Where Europe meets Asia, with the city on both banks. Slippery when it rains.	Là où l'Europe rencontre l'Asie, avec la ville sur les deux rives. Glissant quand il pleut.
+588	Portimão	
+589	Portugal	Portugal
+590	Algarve Rollercoaster	Montagnes russes de l'Algarve
+591	Blind crests and drops in the hills above the Atlantic. Windy.	Des bosses aveugles et des descentes dans les collines au-dessus de l'Atlantique. Venteux.
+592	Le Castellet	
+593	France	France
+594	Provence Plateau Circuit	
+595	A high plateau among Provence pines. The mistral wind changes the car.	Un haut plateau parmi les pins de Provence. Le mistral change le comportement de la voiture.
+596	Hockenheim	
+597	Germany	Allemagne
+598	Rhine Forest Ring	
+599	Long blasts through the forest, then a stadium full of fans. Rain can arrive on one side only.	De longues pointes dans la forêt, puis un stade plein de fans. La pluie peut tomber d'un seul côté.
+600	Kuala Lumpur	
+601	Malaysia	Malaisie
+602	Petaling Circuit	
+603	Jungle heat and the hardest tropical downpours of the year.	La chaleur de la jungle et les averses tropicales les plus violentes de l'année.
+604	Johannesburg	
+605	Highveld Circuit	
+606	Up on the green Highveld with the city skyline close by. Thin air and afternoon thunderstorms.	Sur le Highveld verdoyant, la ville toute proche. Air raréfié et orages l'après-midi.
+607	Harmattan Racing	
+608	HAR	
+609	Kora	
+610	KOR	
+611	Sahel-9	
+612	SAH	
+613	Lagoon Dynamics	
+614	LAG	
+615	Ade	
+616	ADE	
+617	Marlin	
+618	MAR	
+619	Northern Lights GP	
+620	NLG	
+621	Aurora	
+622	AUR	
+623	Fjord	
+624	FJO	
+625	Kilimanjaro Motorsport	
+626	KIL	
+627	Tembo	
+628	TEM	
+629	Zuri	
+630	ZUR	
+631	Volta Speed	
+632	VOL	
+633	Volt	
+634	VLT	
+635	Ampere	
+636	AMP	
+637	Monsoon Works	
+638	MON	
+639	Raja	
+640	RAJ	
+641	Kai	
+642	KAI	
+643	Pampas Racing	
+644	PAM	
+645	Tango	
+646	TAN	
+647	Pampa	
+648	Sakura Velocity	
+649	SAK	
+650	Hana	
+651	HAN	
+652	Kenji	
+653	KEN	
+654	Atlas Machine	
+655	ATL	
+656	Atlas	
+657	Orion	
+658	ORI	
+659	Green & white	Vert et blanc
+660	Racing blue	Bleu course
+661	Red	Rouge
+662	Black & gold	Noir et or
+663	Papaya	Papaye
+664	Teal & sun	Turquoise et soleil
+665	Purple	Violet
+666	White & red	Blanc et rouge
+667	Stealth	Furtif
+668	Silver arrow	Flèche d'argent
+669	Midnight & brass	Minuit et laiton
+670	Sahara gold	Or du Sahara
+671	Eagle green	Vert aigle
+672	Neon night	Nuit néon
+673	Savanna	Savane
+674	Ruby	Rubis
+675	Gloss	Brillant
+676	Satin	Satiné
+677	Matte	Mat
+678	Metallic	Métallisé
+679	Wet	Pluie
+680	Braking and corners	Freinage et virages
+681	Overtaking and defending	Dépasser et défendre
+682	Tyres and energy	Pneus et énergie
+683	Weather	Météo
+684	Judgement	Jugement
+685	Team play	Jeu d'équipe
+686	Late braking	Freinage tardif
+687	Brakes early, with margin	Freine tôt, avec de la marge
+688	Brakes as late as the car allows	Freine aussi tard que la voiture le permet
+689	Shorter braking zones	Zones de freinage plus courtes
+690	More lock-ups and flat spots	Plus de blocages et de méplats
+691	Entry vs exit	Entrée ou sortie
+692	Slow in, fast out	Lent à l'entrée, rapide à la sortie
+693	Carries speed into the corner	Entre vite dans le virage
+694	Faster corner entry, easier dives	Entrées plus rapides, plongeons plus faciles
+695	Slower exits, more running wide	Sorties plus lentes, plus d'élargissements
+696	Corner commitment	Engagement en virage
+697	Leaves grip in reserve	Garde de l'adhérence en réserve
+698	Uses nearly all the grip	Utilise presque toute l'adhérence
+699	Higher corner speed, a better grid slot	Plus de vitesse en virage, une meilleure place sur la grille
+700	Tyre wear and more mistakes	Usure des pneus et plus d'erreurs
+701	Kerb use	Usage des vibreurs
+702	Stays off the kerbs	Évite les vibreurs
+703	Rides every kerb	Monte sur tous les vibreurs
+704	A little time in each corner	Un peu de temps dans chaque virage
+705	Tyre wear and the odd big moment	Usure des pneus et quelques grosses frayeurs
+706	Throttle aggression	Agressivité à l'accélérateur
+707	Gentle on the power	Doux sur la puissance
+708	Full power early	Pleine puissance tôt
+709	Faster exits in the dry	Sorties plus rapides sur le sec
+710	Wheelspin, worse in the wet	Patinage, pire sur le mouillé
+711	Overtaking eagerness	Envie de dépasser
+712	Waits for a sure thing	Attend une occasion sûre
+713	Tries every chance	Tente toutes les occasions
+714	More passing attempts	Plus de tentatives de dépassement
+715	More contact and aborted moves	Plus de contacts et de manœuvres avortées
+716	Gap acceptance	Ouverture acceptée
+717	Needs a big gap	Il lui faut une grande ouverture
+718	Goes for half a gap	Se lance dans une demi-ouverture
+719	Passes from further back	Dépasse de plus loin
+720	Tighter moves, more contact	Manœuvres plus serrées, plus de contacts
+721	Slipstream patience	Patience dans l'aspiration
+722	Dives into corners	Plonge dans les virages
+723	Waits for the straight	Attend la ligne droite
+724	Cleaner, safer passes	Dépassements plus propres et plus sûrs
+725	Fewer chances on twisty tracks	Moins d'occasions sur les circuits sinueux
+726	Defending	Défense
+727	Lets faster cars go	Laisse passer les plus rapides
+728	Covers every move	Couvre chaque mouvement
+729	Harder to pass	Plus dur à dépasser
+730	Slower laps while defending, tyre wear	Tours plus lents en défense, usure des pneus
+731	Side-by-side caution	Prudence côte à côte
+732	Holds the line, door to door	Tient sa ligne, portière contre portière
+733	Gives room, avoids contact	Laisse de la place, évite le contact
+734	Fewer collisions	Moins de collisions
+735	Loses more wheel-to-wheel fights	Perd plus de duels roue contre roue
+736	Tyre care	Soin des pneus
+737	Uses the tyres up	Use les pneus à fond
+738	Nurses the tyres	Ménage les pneus
+739	Longer stints, fewer stops	Relais plus longs, moins d'arrêts
+740	Slower laps	Tours plus lents
+741	Battery use	Usage de la batterie
+742	Saves charge for fights	Garde la charge pour les duels
+743	Spends charge freely	Dépense la charge sans compter
+744	Faster on the straights	Plus rapide en ligne droite
+745	Less in reserve to attack or defend	Moins de réserve pour attaquer ou défendre
+746	Wet confidence	Confiance sur le mouillé
+747	Very careful in the wet	Très prudent sur le mouillé
+748	Pushes in the rain	Attaque sous la pluie
+749	Faster on a wet track	Plus rapide sur piste mouillée
+750	Spins and offs in the wet	Têtes-à-queue et sorties sur le mouillé
+751	Tyre-change timing	Moment du changement de pneus
+752	Stays out on the old tyres	Reste en piste sur les vieux pneus
+753	Asks to change early	Demande à changer tôt
+754	First onto the right tyres	Le premier sur les bons pneus
+755	Sometimes stops too soon	S'arrête parfois trop tôt
+756	Consistency	Régularité
+757	Spectacular, up and down	Spectaculaire, en dents de scie
+758	Steady, lap after lap	Régulier, tour après tour
+759	Fewer mistakes, even laps	Moins d'erreurs, tours réguliers
+760	Fewer stand-out laps	Moins de tours d'exception
+761	Team-order compliance	Respect des consignes d'équipe
+762	Argues with orders	Discute les consignes
+763	Obeys at once	Obéit tout de suite
+764	Swaps happen fast	Les échanges se font vite
+765	Gives up places without a fight	Cède des places sans se battre
+766	Teammate cooperation	Entente avec l'équipier
+767	Races the teammate hard	Se bat dur contre l'équipier
+768	Helps the teammate	Aide son équipier
+769	Fewer team clashes	Moins d'accrochages internes
+770	Slow to fight a teammate for position	Lent à disputer une place à son équipier
+771	Fewer lock-ups	Moins de blocages
+772	Longer braking zones	Freinages plus longs
+773	Better exits, tidier lines	Meilleures sorties, trajectoires plus propres
+774	Slower into corners, fewer dives	Plus lent à l'entrée, moins de plongeons
+775	Saves tyres, fewer mistakes	Économise les pneus, moins d'erreurs
+776	Lower corner speed	Moins de vitesse en virage
+777	Kinder to the tyres	Plus doux avec les pneus
+778	A little slower in each corner	Un peu plus lent dans chaque virage
+779	Better traction in the wet	Meilleure motricité sur le mouillé
+780	Slower exits in the dry	Sorties plus lentes sur le sec
+781	Less contact	Moins de contacts
+782	Fewer passing attempts	Moins de tentatives de dépassement
+783	Cleaner moves	Manœuvres plus propres
+784	Has to be closer to try	Doit être plus près pour tenter
+785	More chances into corners	Plus d'occasions au freinage
+786	Riskier corner dives	Plongeons plus risqués
+787	Keeps its lap time when attacked	Garde son rythme quand on l'attaque
+788	Easier to pass	Plus facile à dépasser
+789	Wins more wheel-to-wheel fights	Gagne plus de duels roue contre roue
+790	More collisions	Plus de collisions
+791	Quicker laps	Tours plus rapides
+792	Shorter stints, more wear	Relais plus courts, plus d'usure
+793	Charge in reserve for fights	De la charge en réserve pour les duels
+794	Slower on the straights	Plus lent en ligne droite
+795	Rarely spins in the rain	Part rarement en tête-à-queue sous la pluie
+796	Slower on a wet track	Plus lent sur piste mouillée
+797	Never stops too soon	Ne s'arrête jamais trop tôt
+798	Slow onto the right tyres	Lent à passer aux bons pneus
+799	The odd stand-out lap	Quelques tours d'exception
+800	More mistakes, uneven laps	Plus d'erreurs, tours irréguliers
+801	Fights for its place	Se bat pour sa place
+802	Swaps happen slowly	Les échanges se font lentement
+803	Races for itself	Court pour lui-même
+804	More team clashes	Plus d'accrochages internes
+805	Braking aggression	Agressivité au freinage
+806	Early and safe	Tôt et sûr
+807	Late and hard	Tard et fort
+808	Lock-ups, missed apexes	Blocages, cordes manquées
+809	Cornering style	Style en virage
+810	Grip in reserve	Adhérence en réserve
+811	On the limit	À la limite
+812	Tyre wear, running wide	Usure des pneus, sorties larges
+813	Overtaking	Dépassement
+814	Patient	Patient
+815	Opportunist	Opportuniste
+816	Contact, aborted moves	Contacts, manœuvres avortées
+817	Defensive racing	Défense en course
+818	Lets them by	Les laisse passer
+819	Covers everything	Couvre tout
+820	Slower laps, tyre wear	Tours plus lents, usure des pneus
+821	Tyre preservation	Préservation des pneus
+822	Uses them up	Les use
+823	Nurses them	Les ménage
+824	Gentle	Doux
+825	Wheelspin, wet weakness	Patinage, faible sur le mouillé
+826	Wet-weather confidence	Confiance sous la pluie
+827	Confident	Confiant
+828	Spins in the rain	Tête-à-queue sous la pluie
+829	Spectacular	Spectaculaire
+830	Steady	Régulier
+831	Fewer stand-out moves	Moins de coups d'éclat
+832	Fewer chances taken	Moins de risques pris
+833	More wear, maybe an extra stop	Plus d'usure, peut-être un arrêt de plus
+834	Slower exits	Sorties plus lentes
+835	Slow in the rain	Lent sous la pluie
+836	More mistakes	Plus d'erreurs
+837	Balanced	Équilibré
+838	Even in everything. A good place to start.	Égal en tout. Un bon point de départ.
+839	Late on the brakes and into every gap. Wins fights, wears tyres, finds walls.	Freine tard et se jette dans chaque ouverture. Gagne les duels, use les pneus, trouve les murs.
+840	Technician	Technicien
+841	Clean lines and smooth hands. Quick and tidy, but rarely makes a bold move.	Trajectoires propres et mains douces. Rapide et soigné, mais tente rarement un coup audacieux.
+842	Strategist	Stratège
+843	Thinks a stint ahead: saves tyres and charge, then strikes late.	Pense un relais à l'avance : économise pneus et charge, puis frappe tard.
+844	All-Rounder	Polyvalent
+845	A little above average almost everywhere, a master of nothing.	Un peu au-dessus de la moyenne presque partout, maître de rien.
+846	Wet-Weather Specialist	Spécialiste de la pluie
+847	Comes alive in the rain and reads a drying track first. Ordinary in the dry.	S'éveille sous la pluie et lit le premier une piste qui sèche. Ordinaire sur le sec.
+848	Makes a set last for ever, so stops less. Slower on fresh rubber.	Fait durer un train de pneus à l'infini, donc s'arrête moins. Plus lent sur gomme neuve.
+849	Qualifying Specialist	Spécialiste des qualifs
+850	Starts near the front with one blistering lap, then fights to keep it as the tyres fade.	Part devant grâce à un tour fulgurant, puis se bat pour garder sa place quand les pneus faiblissent.
+851	Defensive Anchor	Roc défensif
+852	Almost impossible to pass, and loses time doing it. Rarely attacks.	Presque impossible à dépasser, et perd du temps à le faire. Attaque rarement.
+853	dna1:	
+854	preset:	
+855	blend weights must add up to 100	
+856	blend:	
+857	not a profile	pas un profil
+858	no settings	aucun réglage
+859	Imported	Importé
+860	restored an earlier version	une version précédente restaurée
+861	Your own preset	Votre propre préréglage
+862	Your Team	Votre écurie
+863	YOU	VOUS
+864	Nova	
+865	NOV	
+866	Echo	
+867	ECH	
+868	Paddock Club	Paddock Club
+869	PAD	
+870	Sol	
+871	SOL	
+872	KAY	
+873	Short	Court
+874	About 5 min	Environ 5 min
+875	About 10 min	Environ 10 min
+876	Long	Long
+877	About 18 min	Environ 18 min
+878	Real Grand Prix laps · about 35 min	Vrais tours de Grand Prix · environ 35 min
+879	agp.here	
+880	file:	
+881	bold 92px system-ui, sans-serif	
+882	NAIROBI	
+883	agp.live.v1	
+884	Teague	
+885	save tyres	économiser les pneus
+886	Interval	Intervalle
+887	Leader	Leader
+888	wet out here	
+889	standing water	
+890	dry line	
+891	Safety car! Cheap	Voiture de sécurité ! Arrêt pas cher
+892	Virtual safety car. Box	Voiture de sécurité virtuelle. Box
+893	second compound. Box now	deuxième gomme. Box maintenant
+894	Pit window	Fenêtre d'arrêt
+895	Sound on. Turn sound off	Son activé. Couper le son
+896	Sound off. Turn sound on	Son coupé. Activer le son
+897	VSC	VSC
+898	VIRTUAL SAFETY CAR	VOITURE DE SÉCURITÉ VIRTUELLE
+899	SC IN THIS LAP	SC RENTRE CE TOUR
+900	SAFETY CAR	VOITURE DE SÉCURITÉ
+901	OUT	OUT
+902	PIT	STAND
+903	FIN	FIN
+904	DRS	DRS
+905	BOXING	AU STAND
+906	tap to cancel	touchez pour annuler
+907	SAY “RADIO”	DITES « RADIO »
+908	HOLD TO TALK	MAINTENIR POUR PARLER
+909	Hands-free: say "Radio" then the call. Hold to talk still works.	Mains libres : dites « Radio » puis la consigne. Maintenir pour parler marche toujours.
+910	Hold and speak (or hold T)	Maintenez et parlez (ou maintenez T)
+911	MacIntel	
+912	Listening…	J'écoute…
+913	Allow the microphone in your browser to talk to your drivers. The buttons still work.	Autorisez le micro dans votre navigateur pour parler à vos pilotes. Les boutons marchent toujours.
+914	Team radio lost its connection. Hold the mic and try again.	La radio a perdu la connexion. Maintenez le micro et réessayez.
+915	No microphone found.	Aucun micro trouvé.
+916	Radio… go ahead	Radio… à vous
+917	Allow the microphone to use hands-free radio. The buttons still work.	Autorisez le micro pour la radio mains libres. Les boutons marchent toujours.
+918	Tyres still feel good. I'd rather stay out.	Les pneus sont encore bons. Je préfère rester en piste.
+919	Tyres are gone. I can't push much longer.	Les pneus sont morts. Je ne peux plus attaquer longtemps.
+920	Copy, boss. But my tyres are starting to go.	Reçu, chef. Mais mes pneus commencent à lâcher.
+921	Copy. Saving now, then I'll push.	Reçu. J'économise, puis j'attaque.
+922	Understood. Managing the tyres.	Compris. Je gère les pneus.
+923	Battery's empty. I need to charge first.	La batterie est vide. Je dois recharger d'abord.
+924	Copy. Charging until we're close.	Reçu. Je recharge jusqu'à ce qu'on soit près.
+925	Swap places works when your two cars run nose to tail.	Échanger les places marche quand vos deux voitures se suivent de près.
+926	laps done	tours faits
+927	you're within a second	vous êtes à moins d'une seconde
+928	Battery back to balanced.	Batterie revenue en équilibré.
+929	now.	maintenant.
+930	aggressive racer	pilote agressif
+931	patient racer	pilote patient
+932	balanced racer	pilote équilibré
+933	gentle on tyres	doux avec les pneus
+934	hard on tyres	dur avec les pneus
+935	average on tyres	moyen avec les pneus
+936	no reply	pas de réponse
+937	Attack + boost	Attaque + boost
+938	Harvest	Recharger
+939	Do it	Vas-y
+940	Dismiss	Ignorer
+941	Not now	Pas maintenant
+942	Say "do it" and I'll make the call.	Dites « vas-y » et je donne la consigne.
+943	New tip	Nouveau conseil
+944	Open the coach tip	Ouvrir le conseil du coach
+945	Coach	Coach
+946	Show tips open	Afficher les conseils
+947	Fold the coach away	Replier le coach
+948	Fold away	Replier
+949	Close	Fermer
+950	🎧 Coach	🎧 Coach
+951	Coach folded away. New tips show as a small pill.	Coach replié. Les nouveaux conseils s'affichent en petite pastille.
+952	Coach tips open in full again.	Les conseils du coach s'ouvrent de nouveau en entier.
+953	You run a team of	Vous dirigez une écurie de
+954	so your faster car can chase the cars ahead.	pour que votre voiture la plus rapide chasse celles de devant.
+955	Your two cars are fighting each other, which costs them both time.	Vos deux voitures se battent entre elles, et elles y perdent toutes les deux du temps.
+956	tells them not to attack each other.	leur dit de ne pas s'attaquer.
+957	Last lap! Tyre wear doesn't matter any more, so	Dernier tour ! L'usure des pneus ne compte plus, donc
+958	with both cars.	avec les deux voitures.
+959	Push both cars	Attaquer avec les deux voitures
+960	makes the driver go for the gap, and	pousse le pilote à saisir l'ouverture, et
+961	fires the battery for 12 seconds of extra speed.	vide la batterie pour 12 secondes de vitesse en plus.
+962	Attack + BOOST	Attaque + BOOST
+963	recharges the battery as the car brakes, like regen in an electric car, so you have charge for the next fight.	recharge la batterie quand la voiture freine, comme une voiture électrique, pour avoir de la charge au prochain duel.
+964	until the next fight.	jusqu'au prochain duel.
+965	Out	Abandon
+966	Gap to leader	Écart avec le leader
+967	Avg pit stop	Arrêt moyen
+968	Tyre life	Vie des pneus
+969	--below	
+970	In the pits	Au stand
+971	Autonomous	Autonome
+972	Pushing	Attaque
+973	Saving tyres	Économie de pneus
+974	Ask the engineer	Demander à l'ingénieur
+975	OK	OK
+976	Boost	Boost
+977	Normal pace	Rythme normal
+978	Balanced battery	Batterie équilibrée
+979	Deploy	Déployer
+980	Stationary	À l'arrêt
+981	Dry	Sec
+982	Damp	Humide
+983	Soaked	Détrempé
+984	Simulated weather, not the real forecast	Météo simulée, pas la vraie prévision
+985	SIM	SIM
+986	It looks heavy.	Ça a l'air fort.
+987	Could be light.	Ça pourrait être léger.
+988	📡 Rain expected soon	📡 Pluie attendue bientôt
+989	· AI agent	· agent IA
+990	My car	Ma voiture
+991	Ahead	Devant
+992	Behind	Derrière
+993	Speed	Vitesse
+994	ERS battery	Batterie ERS
+995	Last lap	Dernier tour
+996	The marshals have cleared the car.	Les commissaires ont dégagé la voiture.
+997	Save tyres:	Économiser les pneus :
+998	a little slower, but the tyres wear about a third less. Use it to make a set last longer.	un peu plus lent, mais les pneus s'usent environ un tiers de moins. Pour faire durer un train plus longtemps.
+999	Normal:	Normal :
+1000	steady speed and normal tyre wear.	vitesse stable et usure normale des pneus.
+1001	Push:	Attaquer :
+1002	faster, but tyres wear 50% quicker and mistakes are more likely. Best in the last laps.	plus rapide, mais les pneus s'usent 50 % plus vite et les erreurs sont plus probables. Idéal dans les derniers tours.
+1003	Harvest:	Recharger :
+1004	recharges the battery when the car brakes and lifts off, like regen in an electric car. A bit slower on the straights.	recharge la batterie quand la voiture freine et lève le pied, comme une voiture électrique. Un peu plus lent en ligne droite.
+1005	Balanced:	Équilibré :
+1006	uses a little battery on each straight and tops it up in the corners.	utilise un peu de batterie dans chaque ligne droite et la recharge dans les virages.
+1007	Deploy:	Déployer :
+1008	spends the battery for about 3% more speed on the straights and easier passes. A full battery lasts about half a minute of straights.	dépense la batterie pour environ 3 % de vitesse en plus en ligne droite et des dépassements plus faciles. Une batterie pleine dure environ une demi-minute de lignes droites.
+1009	How's the car?	Comment est la voiture ?
+1010	Tyres?	Les pneus ?
+1011	Gaps?	Les écarts ?
+1012	Can you pass?	Tu peux dépasser ?
+1013	What do you think?	Qu'en penses-tu ?
+1014	Your orders?	Tes consignes ?
+1015	your call	votre décision
+1016	the strategist's call	la décision du stratège
+1017	the engineer's call	la décision de l'ingénieur
+1018	already made	déjà fait
+1019	You took over the calls	Vous avez repris les décisions
+1020	You run the car	Vous gérez la voiture
+1021	Cancel it if you like.	Annulez si vous voulez.
+1022	Race freely:	Course libre :
+1023	your two drivers may fight each other for position.	vos deux pilotes peuvent se battre pour la position.
+1024	Hold positions:	Garder les positions :
+1025	your drivers won't attack each other, so neither loses time in a team fight.	vos pilotes ne s'attaquent pas, donc aucun ne perd de temps dans un duel interne.
+1026	Swap places:	Échanger les places :
+1027	the car in front lets its teammate through, for when the one behind is faster or on fresher tyres.	la voiture devant laisse passer son équipier, quand celui de derrière est plus rapide ou a des pneus plus frais.
+1028	Defend:	Défendre :
+1029	your driver covers the inside line. About half as easy to pass, a touch slower.	votre pilote couvre l'intérieur. Deux fois plus dur à dépasser, un poil plus lent.
+1030	Neutral:	Neutre :
+1031	races normally and passes when there is a clear chance.	court normalement et dépasse quand l'occasion est claire.
+1032	Attack:	Attaquer :
+1033	goes for every gap. Many more passes, but more tyre wear and a higher risk of contact.	tente chaque ouverture. Beaucoup plus de dépassements, mais plus d'usure et plus de risques de contact.
+1034	Out of the race.	Hors course.
+1035	In the pit lane…	Dans la voie des stands…
+1036	Cancel	Annuler
+1037	Your agents run the team · Take it back	Vos agents dirigent l'écurie · Reprendre la main
+1038	Hand the team to my agents	Confier l'écurie à mes agents
+1039	Team Principal	Directeur d'écurie
+1040	The AI strategist runs this car and talks to your driver.	Le stratège IA gère cette voiture et parle à votre pilote.
+1041	You make the calls. The engineer only calls the stops.	Vous donnez les consignes. L'ingénieur ne gère que les arrêts.
+1042	You alone make the calls and talk to your drivers. The engineer stays off the radio until you ask.	Vous seul donnez les consignes et parlez à vos pilotes. L'ingénieur reste silencieux jusqu'à ce que vous le sollicitiez.
+1043	🎧 Ask the engineer	🎧 Demander à l'ingénieur
+1044	Engineer calls the stops	L'ingénieur gère les arrêts
+1045	Beginner assist: your engineer boxes both cars at the right time. You keep pace, battery and battles.	Aide débutant : votre ingénieur fait rentrer les deux voitures au bon moment. Vous gardez le rythme, la batterie et les duels.
+1046	Your driver pits the next time past the pit entry. A stop costs about 8 seconds (a quarter of a lap).	Votre pilote rentre au prochain passage devant l'entrée des stands. Un arrêt coûte environ 8 secondes (un quart de tour).
+1047	Pick the tyres, then BOX: your driver pits next time round, about 8 seconds. Soft: fastest, wears quickest. Medium: all-rounder. Hard: slowest, lasts longest. Inter: damp. Wet: heavy rain.	Choisissez les pneus, puis BOX : votre pilote rentre au prochain tour, environ 8 secondes. Tendre : le plus rapide, s'use le plus vite. Medium : polyvalent. Dur : le plus lent, dure le plus. Intermédiaire : piste humide. Pluie : forte pluie.
+1048	Swap places works when your cars run nose to tail.	Échanger les places marche quand vos voitures se suivent de près.
+1049	Autonomous mode	Mode autonome
+1050	Box this lap	Box ce tour
+1051	Pace	Rythme
+1052	ERS (battery)	ERS (batterie)
+1053	Battle	Duel
+1054	Team orders · both cars	Consignes d'équipe · les deux voitures
+1055	Beginner assist on: your engineer calls the pit stops.	Aide débutant activée : votre ingénieur gère les arrêts.
+1056	Beginner assist off: you call the pit stops.	Aide débutant désactivée : c'est vous qui gérez les arrêts.
+1057	Staying out	Reste en piste
+1058	Engineer	Ingénieur
+1059	Pit wall	Muret des stands
+1060	You	Vous
+1061	Race control	Direction de course
+1062	Stay out	Rester en piste
+1063	Your team awaits	Votre écurie vous attend
+1064	Two AI drivers race for you. You make the calls: tyres, pit stops, battery and the weather.	Deux pilotes IA courent pour vous. Vous décidez : pneus, arrêts, batterie et météo.
+1065	▶ Start here	▶ Commencer ici
+1066	Your team	Votre écurie
+1067	Next:	Prochain :
+1068	▶ Continue	▶ Continuer
+1069	Daily Challenge	Défi du jour
+1070	New race	Nouvelle course
+1071	Season & career	Saison et carrière
+1072	season over: see the standings	saison terminée : voir le classement
+1073	Live Grand Prix	Grand Prix en direct
+1074	ten real teams on one grid	dix vraies écuries sur une grille
+1075	today’s Daily, a whole Grand Prix	le Quotidien du jour, sur un Grand Prix entier
+1076	Racing Academy	Académie de course
+1077	Free practice	Essais libres
+1078	no points, no pressure	pas de points, pas de pression
+1079	Build my team	Créer mon écurie
+1080	My team	Mon écurie
+1081	name it, pick a car and colours	nommez-la, choisissez une voiture et des couleurs
+1082	drivers, car, colours, garage	pilotes, voiture, couleurs, garage
+1083	Leaderboard	Classement
+1084	today and the weekly Sora prizes	aujourd'hui et les prix Sora de la semaine
+1085	Profile & wallet	Profil et portefeuille
+1086	Profile	Profil
+1087	your account and Sora	votre compte et vos Sora
+1088	sign in so your team follows you	connectez-vous pour retrouver votre écurie partout
+1089	Anti-Bot Pass	Pass Anti-Bot
+1090	Sign out	Se déconnecter
+1091	Sign in	Se connecter
+1092	Start here	Commencer ici
+1093	Play	Jouer
+1094	Turn your phone sideways for the best view	Tournez votre téléphone pour une meilleure vue
+1095	Menu	Menu
+1096	Hide the menu and watch the race	Masquer le menu et regarder la course
+1097	Open the menu	Ouvrir le menu
+1098	AGENT	
+1099	GRAND PRIX	
+1100	racing team management	gestion d'écurie de course
+1101	Watch ▾	Regarder ▾
+1102	All modes & more	Tous les modes et plus
+1103	full distance, academy, practice, your team…	distance complète, académie, essais, votre écurie…
+1104	Garage	Garage
+1105	My agent	Mon agent
+1106	Support & rules	Aide et règles
+1107	☰ Menu	☰ Menu
+1108	You’re a verified human	Vous êtes un humain vérifié
+1109	All of Agent Grand Prix	Tout Agent Grand Prix
+1110	Renews	Renouvellement
+1111	Active until	Actif jusqu'au
+1112	Manage pass	Gérer le pass
+1113	per month	par mois
+1114	Unlock everything	Tout débloquer
+1115	Opens very soon. Every mode is free until then.	Ouvre très bientôt. Tous les modes sont gratuits d'ici là.
+1116	★ Anti-Bot Pass	★ Pass Anti-Bot
+1117	✓ verified human	✓ humain vérifié
+1118	New races	Nouvelles courses
+1119	The Championship	Le Championnat
+1120	against people	contre de vraies personnes
+1121	Full-distance	Distance complète
+1122	A share of the	Une part des
+1123	weekly Sora prizes	prix Sora de la semaine
+1124	Get the app	Installer l'appli
+1125	full screen, one tap from your home screen	plein écran, à un toucher de votre écran d'accueil
+1126	Computer	Ordinateur
+1127	Chrome or Edge	Chrome ou Edge
+1128	Safari	
+1129	Android	
+1130	Chrome	
+1131	Or play in the browser	Ou jouer dans le navigateur
+1132	★ Pass	★ Pass
+1133	New to the pit wall? Start with one of these.	Nouveau sur le muret ? Commencez par l'un de ceux-ci.
+1134	🎓 Racing Academy	🎓 Académie de course
+1135	Learn the pit wall in five short lessons. Best if you're new.	Apprenez le muret des stands en cinq courtes leçons. Idéal pour débuter.
+1136	🏁 Jump into a race	🏁 Lancer une course
+1137	A short race at Sakhir with the coach beside you.	Une course courte à Sakhir avec le coach à vos côtés.
+1138	🔧 Free practice	🔧 Essais libres
+1139	No points, no pressure. Try every call.	Pas de points, pas de pression. Essayez chaque consigne.
+1140	Build my team first	Créer d'abord mon écurie
+1141	· name your team and drivers, pick a car and colours	· nommez votre écurie et vos pilotes, choisissez une voiture et des couleurs
+1142	Every way to race	Toutes les façons de courir
+1143	Season and career	Saison et carrière
+1144	Season over. See the final standings.	Saison terminée. Voir le classement final.
+1145	Up to ten teams of real people on one grid. A race every five minutes.	Jusqu'à dix écuries de vraies personnes sur une grille. Une course toutes les cinq minutes.
+1146	Today’s Daily over a whole Grand Prix.	Le Quotidien du jour sur un Grand Prix entier.
+1147	No points, no pressure. Free.	Pas de points, pas de pression. Gratuit.
+1148	Name your team, pick a car and colours.	Nommez votre écurie, choisissez une voiture et des couleurs.
+1149	Your agent races the Dailies you miss, and talks to you on WhatsApp.	Votre agent court les Quotidiens que vous manquez, et vous parle sur WhatsApp.
+1150	Today’s board and the weekly Sora prizes.	Le classement du jour et les prix Sora de la semaine.
+1151	Watch a race	Regarder une course
+1152	Sit back and watch the field.	Installez-vous et regardez le peloton.
+1153	Your account and Sora wallet	Votre compte et votre portefeuille Sora
+1154	Sign in so your team follows you	Connectez-vous pour retrouver votre écurie partout
+1155	Active: you are a verified human	Actif : vous êtes un humain vérifié
+1156	Verified human, every mode, for a year	Humain vérifié, tous les modes, pendant un an
+1157	Settings	Réglages
+1158	Sound, the engineer, the coach and language	Son, ingénieur, coach et langue
+1159	‹ Back	‹ Retour
+1160	Race again	Recourir
+1161	Renews on	Renouvellement le
+1162	Manage or cancel	Gérer ou résilier
+1163	The pass opens very soon.	Le pass ouvre très bientôt.
+1164	Until then every mode is free.	D'ici là, tous les modes sont gratuits.
+1165	Back	Retour
+1166	Real people on the pit wall. A small pass keeps bots off the grid and the prize table fair.	De vraies personnes sur le muret. Un petit pass tient les bots hors de la grille et garde le tableau des prix équitable.
+1167	verified human	humain vérifié
+1168	badge on the leaderboards	badge dans les classements
+1169	✓ The full Championship season	✓ Toute la saison du Championnat
+1170	✓ Live Grand Prix against people	✓ Grand Prix en direct contre de vraies personnes
+1171	✓ Full-distance races	✓ Courses sur distance complète
+1172	✓ A share of the weekly Sora prize pot	✓ Une part de la cagnotte Sora de la semaine
+1173	Always free: the Daily Grand Prix, and your agent races the Dailies you miss.	Toujours gratuit : le Grand Prix quotidien, et votre agent court les Quotidiens que vous manquez.
+1174	Opening Stripe…	Ouverture de Stripe…
+1175	Checkout cancelled. Nothing was charged.	Paiement annulé. Rien n'a été débité.
+1176	★ Welcome, verified human. Every mode is open.	★ Bienvenue, humain vérifié. Tous les modes sont ouverts.
+1177	Payment received. Your pass turns on in a minute or two.	Paiement reçu. Votre pass s'active d'ici une minute ou deux.
+1178	Agent Grand Prix is a strategy game: your AI drivers drive, you make the calls.	Agent Grand Prix est un jeu de stratégie : vos pilotes IA conduisent, vous décidez.
+1179	One person, one team.	Une personne, une écurie.
+1180	Race with your own account. Bots and scripts that play for you are not allowed.	Courez avec votre propre compte. Les bots et scripts qui jouent à votre place sont interdits.
+1181	The Daily.	Le Quotidien.
+1182	Your first run of each day is the one that counts on the leaderboard. Your agent can race it for you if you miss it.	Votre première course de la journée est celle qui compte au classement. Votre agent peut la courir pour vous si vous la manquez.
+1183	Weekly prizes.	Prix de la semaine.
+1184	The week's Daily points add up. The top ten people share the Sora pot. Sora is game currency: it is earned, never bought, and can't be cashed out.	Les points des Quotidiens de la semaine s'additionnent. Les dix premiers se partagent la cagnotte Sora. Le Sora est la monnaie du jeu : elle se gagne, ne s'achète jamais et ne s'échange pas contre de l'argent.
+1185	The Anti-Bot Pass.	Le Pass Anti-Bot.
+1186	Be kind.	Soyez bienveillant.
+1187	Team names and messages must not be rude or pretend to be someone else.	Les noms d'écurie et les messages ne doivent pas être grossiers ni usurper l'identité de quelqu'un.
+1188	Need help? Email	Besoin d'aide ? Écrivez à
+1189	amaete@gmail.com	
+1190	Terms	Conditions
+1191	Privacy	Confidentialité
+1192	Credits	Crédits
+1193	Sound	Son
+1194	Engines, the crowd and the radio	Les moteurs, la foule et la radio
+1195	Engineer’s voice	Voix de l'ingénieur
+1196	Your race engineer speaks the calls	Votre ingénieur de course annonce les consignes
+1197	Race coach	Coach de course
+1198	Tips during your first races and quick races	Des conseils pendant vos premières courses et les courses rapides
+1199	Language	Langue
+1200	More languages are on the way	
+1201	English	
+1202	More languages soon	
+1203	select.lang	
+1204	Telegram	
+1205	Discord	
+1206	TikTok	
+1207	YouTube	
+1208	Instagram	
+1209	Join us: coming soon	Rejoignez-nous : bientôt
+1210	Join us	Rejoignez-nous
+1211	player chats, news and race videos: coming soon	discussions entre joueurs, actus et vidéos de course : bientôt
+1212	Installed. Agent Grand Prix is on your home screen.	Installé. Agent Grand Prix est sur votre écran d'accueil.
+1213	Install the app	Installer l'appli
+1214	Opens full screen from your home screen	S'ouvre en plein écran depuis votre écran d'accueil
+1215	Install	Installer
+1216	No problem. You can install it any time from the menu.	Pas de souci. Vous pouvez l'installer à tout moment depuis le menu.
+1217	Add to your Home Screen	Ajouter à l'écran d'accueil
+1218	On iPhone and iPad, open agentgrandprix.com in	Sur iPhone et iPad, ouvrez agentgrandprix.com dans
+1219	, then:	, puis :
+1220	Tap the	Touchez le bouton
+1221	Share	Partager
+1222	Scroll down and tap	Faites défiler et touchez
+1223	Add to Home Screen	Sur l'écran d'accueil
+1224	Tap	Touchez
+1225	Add	Ajouter
+1226	Install on Android	Installer sur Android
+1227	Open agentgrandprix.com in	Ouvrez agentgrandprix.com dans
+1228	menu at the top right.	menu en haut à droite.
+1229	Install app	Installer l'appli
+1230	Add to Home screen	Ajouter à l'écran d'accueil
+1231	Install on your computer	Installer sur votre ordinateur
+1232	Edge	
+1233	Click the	Cliquez sur l'icône
+1234	icon at the right end of the address bar (a screen with a down arrow).	à droite de la barre d'adresse (un écran avec une flèche vers le bas).
+1235	Or open the browser menu and choose	Ou ouvrez le menu du navigateur et choisissez
+1236	Install Agent Grand Prix	Installer Agent Grand Prix
+1237	Click	Cliquez sur
+1238	days ago	jours
+1239	Race report	Rapport de course
+1240	No races yet	Pas encore de course
+1241	Your first result will show here.	Votre premier résultat s'affichera ici.
+1242	Edit team	Modifier l'écurie
+1243	← Menu	← Menu
+1244	Share result	Partager le résultat
+1245	🤖 raced by my agent	🤖 couru par mon agent
+1246	the Daily	le Quotidien
+1247	Report	Rapport
+1248	🤖 While you were away	🤖 Pendant votre absence
+1249	Agent settings	Réglages de l'agent
+1250	When it rains	Quand il pleut
+1251	Team orders	Consignes d'équipe
+1252	Risk	Risque
+1253	Recent agent races	Courses récentes de l'agent
+1254	Missed Dailies	Quotidiens manqués
+1255	Race my missed Dailies	Courir mes Quotidiens manqués
+1256	Cover time	Heure de relève
+1257	Disconnect	Déconnecter
+1258	Open WhatsApp	Ouvrir WhatsApp
+1259	Copy	Copier
+1260	and it sets you up, then connect here.	et il vous configure, puis connectez-vous ici.
+1261	📱 Connect your AI agent	📱 Connectez votre agent IA
+1262	Connect WhatsApp	Connecter WhatsApp
+1263	Could not reach the server. Try again in a moment.	Impossible de joindre le serveur. Réessayez dans un instant.
+1264	Copied	Copié
+1265	Ten teams, one grid	Dix écuries, une grille
+1266	Finding the next race…	Recherche de la prochaine course…
+1267	Take a seat	Prendre une place
+1268	Open seat	Place libre
+1269	On the radio	À la radio
+1270	You have a seat. Stay on this page: the race starts by itself when the lights go out.	Vous avez une place. Restez sur cette page : la course démarre toute seule à l'extinction des feux.
+1271	Circuit	Circuit
+1272	Teams	Écuries
+1273	Laps	Tours
+1274	Live races are not running right now. Every other race works as usual.	Les courses en direct ne tournent pas pour le moment. Toutes les autres courses marchent normalement.
+1275	Could not reach the race room. Try again in a moment.	Impossible de joindre la salle de course. Réessayez dans un instant.
+1276	Taking a seat…	Prise de place…
+1277	the grid is full	la grille est complète
+1278	This grid is full. The next race opens in a few minutes.	Cette grille est complète. La prochaine course ouvre dans quelques minutes.
+1279	Could not take a seat. Try again in a moment.	Impossible de prendre une place. Réessayez dans un instant.
+1280	Your full-distance race is on today's full-distance board.	Votre course sur distance complète est au classement distance complète du jour.
+1281	On today's leaderboard you are	Au classement du jour, vous êtes
+1282	Race it again	Recourir
+1283	Race today's GP	Courir le GP du jour
+1284	Today's race is the same for everyone: the same circuit, grid and weather. Every result here was raced, not claimed: the server runs your race again from your own calls before it ranks you.	La course du jour est la même pour tous : même circuit, même grille, même météo. Chaque résultat ici a été couru, pas déclaré : le serveur rejoue votre course à partir de vos propres consignes avant de vous classer.
+1285	Reading today's board…	Lecture du classement du jour…
+1286	Race the full distance	Courir la distance complète
+1287	· fully experienced	· pleinement expérimenté
+1288	Wins	Victoires
+1289	Podiums	Podiums
+1290	Retirements	Abandons
+1291	Circuits	Circuits
+1292	Per race	Par course
+1293	Overtakes	Dépassements
+1294	Overtaken	Dépassé
+1295	Small mistakes	Petites erreurs
+1296	No races yet. Every race this driver starts, with you on the radio or your agent, becomes experience here.	Pas encore de course. Chaque course de ce pilote, avec vous à la radio ou votre agent, devient de l'expérience ici.
+1297	Nothing yet. After a few races the Team Strategist offers a lesson drawn from this driver's whole record, not one bad afternoon. You approve it, and it moves a Driver DNA slider.	Rien pour l'instant. Après quelques courses, le stratège de l'écurie propose une leçon tirée de tout le parcours du pilote, pas d'un seul mauvais après-midi. Vous l'approuvez, et elle déplace un curseur de l'ADN pilote.
+1298	What this driver has learned	Ce que ce pilote a appris
+1299	My account	Mon compte
+1300	Verified human	Humain vérifié
+1301	Your account	Votre compte
+1302	Could not reach the game server. Try again in a minute.	Impossible de joindre le serveur du jeu. Réessayez dans une minute.
+1303	Team memory	Mémoire de l'écurie
+1304	Soon Teague and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.	Bientôt, Teague et vos pilotes se souviendront de vous d'une course à l'autre : votre nom, votre façon de courir, vos rivaux et vos résultats.
+1305	Teague and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.	Teague et vos pilotes se souviennent de votre nom, de votre façon de courir, de vos rivaux et de vos courses, et en parlent quand c'est le moment. Rien pour l'instant : discutez avec eux et courez.
+1306	Forget	Oublier
+1307	Forget me	M'oublier
+1308	Tap again to forget everything	Touchez encore pour tout oublier
+1309	Done. Your team has forgotten everything it remembered about you.	C'est fait. Votre écurie a oublié tout ce qu'elle savait de vous.
+1310	renews on	renouvellement le
+1311	★ Verified human	★ Humain vérifié
+1312	Manage	Gérer
+1313	★ Get the Anti-Bot Pass	★ Obtenir le Pass Anti-Bot
+1314	Signed in as	Connecté en tant que
+1315	Sora wallet	Portefeuille Sora
+1316	Loading…	Chargement…
+1317	Sign out of this device	Se déconnecter de cet appareil
+1318	Signed out on this device. Your progress stays with your account.	Déconnecté sur cet appareil. Votre progression reste sur votre compte.
+1319	Your Sora wallet opens soon. Weekly prizes land here.	Votre portefeuille Sora ouvre bientôt. Les prix de la semaine arrivent ici.
+1320	Prize	Prix
+1321	Finish in the top ten of a week’s Dailies and your prize lands here.	Finissez dans le top dix des Quotidiens de la semaine et votre prix arrive ici.
+1322	Sora is earned in the game. It can’t be bought or cashed out.	Le Sora se gagne dans le jeu. Il ne s'achète pas et ne s'échange pas contre de l'argent.
+1323	Sign in to race	Connectez-vous pour courir
+1324	Sign in to Agent Grand Prix	Connexion à Agent Grand Prix
+1325	Racing is free. Sign in first, so your team, results and agent follow you to any device.	Courir est gratuit. Connectez-vous d'abord pour retrouver votre écurie, vos résultats et votre agent sur n'importe quel appareil.
+1326	It’s free. Your team, season, Academy progress and agent follow you to any device, and nothing you’ve built here is lost.	C'est gratuit. Votre écurie, votre saison, votre progression à l'Académie et votre agent vous suivent sur tous vos appareils, et rien de ce que vous avez construit ici n'est perdu.
+1327	Continue with Google	Continuer avec Google
+1328	you@example.com	vous@exemple.com
+1329	Email	E-mail
+1330	Email me a code	Recevoir un code par e-mail
+1331	Sign-in opens very soon	La connexion ouvre très bientôt
+1332	with Google or your email. Until then your team and progress are saved on this device.	avec Google ou votre e-mail. D'ici là, votre écurie et votre progression sont enregistrées sur cet appareil.
+1333	We only use your email to sign you in and to tell you about your account. No spam. By signing in you agree to the	Nous utilisons votre e-mail uniquement pour vous connecter et vous informer sur votre compte. Pas de spam. En vous connectant, vous acceptez les
+1334	Opening Google…	Ouverture de Google…
+1335	Could not reach the game server. Your progress is safe on this device.	Impossible de joindre le serveur du jeu. Votre progression est en sécurité sur cet appareil.
+1336	Sending…	Envoi…
+1337	Check your email	Vérifiez vos e-mails
+1338	We sent a 6-digit code to	Nous avons envoyé un code à 6 chiffres à
+1339	Code	Code
+1340	Send a new code	Renvoyer un code
+1341	Use a different email	Utiliser un autre e-mail
+1342	A new code is on its way.	Un nouveau code est en route.
+1343	This account already	Ce compte a déjà
+1344	You already have a team	Vous avez déjà une écurie
+1345	Your races, trophies and Academy lessons from this device join the account. Where both have the same thing, the one that has raced more is kept.	Vos courses, trophées et leçons de l'Académie sur cet appareil rejoignent le compte. Quand les deux ont la même chose, celle qui a le plus couru est gardée.
+1346	Yes, add it	Oui, l'ajouter
+1347	Nothing changed. You’re still playing on this device only.	Rien n'a changé. Vous jouez toujours sur cet appareil uniquement.
+1348	Pick your name	Choisissez votre nom
+1349	This is how other players see you on leaderboards and live races. Your @handle is yours across the game.	C'est ainsi que les autres joueurs vous voient dans les classements et les courses en direct. Votre @pseudo vous appartient dans tout le jeu.
+1350	Your name	Votre nom
+1351	@handle	@pseudo
+1352	3 to 24 letters, numbers or _. You can change it once a month.	3 à 24 lettres, chiffres ou _. Modifiable une fois par mois.
+1353	Save and continue	Enregistrer et continuer
+1354	button[type=submit]	
+1355	install:	
+1356	driver:	
+1357	ar:	
+1358	A callsign is three letters, like NOV.	Un indicatif fait trois lettres, comme NOV.
+1359	Your two drivers need different callsigns.	Vos deux pilotes ont besoin d'indicatifs différents.
+1360	Pick a number from 1 to 99.	Choisissez un numéro de 1 à 99.
+1361	Your two drivers need different numbers.	Vos deux pilotes ont besoin de numéros différents.
+1362	Savanna Racing	
+1363	Kora Motorsport	
+1364	Sahel Speed	
+1365	Ember GP	
+1366	Zenith Racing	
+1367	Baobab Racing	
+1368	Comet GP	
+1369	Nomad Racing	
+1370	Delta Works	
+1371	Lumen Racing	
+1372	Equator GP	
+1373	Highveld Racing	
+1374	Tidewater GP	
+1375	Ironwood Racing	
+1376	Blue Nile Motorsport	
+1377	Dune Velocity	
+1378	Kofi	
+1379	Tunde	
+1380	Kwame	
+1381	Jabari	
+1382	Femi	
+1383	Malik	
+1384	Ayo	
+1385	Chidi	
+1386	Emeka	
+1387	Sipho	
+1388	Tariq	
+1389	Rio	
+1390	Mateo	
+1391	Idris	
+1392	Bayo	
+1393	Kalu	
+1394	Obi	
+1395	Thabo	
+1396	Zane	
+1397	Dayo	
+1398	Nico	
+1399	Omar	
+1400	Jonah	
+1401	Ezra	
+1402	Leon	
+1403	Musa	
+1404	Combover	Mèche rabattue
+1405	High top	High top
+1406	Bob	Carré
+1407	Curls	Boucles
+1408	Curly bun	Chignon bouclé
+1409	Buzz cut	Coupe rase
+1410	Bangs	Frange
+1411	Bald	Chauve
+1412	Balding	Dégarni
+1413	Undercut bun	Chignon undercut
+1414	Fade	Dégradé
+1415	Bun	Chignon
+1416	Extra long	Très longs
+1417	Sideburns	Favoris
+1418	Side shave	Côté rasé
+1419	Mohawk	Iroquoise
+1420	Pigtails	Couettes
+1421	None	Aucun
+1422	Stubble	Barbe de trois jours
+1423	Goatee	Bouc
+1424	Full beard	Barbe complète
+1425	Moustache	Moustache
+1426	Walrus	Moustache de morse
+1427	Soul patch	Mouche
+1428	Open	Ouverts
+1429	Happy	Joyeux
+1430	Glasses	Lunettes
+1431	Shades	Lunettes de soleil
+1432	Hair	Cheveux
+1433	Beard	Barbe
+1434	Eyes	Yeux
+1435	Previous	Précédent
+1436	Skin tone	Teint
+1437	Hair colour	Couleur des cheveux
+1438	Random look	Look au hasard
+1439	Change look	Changer de look
+1440	Skin	Peau
+1441	Helmet	Casque
+1442	Callsign	Indicatif
+1443	Race number	Numéro de course
+1444	Change names, numbers and colours any time.	Changez les noms, numéros et couleurs quand vous voulez.
+1445	Team name	Nom de l'écurie
+1446	Short code	Code court
+1447	The callsign is the three letters on the timing tower. The race number is painted on the car.	L'indicatif, ce sont les trois lettres sur la tour de chronométrage. Le numéro de course est peint sur la voiture.
+1448	Faces and helmets	Visages et casques
+1449	Colours	Couleurs
+1450	Mix your own colours and finish in the showroom	Mélangez vos couleurs et la finition dans le showroom
+1451	Save	Enregistrer
+1452	Name your team	Nommez votre écurie
+1453	You are the team principal. What is your team called?	Vous êtes le directeur d'écurie. Comment s'appelle votre écurie ?
+1454	SAV	
+1455	🎲 Suggest a name	🎲 Proposer un nom
+1456	The code shows on the timing tower next to your drivers.	Le code apparaît sur la tour de chronométrage à côté de vos pilotes.
+1457	Give your team a name, or tap the dice for one.	Donnez un nom à votre écurie, ou touchez le dé.
+1458	Pick your car	Choisissez votre voiture
+1459	Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.	Toutes les voitures ont le même rythme global. Certaines sont plus rapides en virage, d'autres au freinage, d'autres en ligne droite. Touchez une image pour faire tourner la voiture en 3D.
+1460	Choose this car	Choisir cette voiture
+1461	Your colours	Vos couleurs
+1462	Pick a set, or mix your own main, accent and light colours. Drag to turn the car.	Choisissez un jeu, ou mélangez vos couleurs principale, d'accent et de lumière. Glissez pour tourner la voiture.
+1463	Your drivers	Vos pilotes
+1464	Name your two AI drivers, give them race numbers and pick how they drive.	Nommez vos deux pilotes IA, donnez-leur un numéro et choisissez leur style.
+1465	Smooth	Fluide
+1466	Suggest a name	Proposer un nom
+1467	Number	Numéro
+1468	More styles and every setting are in Driver DNA, any time.	D'autres styles et tous les réglages sont dans l'ADN pilote, à tout moment.
+1469	Give both drivers a name, or tap the dice.	Donnez un nom aux deux pilotes, ou touchez le dé.
+1470	picked when building the team	choisi à la création de l'écurie
+1471	Your race engineer	Votre ingénieur de course
+1472	Your engineer runs the radio when you hand the cars to the AI, and answers when you ask for advice. When you are Team Principal, only you and your drivers talk. Tap a voice to hear a call.	Votre ingénieur gère la radio quand vous confiez les voitures à l'IA, et répond quand vous demandez conseil. Quand vous êtes directeur d'écurie, seuls vous et vos pilotes parlez. Touchez une voix pour l'écouter.
+1473	Hands-free radio	Radio mains libres
+1474	The mic stays on during your races. Say "Radio", then the call: "Radio, box box, softs". It goes quiet while your team is talking. Best with headphones.	Le micro reste ouvert pendant vos courses. Dites « Radio », puis la consigne : « Radio, box box, tendres ». Il se tait quand votre équipe parle. Idéal avec des écouteurs.
+1475	Drivers answer	Les pilotes répondent
+1476	Your drivers reply in their own voices: "Copy. Boxing."	Vos pilotes répondent avec leur propre voix : « Reçu. Je rentre. »
+1477	How you'll run it	Votre façon de diriger
+1478	Who makes the calls in the race? You can change this before every race, and take over at any time.	Qui décide pendant la course ? Vous pouvez changer avant chaque course, et reprendre la main à tout moment.
+1479	Start my first race	Lancer ma première course
+1480	Tips at the right moment, with a button to act on them in one tap: your first box call, your first Push, your first BOOST.	Des conseils au bon moment, avec un bouton pour agir en un toucher : votre premier box, votre premier Attaquer, votre premier BOOST.
+1481	, one stop each	, un arrêt chacune
+1482	Debris on the track.	Débris sur la piste.
+1483	SC	
+1484	cam:	
+1485	Leave lesson	Quitter la leçon
+1486	Lesson left. Keep racing, or open the Academy from the menu.	Leçon quittée. Continuez la course, ou ouvrez l'Académie depuis le menu.
+1487	The chequered flag came out before we finished. Run the lesson again to pick up where we stopped.	Le drapeau à damier est tombé avant la fin. Relancez la leçon pour reprendre où on s'était arrêtés.
+1488	Run it again	Recommencer
+1489	Results	Résultats
+1490	Academy	Académie
+1491	Academy graduate	Diplômé de l'Académie
+1492	Academy graduate.	Diplômé de l'Académie.
+1493	All five lessons done. The badge is on your team page.	Les cinq leçons sont faites. Le badge est sur la page de votre écurie.
+1494	Keep racing	Continuer la course
+1495	About three minutes each.	Environ trois minutes chacune.
+1496	Soon	Bientôt
+1497	Again	Encore
+1498	Run any lesson again whenever you like.	Refaites n'importe quelle leçon quand vous voulez.
+1499	Race guide	Guide de course
+1500	Ten ways to win, from the undercut to the first car on slicks. Read it any time.	Dix façons de gagner, de l'undercut à la première voiture en slicks. À lire quand vous voulez.
+1501	How to play	Comment jouer
+1502	Your two AI drivers do the driving. You make the calls from the pit wall.	Vos deux pilotes IA conduisent. Vous décidez depuis le muret des stands.
+1503	Tyres.	Pneus.
+1504	Softs are fastest but wear out quickest. Mediums and Hards last longer. In a dry race you must use two different dry compounds.	Les tendres sont les plus rapides mais s'usent le plus vite. Les mediums et les durs durent plus. Sur piste sèche, il faut utiliser deux gommes sèches différentes.
+1505	Rain.	Pluie.
+1506	Pit stop.	Arrêt au stand.
+1507	Tap a tyre under	Touchez un pneu sous
+1508	ERS (battery).	ERS (batterie).
+1509	Deploy for speed on the straights, Harvest to recharge.	Déployer pour la vitesse en ligne droite, Recharger pour remplir la batterie.
+1510	Battle.	Duel.
+1511	Attack to go for gaps, Defend to hold position. Both cost a little.	Attaquer pour saisir les ouvertures, Défendre pour tenir sa place. Les deux coûtent un peu.
+1512	Autonomous.	Autonome.
+1513	Flip the switch and your AI makes every call. Races you run fully autonomous are marked that way.	Basculez l'interrupteur et votre IA prend toutes les décisions. Les courses menées en mode autonome sont marquées comme telles.
+1514	Boost.	Boost.
+1515	The green BOOST button on the race view fires the battery for 12 seconds. Use it when you're within a second of the car ahead.	Le bouton vert BOOST vide la batterie pendant 12 secondes. Utilisez-le à moins d'une seconde de la voiture devant.
+1516	Cameras.	Caméras.
+1517	Tap any car to follow it. Live (the TV director), Overview, Chase, Cockpit, TV and Pit views. Keys 1–6 on a keyboard, space to pause.	Touchez une voiture pour la suivre. Vues Direct (le réalisateur TV), Vue d'ensemble, Poursuite, Cockpit, TV et Stand. Touches 1 à 6 au clavier, espace pour la pause.
+1518	Watch the top bar. Once the rain has stopped and it reads Dry, box for slicks that lap. The first car on slicks usually wins.	Surveillez la barre du haut. Quand la pluie s'arrête et qu'elle indique Sec, rentrez pour des slicks ce tour-là. La première voiture en slicks gagne souvent.
+1519	Car 1:	Voiture 1 :
+1520	Car 2:	Voiture 2 :
+1521	Tyre wear is high here, so you may need two stops. Box when tyre life drops under 25%.	L'usure des pneus est forte ici, il faudra peut-être deux arrêts. Rentrez quand la vie des pneus passe sous 25 %.
+1522	Rain is possible. If a shower is due within two laps of your stop, wait and fit Inters instead. Splitting your two cars covers both bets.	La pluie est possible. Si une averse est prévue dans les deux tours de votre arrêt, attendez et montez des Intermédiaires. Séparer vos deux voitures couvre les deux paris.
+1523	If the safety car comes out near your pit window, box straight away: the stop costs about half the time.	Si la voiture de sécurité sort près de votre fenêtre d'arrêt, rentrez tout de suite : l'arrêt coûte environ moitié moins.
+1524	From the Racing Academy: the fastest car doesn't always win. The best calls do.	Leçon de l'Académie : la voiture la plus rapide ne gagne pas toujours. Les meilleures décisions, si.
+1525	Pick a plan before the start.	Choisissez un plan avant le départ.
+1526	Use the engineer's plan, then adjust as the race unfolds. Mediums to start is the safe one-stop. Softs gain places early but wear out fast.	Prenez le plan de l'ingénieur, puis ajustez au fil de la course. Partir en mediums, c'est l'arrêt unique sûr. Les tendres font gagner des places tôt mais s'usent vite.
+1527	Split your two cars.	Séparez vos deux voitures.
+1528	Put them on different tyres or stop on different laps. If the weather or a safety car goes against one, the other benefits.	Mettez-les sur des pneus différents ou arrêtez-les à des tours différents. Si la météo ou une voiture de sécurité pénalise l'une, l'autre en profite.
+1529	The undercut.	L'undercut.
+1530	Stuck behind someone? Box a lap before they do. Fresh tyres are about a second a lap faster, so you can come out ahead when they stop.	Bloqué derrière quelqu'un ? Rentrez un tour avant lui. Des pneus neufs valent environ une seconde au tour, donc vous pouvez ressortir devant quand il s'arrête.
+1531	Watch tyre life.	Surveillez la vie des pneus.
+1532	Under 25%, grip falls off a cliff. Near 0% a tyre can puncture, and a puncture can end your race.	Sous 25 %, l'adhérence s'effondre. Près de 0 %, un pneu peut crever, et une crevaison peut mettre fin à votre course.
+1533	Safety car means a cheap stop.	Voiture de sécurité = arrêt pas cher.
+1534	A normal stop costs about 8 seconds (a quarter of a lap). Under the safety car it costs about half. If your stop was due in the next few laps, box now.	Un arrêt normal coûte environ 8 secondes (un quart de tour). Sous voiture de sécurité, environ moitié moins. Si votre arrêt était prévu dans les prochains tours, rentrez maintenant.
+1535	Damp track: Inters. Soaked: Wets. When it dries, the first car on slicks gains the most. The radar in the top bar warns you a few laps ahead.	Piste humide : Intermédiaires. Détrempée : Pluie. Quand ça sèche, la première voiture en slicks gagne le plus. Le radar de la barre du haut vous prévient quelques tours à l'avance.
+1536	Harvest when you're alone so you have charge for a fight. Then hit BOOST or Deploy when you're within a second of the car ahead, or to defend.	Rechargez quand vous êtes seul pour avoir de la charge en duel. Puis lancez BOOST ou Déployer à moins d'une seconde de la voiture devant, ou pour défendre.
+1537	Pace.	Rythme.
+1538	Save tyres on a long stint and Push in the last two laps. Attack makes passes more likely but risks contact. Defend makes you harder to pass.	Économisez les pneus sur un long relais et attaquez dans les deux derniers tours. Attaquer rend les dépassements plus probables mais risque le contact. Défendre vous rend plus dur à dépasser.
+1539	Two compounds.	Deux gommes.
+1540	In a dry race you must use two different dry tyres, or you get a 20-second penalty.	Sur piste sèche, il faut utiliser deux pneus secs différents, sinon 20 secondes de pénalité.
+1541	Pit-exit fights.	Duels en sortie des stands.
+1542	Coming out just ahead of a rival? Defend and BOOST for the first lap while your new tyres warm up.	Vous ressortez juste devant un rival ? Défendez et utilisez BOOST pendant le premier tour, le temps que vos pneus neufs chauffent.
+1543	You call pit stops, tyres and tactics. Your engineer advises.	Vous décidez des arrêts, des pneus et de la tactique. Votre ingénieur conseille.
+1544	Your AI makes every call. Sit back and watch. You can take over any time.	Votre IA prend toutes les décisions. Installez-vous et regardez. Vous pouvez reprendre la main à tout moment.
+1545	Simple cars	Voitures simples
+1546	Plain blocky cars from the first version. Pick these only if the race stutters on your phone.	Les voitures cubiques de la première version. À choisir seulement si la course saccade sur votre téléphone.
+1547	Intermediate. For a damp track or light rain. Too slow once it dries.	Intermédiaire. Pour une piste humide ou une pluie légère. Trop lent quand ça sèche.
+1548	Full wet. For heavy rain and standing water.	Pluie. Pour une forte pluie et de l'eau stagnante.
+1549	Speed on a dry track	Vitesse sur piste sèche
+1550	In a dry race each car must use two different dry tyres (Soft, Medium or Hard), so every car stops at least once.	Sur piste sèche, chaque voiture doit utiliser deux pneus secs différents (Tendre, Medium ou Dur), donc chacune s'arrête au moins une fois.
+1551	Your first race	Votre première course
+1552	Quick race	Course rapide
+1553	Rain likely	Pluie probable
+1554	Rain possible	Pluie possible
+1555	Usually dry	Généralement sec
+1556	· Night	· De nuit
+1557	Pick a circuit	Choisissez un circuit
+1558	No points, just racing. Good for practice.	Pas de points, juste la course. Idéal pour s'entraîner.
+1559	Search a city or country	Cherchez une ville ou un pays
+1560	Search circuits	Chercher un circuit
+1561	Featured	À la une
+1562	No circuit matches that.	Aucun circuit ne correspond.
+1563	Your car is ready. Change it here, or tap a picture to spin it round in 3D.	Votre voiture est prête. Changez-la ici, ou touchez une image pour la faire tourner en 3D.
+1564	Before the race, qualifying: every driver gets one flying lap, and the fastest lap starts at the front. You choose when your drivers go out, on which tyre, and how hard they push.	Avant la course, les qualifications : chaque pilote a un tour lancé, et le plus rapide part devant. Vous choisissez quand vos pilotes sortent, avec quel pneu, et à quel point ils attaquent.
+1565	Your grid	Votre grille
+1566	⏱️ One lap each	⏱️ Un tour chacun
+1567	Fastest lap is pole position	Le tour le plus rapide décroche la pole position
+1568	🛞 Your tyre	🛞 Votre pneu
+1569	Softs are quickest over one lap	Les tendres sont les plus rapides sur un tour
+1570	🚦 Your timing	🚦 Votre timing
+1571	The track gets faster, but don't miss the flag	La piste devient plus rapide, mais ne ratez pas le drapeau
+1572	Next: race briefing	Suivant : briefing de course
+1573	Watch qualifying	Regarder les qualifications
+1574	Let my agents qualify	Laisser mes agents se qualifier
+1575	Wet track at the start	Piste mouillée au départ
+1576	High	Élevée
+1577	Low	Faible
+1578	Race length	Durée de course
+1579	AB	
+1580	Best here	Le meilleur ici
+1581	Running the race…	Course en cours…
+1582	Rename	Renommer
+1583	Use the plans	Utiliser les plans
+1584	Customize	Personnaliser
+1585	Lap length	Longueur du tour
+1586	Weather · simulated	Météo · simulée
+1587	Tyre wear	Usure des pneus
+1588	Pre-race briefing	Briefing d'avant-course
+1589	Customize: starting tyres	Personnaliser : pneus de départ
+1590	Learn about tyres	Tout savoir sur les pneus
+1591	Which rubber, when to stop, and the race guide	Quelle gomme, quand s'arrêter, et le guide de course
+1592	Accept plan	Accepter le plan
+1593	BA	
+1594	Projected	Prévu
+1595	Driver name	Nom du pilote
+1596	Enter	
+1597	Escape	
+1598	details.tg	
+1599	Plan accepted:	Plan accepté :
+1600	Last checks before the grid.	Dernières vérifications avant la grille.
+1601	Who makes the calls?	Qui décide ?
+1602	Tips at the right moment during the race, with a button to act on them in one tap. Good for your first races.	Des conseils au bon moment pendant la course, avec un bouton pour agir en un toucher. Idéal pour vos premières courses.
+1603	Radio voice	Voix radio
+1604	Your drivers reply on the radio in their own voices.	Vos pilotes répondent à la radio avec leur propre voix.
+1605	Tune	Régler
+1606	Show frame rate (for testing on your phone)	Afficher les images par seconde (pour tester sur votre téléphone)
+1607	Go to the grid	Aller sur la grille
+1608	In the garage	Au garage
+1609	Out lap	Tour de sortie
+1610	Flying lap	Tour lancé
+1611	In lap	Tour de rentrée
+1612	Lap done	Tour terminé
+1613	Session over	Séance terminée
+1614	Chequered flag	Drapeau à damier
+1615	Stayed in the garage	Resté au garage
+1616	Out lap: warming the tyres	Tour de sortie : chauffe des pneus
+1617	· locked up	· blocage de roue
+1618	No time: the flag fell first	Pas de temps : le drapeau est tombé avant
+1619	Watch	Regarder
+1620	Tyre	Pneu
+1621	Lap	Tour
+1622	See the grid	Voir la grille
+1623	Skip to the result	Passer au résultat
+1624	Qualifying	Qualifications
+1625	Push finds time but can lock up the lap. Later laps are quicker, but start your lap before the flag.	Attaquer fait gagner du temps mais peut gâcher le tour par un blocage. Les tours tardifs sont plus rapides, mais lancez votre tour avant le drapeau.
+1626	-brain	
+1627	Keep an eye on the sky today.	Gardez un œil sur le ciel aujourd'hui.
+1628	It looks dry: we need one stop for a second compound.	Ça a l'air sec : il faut un arrêt pour une deuxième gomme.
+1629	Race resumed where you left it	Course reprise là où vous l'aviez laissée
+1630	Off	Désactivé
+1631	Text only	Texte seulement
+1632	Radio voices	Voix radio
+1633	Pick your race engineer's voice. Tap one to hear a call.	Choisissez la voix de votre ingénieur de course. Touchez-en une pour l'écouter.
+1634	Your two drivers reply on the radio in their own voices: "Copy. Boxing."	Vos deux pilotes répondent à la radio avec leur propre voix : « Reçu. Je rentre. »
+1635	Take the team back	Reprendre l'écurie
+1636	Finish the race now	Terminer la course maintenant
+1637	Restart lesson	Recommencer la leçon
+1638	Restart race	Recommencer la course
+1639	Paused	En pause
+1640	Resume	Reprendre
+1641	Quit to home	Retour à l'accueil
+1642	Your agents run the team now: both cars, every call. Take it back any time.	Vos agents dirigent l'écurie : les deux voitures, toutes les décisions. Reprenez la main quand vous voulez.
+1643	You run the team again: both cars answer to you.	Vous dirigez de nouveau l'écurie : les deux voitures vous obéissent.
+1644	Agents racing · Take back	Agents en course · Reprendre
+1645	Hand to agents	Confier aux agents
+1646	Your agents run the team. Tap to take it back.	Vos agents dirigent l'écurie. Touchez pour reprendre la main.
+1647	Hand the team to your AI agents	Confier l'écurie à vos agents IA
+1648	🏁 First race	🏁 Première course
+1649	🔟 First points	🔟 Premiers points
+1650	🥉 First podium	🥉 Premier podium
+1651	🥇 First win	🥇 Première victoire
+1652	⏱ Fastest lap	⏱ Meilleur tour
+1653	👯 Both cars in the points	👯 Les deux voitures dans les points
+1654	🌧️ Rain master	🌧️ Maître de la pluie
+1655	🚀 Comeback (+8 places)	🚀 Remontée (+8 places)
+1656	🎓 Academy graduate	🎓 Diplômé de l'Académie
+1657	🇳🇬 Home win in Abuja	🇳🇬 Victoire à domicile à Abuja
+1658	🌅 Midnight sun	🌅 Soleil de minuit
+1659	🌺 Aloha	🌺 Aloha
+1660	🔥 3-day streak	🔥 Série de 3 jours
+1661	🏆 Season champion	🏆 Champion de la saison
+1662	Your full-distance result is saved and goes on today's full-distance board.	Votre résultat sur la distance complète est enregistré et figure au classement du jour.
+1663	· 🤖 autonomous	· 🤖 autonome
+1664	Daily #	Défi n°
+1665	· Full distance	· Distance complète
+1666	Round	Manche
+1667	You won!	Victoire !
+1668	Podium!	Podium !
+1669	In the points	Dans les points
+1670	Tough day	Journée difficile
+1671	finished P	a terminé P
+1672	Fully autonomous.	Entièrement autonome.
+1673	Next round	Manche suivante
+1674	Standings	Classement
+1675	Home	Accueil
+1676	No changes to suggest: neither driver had a pattern of lock-ups, collisions, worn tyres or missed chances this race. Tune them yourself in Driver DNA any time.	Aucun changement à proposer : aucun pilote n'a montré de blocages, d'accrochages, de pneus usés ou d'occasions manquées dans cette course. Réglez-les vous-même dans l'ADN pilote quand vous voulez.
+1677	dp:	
+1678	Copy this and send it to friends.	Copiez ce texte et envoyez-le à vos amis.
+1679	Selected: copy it	Sélectionné : copiez-le
+1680	The season starts in Abu Dhabi.	La saison commence à Abou Dhabi.
+1681	Start season	Lancer la saison
+1682	Drivers	Pilotes
+1683	Calendar	Calendrier
+1684	Google sign-in was cancelled. Your progress is safe on this device.	Connexion Google annulée. Votre progression est sauvegardée sur cet appareil.
+1685	Google sign-in did not work. Please try again.	La connexion Google n'a pas fonctionné. Réessaie.
+1686	YXZ	
+1687	bold 26px system-ui, sans-serif	
+1688	bold 40px system-ui, sans-serif	
+1689	bold 84px system-ui, sans-serif	
+1690	bold 50px system-ui, sans-serif	
+1691	bold 34px system-ui, sans-serif	
+1692	30px system-ui, sans-serif	
+1693	LEADER	LEADER
+1694	Stripe	Bande
+1695	Chevron	Chevron
+1696	Split	Partagé
+1697	Stars	Étoiles
+1698	Bolt	Éclair
+1699	Wave	Vague
+1700	Dots	Pois
+1701	Smoke	Fumée
+1702	Gold	Or
+1703	Blue	Bleu
+1704	Fire	Feu
+1705	Oil	Huile
+1706	Silver	Argent
+1707	face|	
+1708	Too few races to tell	Trop peu de courses pour juger
+1709	Your changes look better	Vos changements semblent meilleurs
+1710	Your changes look worse	Vos changements semblent moins bons
+1711	Too close to call	Trop serré pour trancher
+1712	Softs	Tendres
+1713	Mediums	Mediums
+1714	Hards	Durs
+1715	Inters	Intermédiaires
+1716	Wets	Pluie
+1717	No time	Pas de temps
+1718	Deploy the battery	Déployer la batterie
+1719	Harvest the battery	Recharger la batterie
+1720	Stop attacking	Arrêter d'attaquer
+1721	Team orders: hold positions	Consignes d'équipe : gardez vos positions
+1722	Team orders: free to race	Consignes d'équipe : libres de courir
+1723	Team orders: swap places	Consignes d'équipe : échangez les places
+1724	Handed the car to the strategist	Voiture confiée au stratège
+1725	Took back control	Contrôle repris
+1726	A 20 s penalty: a dry race needs two different dry tyres.	Pénalité de 20 s : une course sur le sec exige deux pneus secs différents.
+1727	Fastest lap of the race: one extra point.	Meilleur tour en course : un point de plus.
+1728	No calls were made: your drivers raced on their own plans.	Aucun ordre donné : vos pilotes ont suivi leurs propres plans.
+1729	Your cars' places lap by lap	Les places de vos voitures tour par tour
+1730	Result	Résultat
+1731	Your calls	Vos ordres
+1732	Engineer review	Avis de l'ingénieur
+1733	No calls this race: your drivers raced on their own plans.	Aucun ordre dans cette course : vos pilotes ont suivi leurs propres plans.
+1734	Places lap by lap	Places tour par tour
+1735	Each call shows the car's place when you made it and two laps later. Many things move a car in two laps, so read it as what followed, not proof.	Chaque ordre montre la place de la voiture au moment de l'ordre et deux tours plus tard. Beaucoup de choses font bouger une voiture en deux tours : lisez-le comme ce qui a suivi, pas comme une preuve.
+1736	Team	Écurie
+1737	The engineer reads the race data: places, stops, tyres, weather and the safety car.	L'ingénieur lit les données de course : places, arrêts, pneus, météo et voiture de sécurité.
+1738	🏁 Agent Grand Prix	🏁 Agent Grand Prix
+1739	Car and colours	Voiture et couleurs
+1740	Inside the car	Dans la voiture
+1741	Slide the Cutaway to see through the bodywork, then further to pull the car apart. Tap a part here or on the car.	Faites glisser l'Écorché pour voir à travers la carrosserie, puis plus loin pour démonter la voiture. Touchez une pièce ici ou sur la voiture.
+1742	▶ Take the tour	▶ Faire la visite
+1743	Whole car	Voiture entière
+1744	Main	Principale
+1745	Accent	Accent
+1746	Lights	Lumières
+1747	The car in 3D. Drag to spin it, pinch or scroll to zoom.	La voiture en 3D. Faites-la tourner, pincez ou faites défiler pour zoomer.
+1748	Close the showroom	Fermer le showroom
+1749	Previous car	Voiture précédente
+1750	Next car	Voiture suivante
+1751	Paint finish	Finition
+1752	This car's own colours	Les couleurs d'origine de cette voiture
+1753	Cutaway	Écorché
+1754	Car	Voiture
+1755	See-through	Transparente
+1756	Pulled apart	Démontée
+1757	Every car has the same overall pace: what one gains on the straights it gives back in the corners or under braking.	Toutes les voitures ont le même rythme global : ce que l'une gagne en ligne droite, elle le rend dans les virages ou au freinage.
+1758	🎲 Randomize	🎲 Au hasard
+1759	↶ Undo	↶ Annuler
+1760	Reset	Réinitialiser
+1761	🌙 Night	🌙 Nuit
+1762	showroom wizcol	
+1763	■ Stop the tour	■ Arrêter la visite
+1764	Racing this car	Courir avec cette voiture
+1765	☀️ Day	☀️ Jour
+1766	The track is soaked.	La piste est détrempée.
+1767	The track is wet now.	La piste est mouillée.
+1768	Standing water on track.	De l'eau stagne sur la piste.
+1769	The track is drying. Wets are overheating.	La piste sèche. Les pneus pluie surchauffent.
+1770	There's a dry line now.	Une trajectoire sèche apparaît.
+1771	Safety car out. A stop costs less now.	Voiture de sécurité en piste. Un arrêt coûte moins cher.
+1772	Virtual safety car. A stop costs less now.	Voiture de sécurité virtuelle. Un arrêt coûte moins cher.
+1773	Tyres are nearly finished.	Les pneus sont presque finis.
+1774	A second tyre compound is still needed.	Il faut encore un second type de pneu.
+1775	Pit window is open.	La fenêtre d'arrêt est ouverte.
+1776	Understood, staying out.	Compris, on reste en piste.
+1777	Lights out! The race is on.	Extinction des feux ! La course est lancée.
+1778	Heavy rain is falling!	Forte pluie !
+1779	Rain is starting to fall.	Il commence à pleuvoir.
+1780	The rain has stopped. The track will start to dry.	La pluie s'est arrêtée. La piste va commencer à sécher.
+1781	Final lap!	Dernier tour !
+1782	the lead	la tête
+1783	Engine failure	Casse moteur
+1784	ERS failure, the battery has died	Panne ERS, la batterie est morte
+1785	Gearbox failure	Casse de boîte de vitesses
+1786	Hydraulics failure	Panne hydraulique
+1787	Out of fuel	Panne d'essence
+1788	SAFETY CAR! The field must slow down and line up. No overtaking.	VOITURE DE SÉCURITÉ ! Le peloton ralentit et se regroupe. Interdiction de dépasser.
+1789	VIRTUAL SAFETY CAR. Everyone slows to a set pace. No overtaking.	VOITURE DE SÉCURITÉ VIRTUELLE. Tout le monde ralentit à une allure imposée. Interdiction de dépasser.
+1790	VSC ending. Green flag! Racing again.	Fin de la VSC. Drapeau vert ! On repart.
+1791	Safety car in this lap. Get ready for the restart!	La voiture de sécurité rentre ce tour. Préparez la relance !
+1792	GREEN FLAG! The race is back on!	DRAPEAU VERT ! La course reprend !
+1793	for P	pour la P
+1794	The track is soaked. Full wets.	La piste est détrempée. Pneus pluie.
+1795	It's wet out here. Inters.	C'est mouillé. Intermédiaires.
+1796	Too much standing water for inters.	Trop d'eau pour les intermédiaires.
+1797	Wets are overheating. Time to change.	Les pneus pluie surchauffent. Il faut changer.
+1798	There's a dry line now. Slicks!	Une trajectoire sèche ! Slicks !
+1799	Safety car! Cheap stop, box now.	Voiture de sécurité ! Arrêt pas cher, rentre maintenant.
+1800	Virtual safety car. Box, box!	Voiture de sécurité virtuelle. Box, box !
+1801	These tyres are finished. Box!	Ces pneus sont finis. Box !
+1802	We still need a second compound. Box now.	Il nous faut encore un second type de pneu. Rentre maintenant.
+1803	Battery is empty. Switch to harvest for a lap?	Batterie vide. On recharge pendant un tour ?
+1804	Reminder: you must use a second dry compound. Box this lap or take a penalty.	Rappel : tu dois utiliser un second type de pneu sec. Rentre ce tour ou c'est la pénalité.
+1805	Rule check: a second dry compound is still needed, or a penalty. 2 laps left.	Vérification du règlement : il faut encore un second pneu sec, sinon pénalité. Plus que 2 tours.
+1806	Running	En cours
+1807	Race over.	Course terminée.
+1808	no car named	aucune voiture de ce nom
+1809	no changes	aucun changement
+1810	no evidence	aucune preuve
+1811	rejected:	refusé :
+1812	Throttle	Accélérateur
+1813	just now	à l'instant
+1814	Preset	Préréglage
+1815	Blend	Mélange
+1816	Import	Importer
+1817	Restore	Restaurer
+1818	· race in progress	· course en cours
+1819	Discard and leave	Abandonner et quitter
+1820	· unsaved	· non enregistré
+1821	History	Historique
+1822	Export / import	Exporter / importer
+1823	How your drivers drive	La conduite de vos pilotes
+1824	Undo changes	Annuler les changements
+1825	Your changes	Vos changements
+1826	Saved	Enregistré
+1827	Balanced in everything: no strong habits and no weak spots. Move a dial to give this driver a style.	Équilibré en tout : pas d'habitude marquée ni de point faible. Bougez un curseur pour donner un style à ce pilote.
+1828	What this driver gains and gives up	Ce que ce pilote gagne et ce qu'il cède
+1829	No setting adds grip or top speed. Each one changes a habit, and every habit has a price.	Aucun réglage n'ajoute d'adhérence ni de vitesse de pointe. Chacun change une habitude, et chaque habitude a un prix.
+1830	Start from a personality	Partir d'une personnalité
+1831	Blend two…	Mélanger deux…
+1832	Quick	Rapide
+1833	Profile name	Nom du profil
+1834	Test in the Proving Ground	Tester sur le terrain d'essai
+1835	Save as my own preset	Enregistrer comme mon préréglage
+1836	A blend of two personalities, settings averaged by your weights.	Un mélange de deux personnalités, réglages moyennés selon vos poids.
+1837	Your own tuning.	Votre propre réglage.
+1838	No suggestions waiting. Finish a race and check back.	Aucune suggestion en attente. Terminez une course et revenez.
+1839	Declined	Refusée
+1840	Approved	Approuvée
+1841	Decisions	Décisions
+1842	Racing now	En course
+1843	Earlier	Plus tôt
+1844	Active	Actif
+1845	Saved version	Version enregistrée
+1846	Change	Changement
+1847	No changes yet.	Aucun changement pour l'instant.
+1848	Versions	Versions
+1849	Every save is kept (the last 30). Restoring makes a new version, so nothing is lost.	Chaque enregistrement est gardé (les 30 derniers). Restaurer crée une nouvelle version, donc rien n'est perdu.
+1850	Change log	Journal des changements
+1851	Export	Exporter
+1852	Check and load	Vérifier et charger
+1853	Unnamed	Sans nom
+1854	button, summary	
+1855	SUMMARY	
+1856	Okay, no change.	D'accord, aucun changement.
+1857	That suggestion is out of date: the settings have changed since.	Cette suggestion est dépassée : les réglages ont changé depuis.
+1858	You have unsaved changes. Save them, or tap again to leave without saving.	Vous avez des changements non enregistrés. Enregistrez-les, ou touchez encore pour quitter sans enregistrer.
+1859	My preset	Mon préréglage
+1860	Copied.	Copié.
+1861	Select the text and copy it.	Sélectionnez le texte et copiez-le.
+1862	Not loaded:	Non chargé :
+1863	Loaded as unsaved changes. Check it, then save.	Chargé comme changements non enregistrés. Vérifiez, puis enregistrez.
+1864	Average finish	Arrivée moyenne
+1865	your changes	vos changements
+1866	As forecast	Selon les prévisions
+1867	Rain	Pluie
+1868	Stop	Arrêt
+1869	Better	Mieux
+1870	Worse	Moins bien
+1871	Earlier tests	Tests précédents
+1872	Run the same races twice: once with	Faites les mêmes courses deux fois : une fois avec
+1873	, once with	, une fois avec
+1874	Compare with	Comparer avec
+1875	the same	les mêmes
+1876	Back to tuning	Retour aux réglages
+1877	Changes	Changements
+1878	Averages per race. Racing is chaotic: one safety car or a spin ahead can swing a result, so treat 6 races as a hint and 24 as a good read. The same settings on the same circuit always give the same answer.	Moyennes par course. La course est chaotique : une voiture de sécurité ou un tête-à-queue devant peut tout changer, alors 6 courses donnent une idée et 24 une bonne lecture. Les mêmes réglages sur le même circuit donnent toujours la même réponse.
+1879	Blend weight	Poids du mélange
+1880	First	Premier
+1881	Second	Second
+1882	Applied	Appliqué
+1883	Out of date	Dépassé
+1884	Approve	Approuver
+1885	Test it first	Tester d'abord
+1886	no track	pas de circuit
+1887	Michael	
+1888	American	Américain
+1889	George	
+1890	British	Britannique
+1891	Lewis	
+1892	Daniel	
+1893	Fable	
+1894	Nicola	
+1895	Italian	Italien
+1896	Alex	
+1897	Spanish	Espagnol
+1898	Santiago	
+1899	Tiago	
+1900	Portuguese	Portugais
+1901	Rui	
+1902	Thorsten	
+1903	German	Allemand
+1904	Ronnie	
+1905	Dutch	Néerlandais
+1906	Gilles	
+1907	French	Français
+1908	Simulated	Simulée
+1909	Seeded weather typical of the circuit, not live	Météo typique du circuit, générée, pas en direct
+1910	-world	
+1911	car model failed to load, keeping the simple cars	le modèle de voiture n'a pas chargé, on garde les voitures simples
+1912	700 25px "Barlow Semi Condensed", system-ui, sans-serif	
+1913	700 27px "Barlow Semi Condensed", system-ui, sans-serif	
+1914	700 26px "Barlow Semi Condensed", system-ui, sans-serif	
+1915	Race order	Ordre de course
+1916	Race view. Tap a car to follow it.	Vue de course. Touche une voiture pour la suivre.
+1917	Pause and menu	Pause et menu
+1918	Race speed	Vitesse de course
+1919	Camera	Caméra
+1920	Your two cars	Vos deux voitures
+1921	ERS boost	Boost ERS
+1922	Team radio: hold and speak to your drivers	Radio d'équipe : maintenez et parlez à vos pilotes
+1923	Pit stop	Arrêt au stand
+1924	Open or close the panel	Ouvrir ou fermer le panneau
+1925	Change the radio voice	Changer la voix radio
+1926	Agent Grand Prix	Agent Grand Prix
+1927	A free browser racing game: build your AI racing team, name your drivers, call the strategy and race on circuits around the world.	Un jeu de course gratuit dans le navigateur : créez votre écurie d'IA, nommez vos pilotes, choisissez la stratégie et courez sur des circuits du monde entier.
+1928	Agent Grand Prix runs in your browser and needs JavaScript and WebGL turned on.	Agent Grand Prix tourne dans votre navigateur et a besoin de JavaScript et WebGL.
+1929	Opening the paddock…	Ouverture du paddock…
+1930	Order	Ordre
+1931	LAP	TOUR
+1932	Live	Direct
+1933	Overview	Vue d'ensemble
+1934	Chase	Poursuite
+1935	Cockpit	Cockpit
+1936	TV	TV
+1937	Pit	Stand
+1938	Box call	Appel au stand
+1939	Pit entry	Entrée des stands
+1940	Release	Relâche
+1941	Back on track	De retour en piste
+1942	Timing	Chronos
+1943	Radio	Radio
+1944	Team radio	Radio d'équipe
+1945	Fuelling the cars…	On fait le plein…
+1946	Painting the kerbs…	On peint les vibreurs…
+1947	Warming the tyres…	On chauffe les pneus…
+1948	Checking the weather radar…	On consulte le radar météo…
+1949	Briefing your drivers…	Briefing des pilotes…
+1950	Tuning the team radio…	Réglage de la radio d'équipe…
+1951	Lining up the grid…	Mise en place sur la grille…
+1952	Lights out!	Extinction des feux !
+1953	Car one.	Voiture un.
+1954	Car two.	Voiture deux.
+1955	The wets are overheating. Time to change.	Les pneus pluie surchauffent. Il faut changer.
+1956	These tyres are finished.	Ces pneus sont finis.
+1957	We still need a second compound.	Il nous faut encore un second type de pneu.
+1958	The pit window is open.	La fenêtre d'arrêt est ouverte.
+1959	The battery is empty. Switch to harvest for a lap?	La batterie est vide. On recharge pendant un tour ?
+1960	Reminder. We must use a second dry compound. Box this lap, or take a penalty.	Rappel. On doit utiliser un second pneu sec. Rentre ce tour, ou c'est la pénalité.
+1961	Lights out! Here we go.	Extinction des feux ! C'est parti.
+1962	Final lap! Push, push, push!	Dernier tour ! À fond, à fond, à fond !
+1963	Safety car, safety car. No overtaking.	Voiture de sécurité, voiture de sécurité. Pas de dépassement.
+1964	Virtual safety car. Hold your pace.	Voiture de sécurité virtuelle. Garde ton rythme.
+1965	Safety car in this lap. Get ready for the restart.	La voiture de sécurité rentre ce tour. Prépare-toi pour la relance.
+1966	Green flag! We're racing again.	Drapeau vert ! On repart.
+1967	Heavy rain now. Heavy rain.	Forte pluie maintenant. Forte pluie.
+1968	Radar shows rain in about one lap.	Le radar annonce la pluie dans un tour environ.
+1969	Radar shows rain in about two laps.	Le radar annonce la pluie dans deux tours environ.
+1970	Your call on tyres.	À toi de choisir les pneus.
+1971	Nice move!	Belle manœuvre !
+1972	We've lost a place.	On a perdu une place.
+1973	Good stop. Go, go, go.	Bon arrêt. Vas-y, vas-y, vas-y.
+1974	Slow stop, sorry. Push now.	Arrêt lent, désolé. Attaque maintenant.
+1975	Puncture! Bring it back to the pits.	Crevaison ! Ramène-la au stand.
+1976	Contact! Keep it going if you can.	Contact ! Continue si tu peux.
+1977	We're out. The car has stopped. Sorry.	On abandonne. La voiture s'est arrêtée. Désolé.
+1978	Fastest lap! Great work.	Meilleur tour ! Super boulot.
+1979	Chequered flag!	Drapeau à damier !
+1980	We won the race! Brilliant job, brilliant.	On a gagné la course ! Travail brillant, brillant.
+1981	That's a podium! Great job.	C'est un podium ! Super boulot.
+1982	Points finish. Well done.	Dans les points. Bien joué.
+1983	No points today. We'll go again.	Pas de points aujourd'hui. On remet ça.
+1984	You run two cars. Use the tabs on the pit wall to switch between them.	Tu gères deux voitures. Utilise les onglets du muret des stands pour passer de l'une à l'autre.
+1985	You're within a second of the car ahead. Attack and boost now!	Tu es à moins d'une seconde de la voiture de devant. Attaque et boost maintenant !
+1986	The car behind is close. Defend!	La voiture derrière est proche. Défends !
+1987	The tyres are fading. Time to think about a stop.	Les pneus faiblissent. Il est temps de penser à un arrêt.
+1988	Clear air. Harvest the battery, for the next fight.	Air libre. Recharge la batterie pour le prochain duel.
+1989	Last lap. Push with both cars!	Dernier tour. À fond avec les deux voitures !
+1990	Nobody close ahead. Back to neutral, save the tyres.	Personne devant. Retour au neutre, économise les pneus.
+1991	Copy.	Bien reçu.
+1992	Okay, staying out.	D'accord, on reste en piste.
+1993	Box for softs?	Box pour des tendres ?
+1994	Box this lap for softs.	Box ce tour pour des tendres.
+1995	Box for mediums?	Box pour des mediums ?
+1996	Box this lap for mediums.	Box ce tour pour des mediums.
+1997	Box for hards?	Box pour des durs ?
+1998	Box this lap for hards.	Box ce tour pour des durs.
+1999	Box for inters?	Box pour des intermédiaires ?
+2000	Box this lap for inters.	Box ce tour pour des intermédiaires.
+2001	Box for wets?	Box pour des pneus pluie ?
+2002	Box this lap for wets.	Box ce tour pour des pneus pluie.
+2003	P one.	P un.
+2004	P two.	P deux.
+2005	P three.	P trois.
+2006	P four.	P quatre.
+2007	P five.	P cinq.
+2008	P six.	P six.
+2009	P seven.	P sept.
+2010	P eight.	P huit.
+2011	P nine.	P neuf.
+2012	P ten.	P dix.
+2013	P eleven.	P onze.
+2014	P twelve.	P douze.
+2015	P thirteen.	P treize.
+2016	P fourteen.	P quatorze.
+2017	P fifteen.	P quinze.
+2018	P sixteen.	P seize.
+2019	P seventeen.	P dix-sept.
+2020	P eighteen.	P dix-huit.
+2021	P nineteen.	P dix-neuf.
+2022	P twenty.	P vingt.
+2023	Team orders. Let your teammate through.	Consignes d'équipe. Laisse passer ton coéquipier.
+2024	Hold positions. No fighting each other.	Gardez vos positions. Pas de bagarre entre vous.
+2025	You're free to race.	Tu es libre de courir.
+2026	Your teammate behind is on fresher tyres. Swap places.	Ton coéquipier derrière a des pneus plus frais. Échangez les places.
+2027	Our two cars are fighting each other. Hold positions?	Nos deux voitures se battent entre elles. On garde les positions ?
+2028	Locked up there. A touch earlier on the brakes.	Blocage de roue. Freine un poil plus tôt.
+2029	Ran wide. Easy on the entry.	Trop large. Doucement à l'entrée.
+2030	Spun it! Careful, it's slippery out there.	Tête-à-queue ! Attention, ça glisse.
+2031	Good work. The strategist has some notes for you.	Bon travail. Le stratège a quelques notes pour toi.
+2032	zero point one.	zéro virgule un.
+2033	zero point two.	zéro virgule deux.
+2034	zero point three.	zéro virgule trois.
+2035	zero point four.	zéro virgule quatre.
+2036	zero point five.	zéro virgule cinq.
+2037	zero point six.	zéro virgule six.
+2038	zero point seven.	zéro virgule sept.
+2039	zero point eight.	zéro virgule huit.
+2040	zero point nine.	zéro virgule neuf.
+2041	one point zero.	un virgule zéro.
+2042	one point one.	un virgule un.
+2043	one point two.	un virgule deux.
+2044	one point three.	un virgule trois.
+2045	one point four.	un virgule quatre.
+2046	one point five.	un virgule cinq.
+2047	one point six.	un virgule six.
+2048	one point seven.	un virgule sept.
+2049	one point eight.	un virgule huit.
+2050	one point nine.	un virgule neuf.
+2051	two point zero.	deux virgule zéro.
+2052	two point one.	deux virgule un.
+2053	two point two.	deux virgule deux.
+2054	two point three.	deux virgule trois.
+2055	two point four.	deux virgule quatre.
+2056	two point five.	deux virgule cinq.
+2057	two point six.	deux virgule six.
+2058	two point seven.	deux virgule sept.
+2059	two point eight.	deux virgule huit.
+2060	two point nine.	deux virgule neuf.
+2061	three point zero.	trois virgule zéro.
+2062	four seconds.	quatre secondes.
+2063	five seconds.	cinq secondes.
+2064	six seconds.	six secondes.
+2065	seven seconds.	sept secondes.
+2066	eight seconds.	huit secondes.
+2067	nine seconds.	neuf secondes.
+2068	ten seconds.	dix secondes.
+2069	eleven seconds.	onze secondes.
+2070	twelve seconds.	douze secondes.
+2071	thirteen seconds.	treize secondes.
+2072	fourteen seconds.	quatorze secondes.
+2073	fifteen seconds.	quinze secondes.
+2074	Gap ahead,	Écart devant,
+2075	Gap behind,	Écart derrière,
+2076	You're leading the race.	Tu mènes la course.
+2077	Your teammate is just ahead.	Ton coéquipier est juste devant.
+2078	Your teammate is right behind you.	Ton coéquipier est juste derrière toi.
+2079	You're catching the car ahead.	Tu reviens sur la voiture de devant.
+2080	The car ahead is pulling away.	La voiture de devant s'échappe.
+2081	The car behind is closing.	La voiture derrière se rapproche.
+2082	You're pulling clear.	Tu creuses l'écart.
+2083	Tyres look good.	Les pneus ont l'air bien.
+2084	Tyres are holding up.	Les pneus tiennent.
+2085	The tyres are wearing now. Look after them.	Les pneus s'usent maintenant. Ménage-les.
+2086	Battery is full. Use it.	Batterie pleine. Utilise-la.
+2087	Battery is low. Harvest where you can.	Batterie faible. Recharge quand tu peux.
+2088	Halfway there.	Mi-course.
+2089	Good pace. Keep it up.	Bon rythme. Continue comme ça.
+2090	We need a bit more pace.	Il nous faut un peu plus de rythme.
+2091	The car ahead has pitted.	La voiture devant s'est arrêtée.
+2092	The car behind has boxed. Watch the undercut.	La voiture derrière est rentrée. Attention à l'undercut.
+2093	Clear air. Hit your marks.	Air libre. Vise tes repères.
+2094	Battle on. Keep it clean.	Duel en cours. Reste propre.
+2095	Small mistake there. Reset.	Petite erreur. On se reconcentre.
+2096	Good teamwork, both of you.	Beau travail d'équipe, tous les deux.
+2097	Your teammate is coming through. Let them by.	Ton coéquipier arrive. Laisse-le passer.
+2098	Push, push! Everything you have got.	À fond, à fond ! Tout ce que tu as.
+2099	Back to normal pace.	Retour au rythme normal.
+2100	Save the tyres now.	Économise les pneus maintenant.
+2101	Boost! Full deploy.	Boost ! Déploiement total.
+2102	Harvest mode. Charge the battery.	Mode recharge. Recharge la batterie.
+2103	Attack. Go for the gap.	Attaque. Va chercher l'ouverture.
+2104	Neutral. Race your race.	Neutre. Fais ta course.
+2105	Defend. Cover the inside.	Défends. Couvre l'intérieur.
+2106	Okay, you make the calls now.	D'accord, c'est toi qui décides maintenant.
+2107	Copy. I'll take the calls from here.	Bien reçu. Je prends les décisions à partir d'ici.
+2108	Stay out, stay out.	Reste en piste, reste en piste.
+2109	two laps to go.	plus que deux tours.
+2110	three laps to go.	plus que trois tours.
+2111	four laps to go.	plus que quatre tours.
+2112	five laps to go.	plus que cinq tours.
+2113	six laps to go.	plus que six tours.
+2114	seven laps to go.	plus que sept tours.
+2115	eight laps to go.	plus que huit tours.
+2116	nine laps to go.	plus que neuf tours.
+2117	ten laps to go.	plus que dix tours.
+2118	Box, box! Softs.	Box, box ! Tendres.
+2119	Box, box! Mediums.	Box, box ! Mediums.
+2120	Box, box! Hards.	Box, box ! Durs.
+2121	Box, box! Inters.	Box, box ! Intermédiaires.
+2122	Box, box! Wets.	Box, box ! Pluie.
+2123	Box, box, box! In this lap.	Box, box, box ! Ce tour-ci.
+2124	Out lap. Push, push!	Tour de sortie. À fond, à fond !
+2125	Push now. Push, push!	Attaque maintenant. À fond, à fond !
+2126	Get ready for the restart. Push, push!	Prépare-toi pour la relance. À fond, à fond !
+2127	Copy. Boxing.	Bien reçu. Je rentre.
+2128	Okay, pushing!	D'accord, j'attaque !
+2129	Copy, staying out.	Bien reçu, je reste en piste.
+2130	Understood. Saving tyres.	Compris. J'économise les pneus.
+2131	Copy that.	Bien reçu.
+2132	Okay, going for it.	D'accord, j'y vais.
+2133	Copy, covering the inside.	Bien reçu, je couvre l'intérieur.
+2134	Okay, your call. Boxing this lap.	D'accord, c'est toi qui décides. Je rentre ce tour.
+2135	Going for it!	J'y vais !
+2136	Say again? You're breaking up.	Tu peux répéter ? Ça coupe.
+2137	My tyres are going off. I'm losing grip.	Mes pneus lâchent. Je perds de l'adhérence.
+2138	Battery's low, so I'm harvesting.	La batterie est faible, alors je recharge.
+2139	I'm stuck in dirty air behind this car.	Je suis coincé dans l'air sale derrière cette voiture.
+2140	It's really slippery out here.	Ça glisse vraiment ici.
+2141	Tyres are still cold after the stop.	Les pneus sont encore froids après l'arrêt.
+2142	Pace feels good, boss. No problems.	Le rythme est bon, chef. Aucun problème.
+2143	Best option: box now.	Meilleure option : rentre maintenant.
+2144	Best option: stay out. The tyres have life left.	Meilleure option : reste en piste. Les pneus ont encore de la vie.
+2145	Rain is coming. Wait for it, then box for inters.	La pluie arrive. Attends-la, puis rentre pour des intermédiaires.
+2146	Box now for the undercut.	Rentre maintenant pour l'undercut.
+2147	Say do it, and I'll make the call.	Dis « vas-y » et je donne l'ordre.
+2148	ten percent.	dix pour cent.
+2149	twenty percent.	vingt pour cent.
+2150	thirty percent.	trente pour cent.
+2151	forty percent.	quarante pour cent.
+2152	fifty percent.	cinquante pour cent.
+2153	sixty percent.	soixante pour cent.
+2154	seventy percent.	soixante-dix pour cent.
+2155	eighty percent.	quatre-vingts pour cent.
+2156	ninety percent.	quatre-vingt-dix pour cent.
+2157	a hundred percent.	cent pour cent.
+2158	Welcome to the pit wall. I'm your race engineer. Your two drivers drive the cars. You're the team principal. You make the calls.	Bienvenue au muret des stands. Je suis ton ingénieur de course. Tes deux pilotes conduisent les voitures. Tu es le directeur d'écurie. C'est toi qui décides.
+2159	You run two cars. Tap your second driver to follow that car.	Tu gères deux voitures. Touche ton second pilote pour suivre sa voiture.
+2160	Good. Each car takes its own calls. Ready to race?	Bien. Chaque voiture reçoit ses propres ordres. Prêt à courir ?
+2161	We're racing. Tell your driver to go faster. Tap push.	On est en course. Dis à ton pilote d'aller plus vite. Touche Attaquer.
+2162	Push is faster, but the tyres wear quicker. Keep an eye on tyre life.	Attaquer va plus vite, mais les pneus s'usent plus vite. Surveille la vie des pneus.
+2163	Now the battery. Tap boost for twelve seconds of extra power.	Maintenant la batterie. Touche Boost pour douze secondes de puissance en plus.
+2164	Boost empties the battery. It fills up again under braking.	Le boost vide la batterie. Elle se remplit au freinage.
+2165	Time for a pit stop. Pick the soft tyres, then tap box.	C'est l'heure de l'arrêt. Choisis les pneus tendres, puis touche Box.
+2166	Copy. Your driver pits at the end of this lap.	Bien reçu. Ton pilote rentre à la fin de ce tour.
+2167	Great stop. Fresh tyres, and back out on the fast lane.	Super arrêt. Pneus neufs, et retour sur la voie rapide.
+2168	You can say every call. Hold the mic, and say: push. Or: box, box.	Tu peux dire chaque ordre. Maintiens le micro et dis : attaque. Ou : box, box.
+2169	That's the job. Pace, battery, tyres and pit stops. Lesson one complete.	C'est ça, le métier. Rythme, batterie, pneus et arrêts. Leçon un terminée.
+2170	Your drivers race everyone, including each other. You decide when they fight.	Tes pilotes affrontent tout le monde, même l'un l'autre. C'est toi qui décides quand ils se battent.
+2171	Lights out. Your lead car has someone just ahead. Tap attack.	Extinction des feux. Ta voiture de tête a quelqu'un juste devant. Touche Attaquer.
+2172	Attack makes a pass more likely, but wears the tyres and risks contact. Within a second? Add boost.	Attaquer rend un dépassement plus probable, mais use les pneus et risque le contact. À moins d'une seconde ? Ajoute le boost.
+2173	Now your second car. Someone is close behind. Tap defend.	Maintenant ta seconde voiture. Quelqu'un est juste derrière. Touche Défendre.
+2174	Defend makes the car about half as easy to pass. Back to neutral when the fight is over.	Défendre rend la voiture deux fois plus dure à dépasser. Retour au neutre quand le duel est fini.
+2175	Your two cars can fight each other and lose time. Tap hold positions.	Tes deux voitures peuvent se battre et perdre du temps. Touche Garder les positions.
+2176	When the car behind is faster, swap places lets it through.	Quand la voiture derrière est plus rapide, Échanger les places la laisse passer.
+2177	All of these work on the radio. Hold the mic and say: attack. Or: hold positions.	Tout ça marche aussi à la radio. Maintiens le micro et dis : attaque. Ou : gardez les positions.
+2178	Attack, defend, hold and swap. Lesson two complete.	Attaquer, défendre, garder et échanger. Leçon deux terminée.
+2179	Every driver has a driver DNA. How late they brake, how hard they take corners, how eager they pass, and how kind they are to the tyres.	Chaque pilote a son ADN pilote. À quel point il freine tard, il attaque les virages, il cherche à dépasser, et il ménage les pneus.
+2180	Today, car one is an attacker. Car two is a tyre whisperer.	Aujourd'hui, la voiture un est un attaquant. La voiture deux murmure à l'oreille des pneus.
+2181	Watch car one. Braking late gains time, but now and then the wheels lock.	Regarde la voiture un. Freiner tard fait gagner du temps, mais de temps en temps les roues bloquent.
+2182	Now car two. Look at tyre life. Those tyres wear more slowly.	Maintenant la voiture deux. Regarde la vie des pneus. Ses pneus s'usent plus lentement.
+2183	Every circuit rewards a different driver. Long straights favour the brave. Tight tracks punish mistakes.	Chaque circuit récompense un pilote différent. Les longues lignes droites favorisent les audacieux. Les pistes serrées punissent les erreurs.
+2184	You tune the DNA between races. The proving ground tests a change first.	Tu règles l'ADN entre les courses. Le terrain d'essai teste d'abord un changement.
+2185	Driver DNA, tuned to the circuit. Lesson three complete.	ADN pilote, réglé pour le circuit. Leçon trois terminée.
+2186	Races are won on strategy. Soft is fastest and wears quickest. Hard lasts longest.	Les courses se gagnent sur la stratégie. Le tendre est le plus rapide et s'use le plus vite. Le dur dure le plus longtemps.
+2187	In a dry race, every car must use two different dry tyres, or take a twenty second penalty.	Dans une course sur le sec, chaque voiture doit utiliser deux pneus secs différents, sinon vingt secondes de pénalité.
+2188	A normal stop costs about ten seconds. The trick is when.	Un arrêt normal coûte environ dix secondes. Tout l'art, c'est le moment.
+2189	Safety car! A stop now costs about half. Box for mediums.	Voiture de sécurité ! Un arrêt maintenant coûte environ moitié moins. Box pour des mediums.
+2190	Boxing under the safety car. The cheapest stop of the race.	On rentre sous voiture de sécurité. L'arrêt le moins cher de la course.
+2191	Look at the weather. Rain is coming.	Regarde la météo. La pluie arrive.
+2192	It's raining. Box for inters.	Il pleut. Box pour des intermédiaires.
+2193	Tyres, the safety car and the rain. Lesson four complete.	Les pneus, la voiture de sécurité et la pluie. Leçon quatre terminée.
+2194	A full Grand Prix. I'll be on the radio, and the coach will help. Lights out when you're ready.	Un Grand Prix complet. Je serai à la radio, et le coach t'aidera. Extinction des feux quand tu es prêt.
+2195	Run your cars. Watch the tyres, and box when the window opens.	Gère tes voitures. Surveille les pneus, et rentre quand la fenêtre s'ouvre.
+2196	Last lap! Push, push!	Dernier tour ! À fond, à fond !
+2197	Chequered flag. You ran a Grand Prix from the pit wall. Well done.	Drapeau à damier. Tu as mené un Grand Prix depuis le muret des stands. Bravo.
+2198	That's all five lessons. You're an Academy graduate.	Les cinq leçons sont faites. Tu es diplômé de l'Académie.
+2199	English, Français, Español, Português, العربية, Naijá	
+2200	Team orders from your playbook: {0} and {1} hold positions.	Consignes d'équipe de votre plan : {0} et {1} gardent leurs positions.
+2201	On the radio{1}	À la radio{1}
+2202	Agents{3}	Agents{3}
+2203	{0} Sora	
+2204	{3} {4} raced {5}today{6} Your first race of the day is the one that counts.	{3} {4} a couru {5}aujourd'hui{6} Votre première course du jour est celle qui compte.
+2205	{0} {1} to go after today.	{0} {1} restant(s) après aujourd'hui.
+2206	, shared by the top {1} teams on the radio. Paid into each winner's Sora wallet when the week ends{2}. Sora is earned, never bought or cashed out.	, partagés entre les {1} meilleures écuries à la radio. Versés dans le portefeuille Sora de chaque gagnant à la fin de la semaine{2}. Les Sora se gagnent, ils ne s'achètent pas et ne s'encaissent pas.
+2207	, on course for {0}	, en route vers {0}
+2208	You are P{0}{1}.	Vous êtes P{0}{1}.
+2209	Week {1}: Dailies #{2} to #{3}. {4} {5}	Semaine {1} : défis n°{2} à n°{3}. {4} {5}
+2210	On the radio ({7})	À la radio ({7})
+2211	Agents ({9})	Agents ({9})
+2212	{0} seconds.	{0} secondes.
+2213	{0} laps to go.	Plus que {0} tours.
+2214	It's really slippery out here on {0}.	Ça glisse vraiment ici, à {0}.
+2215	{0} {1} Harvesting.	{0} {1} Je recharge.
+2216	I'm stuck in dirty air behind {0}.	Je suis coincé dans l'air sale derrière {0}.
+2217	{0} Mediums.	{0} Mediums.
+2218	Start on {0}s, box for slicks once the track dries	Pars en {0}, puis slicks quand la piste sèche
+2219	{0}s, then slicks when it dries	{0}, puis slicks quand ça sèche
+2220	{0}s (lap {1})	{0} (tour {1})
+2221	brief-{0}-{1}	
+2222	{0} lock-ups in {1} races.	{0} blocages en {1} courses.
+2223	{0} small mistakes over {1} races.	{0} petites erreurs en {1} courses.
+2224	{0} stops a race.	{0} arrêts par course.
+2225	{0} contacts in {1} races.	{0} contacts en {1} courses.
+2226	{0} passes from {1} attempts.	{0} dépassements sur {1} tentatives.
+2227	{0} wet races and {1} spin{2}.	{0} courses sous la pluie et {1} tête-à-queue{2}.
+2228	Overtaken {0} times in {1} races.	Dépassé {0} fois en {1} courses.
+2229	{0} clean races, {1} passes a race.	{0} courses propres, {1} dépassements par course.
+2230	{0}:{1}:career:{2}	
+2231	{0} has learned: {1}	{0} a appris : {1}
+2232	{0} {1} moves {2} {3}.	{0} {1} gagne {2} {3}.
+2233	Knows {0} circuits	Connaît {0} circuits
+2234	{0} is getting into too many collisions	{0} a trop d'accrochages
+2235	{0} contacts in one race. Each one risks a puncture or broken wing.	{0} contacts dans une course. Chacun risque une crevaison ou un aileron cassé.
+2236	{0} is pushing too hard in the rain	{0} attaque trop sous la pluie
+2237	{0} spin{1} on a wet track.	{0} tête-à-queue{1} sur piste mouillée.
+2238	{0} is locking the brakes	{0} bloque les freins
+2239	{0} lock-ups. Each one costs about a second and flat-spots the tyres.	{0} blocages. Chacun coûte environ une seconde et plate les pneus.
+2240	{0} keeps running wide	{0} sort trop large
+2241	{0} trips wide. The time lost there is more than the corners gain.	{0} sorties larges. Le temps perdu dépasse ce que gagnent les virages.
+2242	{0} is making too many mistakes	{0} fait trop d'erreurs
+2243	{0} small mistakes, each one a few tenths or a lost place.	{0} petites erreurs, chacune quelques dixièmes ou une place perdue.
+2244	{0} is wearing the tyres out	{0} use trop les pneus
+2245	The last set finished {0}% worn.	Le dernier train a fini usé à {0} %.
+2246	{0} is too easy to pass	{0} est trop facile à dépasser
+2247	Overtaken {0} times.	Dépassé {0} fois.
+2248	{0}'s passing moves aren't sticking	Les dépassements de {0} ne tiennent pas
+2249	{0} attempts and {1} pass{2}. Waiting for the straights gives cleaner moves.	{0} tentatives et {1} dépassement{2}. Attendre les lignes droites donne des manœuvres plus propres.
+2250	{0} isn't trying to pass	{0} n'essaie pas de dépasser
+2251	{0} passing attempt{1} while dropping {2} places.	{0} tentative{1} de dépassement en perdant {2} places.
+2252	{0} is too careful in the rain	{0} est trop prudent sous la pluie
+2253	No spins, but {0} places lost on a wet track.	Aucun tête-à-queue, mais {0} places perdues sur piste mouillée.
+2254	unknown version {0}	version inconnue {0}
+2255	unknown setting {0}	réglage inconnu {0}
+2256	{0} of the {1} settings are missing	{0} des {1} réglages manquent
+2257	{0} must be a whole number from 0 to 100	{0} doit être un nombre entier de 0 à 100
+2258	seat{0}-{1}	
+2259	Driver {0}	Pilote {0}
+2260	Team {0}	Écurie {0}
+2261	{0}/stream?id={1}	
+2262	{0} boxes for {1}s	{0} rentre pour : {1}
+2263	{0} stays out	{0} reste en piste
+2264	{0}: your agents have the car	{0} : vos agents ont la voiture
+2265	{0}: back to you	{0} : à vous de nouveau
+2266	📱 {0} on WhatsApp: {1}.	📱 {0} sur WhatsApp : {1}.
+2267	{0} fps · {1} calls · {2}k tris · dpr {3}	
+2268	{0} is out of the race. Now following {1}.	{0} abandonne. On suit maintenant {1}.
+2269	P{1} {2} · {3} km/h{4}	P{1} {2} · {3} km/h{4}
+2270	⚡ {0}: boost!	⚡ {0} : boost !
+2271	Didn't catch a call in “{0}”	Aucun ordre compris dans « {0} »
+2272	Say again: {0}	Répète : {0}
+2273	· interp {0}	
+2274	📻 mic {0} · words {1} · call {2} · done {3} ms{4}	
+2275	{0} is out of the race. That car can't take calls any more.	{0} a abandonné. Cette voiture ne peut plus recevoir d'ordres.
+2276	{0} has finished the race.	{0} a terminé la course.
+2277	Box for {0}s	Box pour : {0}
+2278	{0} is already boxing. Nothing to change.	{0} rentre déjà. Rien à changer.
+2279	Rain due in about {0} laps. Stay out until it starts, then box {1} for inters.	Pluie prévue dans environ {0} tours. Restez en piste jusqu'à ce qu'elle tombe, puis rentrez {1} pour des intermédiaires.
+2280	It's wet. Box {0} for {1}s.	C'est mouillé. Rentrez {0} pour : {1}.
+2281	{0}'s tyres are at {1}%. Box for {2}s.	Les pneus de {0} sont à {1} %. Box pour : {2}.
+2282	{0} behind has pitted. Box {1} now to cover the undercut.	{0} derrière s'est arrêté. Rentrez {1} maintenant pour contrer l'undercut.
+2283	{0} is {1} s behind {2} with {3}% battery. Boost and attack.	{0} est à {1} s de {2} avec {3} % de batterie. Boost et attaque.
+2284	{0}'s battery is at {1}%. Harvest now for the next fight.	La batterie de {0} est à {1} %. Rechargez maintenant pour le prochain duel.
+2285	Stay out. {0}'s tyres are at {1}% with {2} laps to go.	Restez en piste. Les pneus de {0} sont à {1} % et il reste {2} tours.
+2286	: {0} (P{1}) and {2} (P{3}). The tabs at the top of the pit wall switch between them, and each car has its own calls.	: {0} (P{1}) et {2} (P{3}). Les onglets en haut du muret passent de l'une à l'autre, et chaque voiture a ses propres ordres.
+2287	Show {0}	Afficher {0}
+2288	{0} is right behind {1} on much fresher tyres.	{0} est juste derrière {1} avec des pneus bien plus frais.
+2289	{0} is {1} s behind {2} for P{3}.	{0} est à {1} s de {2} pour la P{3}.
+2290	{0} is right behind {1}.	{0} est juste derrière {1}.
+2291	covers the inside line and makes {2} about half as easy to pass.	couvre la corde et rend {2} deux fois plus dur à dépasser.
+2292	Defend with {0}	Défendre avec {0}
+2293	{0}'s {1}s are down to {2}%. Under 25% the grip falls away and a puncture gets likely. Box for {3}s?	Les {1} de {0} sont à {2} %. Sous 25 % l'adhérence s'effondre et une crevaison devient probable. Box pour : {3} ?
+2294	{0} has clear air.	{0} est en air libre.
+2295	Harvest with {0}	Recharger avec {0}
+2296	{0} is on Attack with nobody close ahead. That wears the tyres for nothing. Back to	{0} est en Attaque sans personne devant. Ça use les pneus pour rien. Retour à
+2297	+{0} lap{1}	+{0} tour{1}
+2298	Boxing · {0}s	Au stand · {0}
+2299	📊 Race info · {0}	📊 Infos course · {0}
+2300	🎧 Engineer · {0}	🎧 Ingénieur · {0}
+2301	Stationary {0} s	À l'arrêt {0} s
+2302	· rain in ~{0} lap{1}	· pluie dans ~{0} tour{1}
+2303	Radar shows rain in about {0} lap{1}. {2} Your call on tyres.	Le radar annonce la pluie dans environ {0} tour{1}. {2} À vous de choisir les pneus.
+2304	{0} has stopped.	{0} s'est arrêté.
+2305	Lap {0}.	Tour {0}.
+2306	Box this lap for {0}s stays ({1}).	Box ce tour pour : {0} reste ({1}).
+2307	{0}: Autonomous. The AI strategist runs the car now.{1}	{0} : autonome. Le stratège IA pilote la voiture.{1}
+2308	{0}Finished P{1}.	{0}Arrivé P{1}.
+2309	Boxing this lap: {0}s{1}	Box ce tour : {0}{1}
+2310	BOX, BOX · {2}s	BOX, BOX · {2}
+2311	🎙️ Talk to {0}	🎙️ Parler à {0}
+2312	Box this lap · {0}s	Box ce tour · {0}
+2313	Lap {1}	Tour {1}
+2314	Daily Grand Prix #{0}	Grand Prix du jour n°{0}
+2315	Championship round {0}	Manche {0} du championnat
+2316	Daily #{0} again	Défi n°{0} encore
+2317	{0} {1} · you finished P{2}	{0} {1} · vous avez fini P{2}
+2318	{0} Welcome to the paddock	{0} Bienvenue au paddock
+2319	{0} Continue	{0} Continuer
+2320	{2} starts · {3} wins	{2} départs · {3} victoires
+2321	#{0} {1} {2} · you finished P{3}	n°{0} {1} {2} · vous avez fini P{3}
+2322	#{0} {1} {2} · free for everyone	n°{0} {1} {2} · gratuit pour tous
+2323	, last: {0}	, dernière : {0}
+2324	any of {0} circuits{1}	parmi {0} circuits{1}
+2325	round {0} of {1}: {2} {3}	manche {0} sur {1} : {2} {3}
+2326	· {0}/{1} done	· {0}/{1} faites
+2327	five short lessons{0}	cinq courtes leçons{0}
+2328	every mode for ${0} a month	tous les modes pour {0} $ par mois
+2329	Next: {0} · {1}	Suivant : {0} · {1}
+2330	home nbhome{0}	
+2331	${1} a year, renews yearly. Cancel any time.	{1} $ par an, renouvelé chaque année. Annulable à tout moment.
+2332	on all {1} circuits	sur les {1} circuits
+2333	, all {2} rounds	, les {2} manches
+2334	Daily Challenge #{0}	Défi du jour n°{0}
+2335	{0} {1} · you finished P{2}. Race it again for fun.	{0} {1} · vous avez fini P{2}. Refaites-la pour le plaisir.
+2336	{0} {1} · the same race for everyone today. Always free.	{0} {1} · la même course pour tout le monde aujourd'hui. Toujours gratuite.
+2337	Any of {0} circuits. Last time: {1} {2}.	Parmi {0} circuits. La dernière fois : {1} {2}.
+2338	Pick any of {0} circuits.	Choisissez parmi {0} circuits.
+2339	Season {0}, round {1} of {2}: {3} {4}	Saison {0}, manche {1} sur {2} : {3} {4}
+2340	· {0} of {1} done	· {0} sur {1} faites
+2341	Five short lessons{0}. Free.	Cinq courtes leçons{0}. Gratuit.
+2342	{0} · {1} starts, {2} wins	{0} · {1} départs, {2} victoires
+2343	{0} come with the pass	{0} inclus avec le pass
+2344	✓ New races on all {1} circuits	✓ Nouvelles courses sur les {1} circuits
+2345	{0}: coming soon	{0} : bientôt
+2346	{1}: career	{1} : carrière
+2347	Last race{0}	Dernière course{0}
+2348	Your team: P{1} of {2} teams after {3} round{4}.	Votre écurie : P{1} sur {2} après {3} manche{4}.
+2349	Daily #{0} · raced by your agent	Défi n°{0} · couru par votre agent
+2350	{0} {1} · Daily #{2}	{0} {1} · Défi n°{2}
+2351	+{4} pts	+{4} pts
+2352	Your agent raced {0}	Votre agent a couru {0}
+2353	Next: {2} {3}, at {4}:00 your time if you haven't raced it.	Suivant : {2} {3}, à {4} h (votre heure) si vous ne l'avez pas couru.
+2354	✅ {0} is connected on WhatsApp	✅ {0} est connecté sur WhatsApp
+2355	Send this to {0} on WhatsApp	Envoyez ceci à {0} sur WhatsApp
+2356	Open your chat with {2} and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.	Ouvrez votre discussion avec {2} et envoyez la ligne ci-dessus. Le code marche 30 minutes. Cette page se met à jour toute seule une fois liée.
+2357	📱 {0} is connected	📱 {0} est connecté
+2358	Say hi to {1}	Dites bonjour à {1}
+2359	Say hi to {0} on WhatsApp and it sets you up, then connect here.	Dites bonjour à {0} sur WhatsApp, il vous configure, puis connectez-vous ici.
+2360	Link {0}, your race engineer on WhatsApp, and it follows the race you run here, one at a time. Hand the team to your agents and make the big calls by text.	Reliez {0}, votre ingénieur de course sur WhatsApp : il suit la course que vous menez ici, une à la fois. Confiez l'écurie à vos agents et prenez les grandes décisions par message.
+2361	No agent yet? {1}	Pas encore d'agent ? {1}
+2362	Your {0} take the next open seat, with your car and Driver DNA.	Vos {0} prennent la prochaine place libre, avec votre voiture et votre ADN pilote.
+2363	{8} Calls in a live race reach the car about a second after you make them.	{8} En course en direct, les ordres arrivent à la voiture environ une seconde après.
+2364	of {1} {2}.	sur {1} {2}.
+2365	Daily #{0} · {1} {2}	Défi n°{0} · {1} {2}
+2366	· {0} more to {1}	· encore {0} pour {1}
+2367	What {0} is good at	Les points forts de {0}
+2368	has {0} races	a {0} courses
+2369	is a {0} with {1} races	est {0} avec {1} courses
+2370	Next up: “{0}”, once {1} {2}.	Ensuite : « {0} », une fois {1} {2}.
+2371	{0} · car {1}	{0} · voiture {1}
+2372	{7} XP{8}	{7} XP{8}
+2373	…and {0} more.	…et {0} de plus.
+2374	Teague and your drivers remember {0} thing{1} about you, and bring them up when it fits.	Teague et vos pilotes se souviennent de {0} chose{1} sur vous, et en parlent quand ça s'y prête.
+2375	Signed in{0}. Your team follows you to any device.	Connecté{0}. Votre écurie vous suit sur tous vos appareils.
+2376	Anti-Bot Pass {0}	Pass anti-bot {0}
+2377	{0} has an Agent Grand Prix team. Add what you've done on this device to it?	{0} a une écurie Agent Grand Prix. Y ajouter ce que vous avez fait sur cet appareil ?
+2378	season-{0}-{1}	
+2379	{0} belongs to another team's driver.	{0} appartient au pilote d'une autre écurie.
+2380	Number {0} belongs to another team's driver.	Le numéro {0} appartient au pilote d'une autre écurie.
+2381	Step {0} of {1}	Étape {0} sur {1}
+2382	Driver {2}	Pilote {2}
+2383	Welcome to the paddock, {0}.	Bienvenue au paddock, {0}.
+2384	, {2} on	, {2} activé
+2385	🎓 Lesson {0} · {1}	🎓 Leçon {0} · {1}
+2386	{0} of {1} for the Academy badge	{0} sur {1} pour le badge de l'Académie
+2387	Lesson {1}: {2}	Leçon {1} : {2}
+2388	🎓 Lesson {0} complete	🎓 Leçon {0} terminée
+2389	{0} of {1} done.	{0} sur {1} faites.
+2390	Start · {0} min	Commencer · {0} min
+2391	Five short lessons on a real race. Your engineer explains one thing at a time and you try it straight away. {0}	Cinq courtes leçons sur une vraie course. Votre ingénieur explique une chose à la fois et vous l'essayez tout de suite. {0}
+2392	The track is {0}: start both cars on	La piste est {0} : fais partir les deux voitures en
+2393	start on Mediums, box around lap {0} for {1}s. Safe and steady.	pars en Mediums, rentre vers le tour {0} pour : {1}. Sûr et régulier.
+2394	start on Softs to gain places early, box around lap {0} for {1}s.	pars en Tendres pour gagner des places au début, rentre vers le tour {0} pour : {1}.
+2395	See the {2} in 3D, all the way round	Voir la {2} en 3D, sous tous les angles
+2396	Fastest. Lasts about {0} laps here. Use it to gain places at the start or for a short last stint.	Le plus rapide. Dure environ {0} tours ici. Pour gagner des places au départ ou pour un court dernier relais.
+2397	A little slower. Lasts about {0} laps. The safe all-rounder.	Un peu plus lent. Dure environ {0} tours. Le choix sûr et polyvalent.
+2398	Slowest dry tyre, but lasts about {0} laps. For a long stint so you only stop once.	Le pneu sec le plus lent, mais il dure environ {0} tours. Pour un long relais avec un seul arrêt.
+2399	Daily #{0} · Full distance	Défi n°{0} · Distance complète
+2400	Season {0} · Round {1}	Saison {0} · Manche {1}
+2401	{0} {1} Grand Prix	Grand Prix {0} {1}
+2402	{0}% chance of rain	{0} % de risque de pluie
+2403	{3} laps · {4}	{3} tours · {4}
+2404	Plan {1}	Plan {1}
+2405	Rename {4}	Renommer {4}
+2406	· starts P{5}	· part P{5}
+2407	Your engineer's two plans for each driver. The race engine runs this race {7} times in the background, with the same grid and forecast, to see where each plan finishes.	Les deux plans de votre ingénieur pour chaque pilote. Le moteur de course simule cette course {7} fois en arrière-plan, avec la même grille et la même météo, pour voir où finit chaque plan.
+2408	· out in {0} of {1}	· abandon dans {0} sur {1}
+2409	· range P{1}–P{2}{3} · ahead of Plan {4} in	· de P{1} à P{2}{3} · devant le plan {4} dans
+2410	Simulating: {0} of {1} races done.	Simulation : {0} courses sur {1}.
+2411	{0} Plan {1}	{0} Plan {1}
+2412	{0}:{1} left	{0}:{1} restantes
+2413	Goes out in {0} s, or send {1} now	Sort dans {0} s, ou envoyez {1} maintenant
+2414	· sector {0} done	· secteur {0} fait
+2415	Flying lap{0}	Tour lancé{0}
+2416	Send {1} out now	Envoyer {1} maintenant
+2417	Radio check. You have the calls. {0}	Essai radio. C'est vous qui décidez. {0}
+2418	{0} stops, around laps {1}, onto {2}	{0} arrêts, vers les tours {1}, en {2}
+2419	one stop around lap {0}, then {1}s	un arrêt vers le tour {0}, puis {1}
+2420	We're back. Lap {0} of {1}.	On est de retour. Tour {0} sur {1}.
+2421	{0} {1} · lap {2} of {3}	{0} {1} · tour {2} sur {3}
+2422	Your agents are racing it out: lap {0} of {1}…	Vos agents disputent la course : tour {0} sur {1}…
+2423	Your team is P{0} in the constructors' standings after round {1}.	Votre écurie est P{0} au classement des constructeurs après la manche {1}.
+2424	Replay only: your scored full-distance run today was P{0}.	Rejouer seulement : votre course comptée sur distance complète aujourd'hui était P{0}.
+2425	Agent Grand Prix · Daily #{0}	Agent Grand Prix · Défi n°{0}
+2426	+{0} pts	+{0} pts
+2427	🔥 {0}-day streak.	🔥 Série de {0} jours.
+2428	If you're busy, your agent races it at {0}:00 and tells you how it went.	Si vous êtes occupé, votre agent la court à {0} h et vous raconte comment ça s'est passé.
+2429	Today's result is saved. {0} Tomorrow's Daily is {1} {2}.{3}	Le résultat du jour est enregistré. {0} Le défi de demain est {1} {2}.{3}
+2430	Replay only: your agent already raced today's Daily (P{0}).	Rejouer seulement : votre agent a déjà couru le défi du jour (P{0}).
+2431	Replay only: your scored run today was P{0}.	Rejouer seulement : votre course comptée aujourd'hui était P{0}.
+2432	New best today: P{0}.	Nouveau record du jour : P{0}.
+2433	{0} {1} Grand Prix · {2}	Grand Prix {0} {1} · {2}
+2434	🎖️ Now a {0}	🎖️ Désormais {0}
+2435	· {0} to {1}	· {0} pour {1}
+2436	+{7} XP	+{7} XP
+2437	After {0} of {1} rounds.	Après {0} manches sur {1}.
+2438	You: {0} · won by {1}	Vous : {0} · gagné par {1}
+2439	Season {0}	Saison {0}
+2440	{0} · LIVE TIMING	{0} · CHRONOS EN DIRECT
+2441	<svg class="portrait face" width="{0}" height="{1}" role="img" aria-label="{2}"	
+2442	proving-{0}-{1}	
+2443	{0} leaves the garage on {1}.	{0} quitte le garage en {1}.
+2444	{0} starts a push lap.	{0} commence un tour à fond.
+2445	{0} is on a flying lap.	{0} est en tour lancé.
+2446	{0} locks up! That lap is gone.	{0} bloque ! Ce tour est perdu.
+2447	{0} didn't start a lap before the flag.	{0} n'a pas lancé de tour avant le drapeau.
+2448	{0} retired after {1} laps.	{0} a abandonné après {1} tours.
+2449	: {0} {1} place{2}	: {0} {1} place{2}
+2450	{0} started P{1} and finished P{2}{3}.	{0} est parti P{1} et a fini P{2}{3}.
+2451	Best spell: laps {0}–{1}, from P{2} to P{3}.	Meilleure période : tours {0}–{1}, de P{2} à P{3}.
+2452	Pitted under the safety car on lap {0}: a stop that cost less time than usual.	Arrêt sous voiture de sécurité au tour {0} : un arrêt moins coûteux que d'habitude.
+2453	Stayed out under the safety car on lap {0}. A stop there costs less time than under green.	Resté en piste sous voiture de sécurité au tour {0}. Un arrêt y coûte moins que sous drapeau vert.
+2454	On rain tyres by lap {0}, soon after the rain came on lap {1}.	En pneus pluie au tour {0}, peu après l'arrivée de la pluie au tour {1}.
+2455	Finished on worn {0}s with {1}% left.	Fini sur des {0} usés, {1} % restants.
+2456	You made {0} call{1}{2}.	Vous avez donné {0} ordre{1}{2}.
+2457	The strategist made all {0} calls: the team raced autonomously.	Le stratège a donné les {0} ordres : l'écurie a couru en autonomie.
+2458	P{0}, held	P{0}, tenue
+2459	{3} colour code, like #1267F4	Code couleur {3}, comme #1267F4
+2460	AGP-{0}	
+2461	Race the {0}	Courir avec la {0}
+2462	Copy, box this lap for {0}s.	Bien reçu, box ce tour pour : {0}.
+2463	{0}: Autonomous. The strategist runs the car.	{0} : autonome. Le stratège pilote la voiture.
+2464	{0}: Team Principal. You run the car.	{0} : directeur d'écurie. Vous pilotez la voiture.
+2465	Team orders: {0} lets {1} through.	Consignes d'équipe : {0} laisse passer {1}.
+2466	Team orders: {0} and {1} hold positions.	Consignes d'équipe : {0} et {1} gardent leurs positions.
+2467	Team orders lifted: {0} and {1} are free to race.	Consignes levées : {0} et {1} sont libres de courir.
+2468	Fastest lap: {0}, {1}	Meilleur tour : {0}, {1}
+2469	Chequered flag! {0} wins in {1}.	Drapeau à damier ! {0} gagne à {1}.
+2470	{0} is in the pit lane.	{0} est dans la voie des stands.
+2471	{0} is out of the pits... and here comes {1}! Battle for {2}!	{0} sort des stands... et voici {1} ! Bataille pour la {2} !
+2472	Slow stop for {0}! {1} s.	Arrêt lent pour {0} ! {1} s.
+2473	{0}: {1} s stop, {2}s on.	{0} : arrêt de {1} s, en {2}.
+2474	{0} locks up into Turn {1}.	{0} bloque au virage {1}.
+2475	{0} runs wide at Turn {1}.	{0} sort large au virage {1}.
+2476	{0} spins at Turn {1} on the wet track.	{0} part en tête-à-queue au virage {1} sur piste mouillée.
+2477	{0} ({1}) is in the barrier! Out of the race.	{0} ({1}) est dans le mur ! Il abandonne.
+2478	{0} runs wide and loses time!	{0} sort large et perd du temps !
+2479	{0} locks up into the corner.	{0} bloque à l'entrée du virage.
+2480	Puncture for {0}! The tyres gave up. Limping back to the pits.	Crevaison pour {0} ! Les pneus ont lâché. Retour au ralenti vers les stands.
+2481	{0} spins on the shredded tyre and hits the wall! Out.	{0} part en tête-à-queue sur le pneu déchiqueté et tape le mur ! Abandon.
+2482	{0} for {1}! {2} is slowing down.	{0} pour la {1} ! {2} ralentit.
+2483	Contact between {0} and {1}! {2} is in the wall. Out of the race.	Contact entre {0} et {1} ! {2} est dans le mur. Abandon.
+2484	{0} has a puncture after the contact.	{0} a une crevaison après le contact.
+2485	Contact! {0} and {1} touch wheels and both go wide.	Contact ! {0} et {1} se touchent et sortent large tous les deux.
+2486	{0} ({1}) has stopped. Out of the race.	{0} ({1}) s'est arrêté. Abandon.
+2487	Yellow flags for the stopped {0}.	Drapeaux jaunes pour {0} à l'arrêt.
+2488	{0} passes {1}{2}.	{0} dépasse {1}{2}.
+2489	{0} Box for {1}s?	{0} Box pour : {1} ?
+2490	{0} Boxing this lap for {1}s.	{0} Box ce tour pour : {1}.
+2491	{0} has changed since this was proposed	{0} a changé depuis cette proposition
+2492	{0} out of range	{0} hors limites
+2493	{0} min ago	il y a {0} min
+2494	{0} h ago	il y a {0} h
+2495	{0} d ago	il y a {0} j
+2496	Driver DNA shape: {2}	Profil ADN pilote : {2}
+2497	🔒 This race is using the DNA your drivers started with (version {0}). Anything you save now applies from the next race.	🔒 Cette course utilise l'ADN de départ de vos pilotes (version {0}). Ce que vous enregistrez maintenant s'applique dès la prochaine course.
+2498	Car {4} · {5}	Voiture {4} · {5}
+2499	Strategist{0}	Stratège{0}
+2500	Unsaved changes to {0}'s DNA	Changements non enregistrés de l'ADN de {0}
+2501	{0} races with	{0} court avec
+2502	Driver DNA{0}	ADN pilote{0}
+2503	Balanced{2}	Équilibré{2}
+2504	Advanced · all {8}	Avancé · les {8}
+2505	Watch for: {0}	À surveiller : {0}
+2506	· {0} changed	· {0} modifié
+2507	After each race your Strategist reads what {0} did (lock-ups, trips wide, collisions, tyre wear, passes) and may suggest one change, with the numbers behind it. Nothing changes until you approve it.	Après chaque course, votre stratège lit ce qu'a fait {0} (blocages, sorties larges, accrochages, usure des pneus, dépassements) et peut proposer un changement, chiffres à l'appui. Rien ne change sans votre accord.
+2508	· +{0} more	· +{0} de plus
+2509	The profile only: its name and {0} settings. Nothing about your team or this device.	Seulement le profil : son nom et {0} réglages. Rien sur votre écurie ni sur cet appareil.
+2510	Paste a profile. It is checked setting by setting and loads as unsaved changes for {2}.	Collez un profil. Il est vérifié réglage par réglage et se charge comme changements non enregistrés pour {2}.
+2511	Balanced{1}	Équilibré{1}
+2512	Applied as v{0}. You can restore the old version in History.	Appliqué en v{0}. Vous pouvez restaurer l'ancienne version dans l'historique.
+2513	{0}: restored as v{1}	{0} : restauré en v{1}
+2514	{0}: {1} saved as v{2}{3}	{0} : {1} enregistré en v{2}{3}
+2515	Copied to Car {0} as unsaved changes.	Copié vers la voiture {0} comme changements non enregistrés.
+2516	Saved "{0}" to your presets.	« {0} » enregistré dans vos préréglages.
+2517	It rarely rains in {0}, so there may be fewer wet races than you asked for.	Il pleut rarement à {0}, il y aura peut-être moins de courses sous la pluie que demandé.
+2518	· about {0} s left	· environ {0} s restantes
+2519	Race {1} of {2}, twice each{3}	Course {1} sur {2}, deux fois chacune{3}
+2520	Nothing to compare yet: change {0}'s settings on the Tune tab, or compare with Balanced.	Rien à comparer pour l'instant : changez les réglages de {0} dans l'onglet Réglages, ou comparez avec Équilibré.
+2521	Run {1} races	Lancer {1} courses
+2522	{4} · ahead in {5} of {6}, behind in {7}{8}	{4} · devant dans {5} sur {6}, derrière dans {7}{8}
+2523	, the same in {0}	, identique dans {0}
+2524	Best lap {0} (median).	Meilleur tour {0} (médiane).
+2525	Keep these changes (save v{0})	Garder ces changements (enregistrer v{0})
+2526	{2} finished ahead in	{2} a fini devant dans
+2527	of {4} races, behind in	des {4} courses, derrière dans
+2528	Race {0} of {1}, twice each{2}	Course {0} sur {1}, deux fois chacune{2}
+2529	Car {1}	Voiture {1}
+2530	Next: your drivers	Ensuite : vos pilotes
+2531	Next: {0}	Ensuite : {0}
+2532	Qualifying sets where you start: one flying lap each, and the fastest lap starts at the front.	Les qualifications fixent votre place de départ : un tour lancé chacun, et le plus rapide part devant.
+2533	Your grid{0}	Votre grille{0}
+2534	🏁 Do it yourself	🏁 Je m'en charge
+2535	Your calls: tyre, timing, push. Best shot at pole	Vos décisions : pneu, moment, attaque. La meilleure chance de pole
+2536	🤖 Your agents	🤖 Vos agents
+2537	They qualify for you. A well-trained team does well	Ils se qualifient pour vous. Une écurie bien réglée s'en sort bien
+2538	⏭️ Skip	⏭️ Passer
+2539	No lap set. You start P12 to P20	Pas de tour chronométré. Vous partez de P12 à P20
+2540	Qualify after all	Me qualifier finalement
+2541	Qualify myself	Me qualifier moi-même
+2542	All cars	Toutes les voitures
+2543	Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.	Toutes les voitures ont le même rythme global. Certaines sont plus rapides en virage, d'autres au freinage, d'autres en ligne droite. Choisissez-en une, puis peignez-la en 3D à l'écran suivant.
+2544	Pick the {2}	Choisir la {2}
+2545	Pick your car, then tap Next to paint it in 3D.	Choisissez votre voiture, puis touchez Suivant pour la peindre en 3D.
+2546	support@agentgrandprix.com	
+2547	Support	Assistance
+2548	a[href]	

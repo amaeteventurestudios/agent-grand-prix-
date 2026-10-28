@@ -5,5 +5,6 @@ set -euo pipefail
 rm -rf dist && mkdir -p dist
 cp -r index.html credits.html privacy.html terms.html assets vendor favicon.ico robots.txt sitemap.xml llms.txt site.webmanifest sw.js dist/
 npx --yes esbuild@0.24.0 js/*.js --minify --format=esm --outdir=dist/js --log-level=warning
+npx --yes esbuild@0.24.0 js/i18n/*.js --minify --format=esm --outdir=dist/js/i18n --log-level=warning
 npx --yes esbuild@0.24.0 css/*.css --minify --outdir=dist/css --log-level=warning
 echo "Built dist/ ($(du -sh dist | cut -f1))"
