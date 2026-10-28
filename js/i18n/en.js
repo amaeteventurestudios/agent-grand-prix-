@@ -2598,4 +2598,5 @@ export default ["Meet your team",
 "Remove {0}? It stops following your races here. You can connect it again with its key.",
 "Soon your agent and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.",
 "Your agent and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.",
-"Your agent and your drivers remember {0} thing{1} about you, and bring them up when it fits."];
+"Your agent and your drivers remember {0} thing{1} about you, and bring them up when it fits.",
+"Michael, Coach, Sparky…"];
