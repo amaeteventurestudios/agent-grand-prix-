@@ -48,6 +48,7 @@ export function openShowroom(ctx, opts = {}) {
     lastPush = now; setCols(c);
   };
 
+  // opts.onward { label, go }: the step after choosing a car (race setup, onboarding), one tap away
   // opts.wizard: the onboarding's colour step, the car turning while you paint it (no car switching or Cutaway)
   const W = opts.wizard;
   let after = opts.back;
@@ -78,7 +79,7 @@ export function openShowroom(ctx, opts = {}) {
       <div class="swatches sr-sw"><button type="button" data-sr="own" class="own" aria-label="This car's own colours" title="This car's own colours"><i id="srOwn1"></i><i id="srOwn2"></i></button>${LIVERIES.map((l, i) => `<button type="button" data-liv="${i}" aria-label="${esc(l.name)}" title="${esc(l.name)}"><i style="background:${l.c1}"></i><i style="background:${l.c2}"></i></button>`).join('')}</div>
       <div class="sr-tools"><button type="button" class="chip" data-sr="rand">🎲 Randomize</button><button type="button" class="chip" data-sr="undo" disabled>↶ Undo</button><button type="button" class="chip" data-sr="reset">Reset</button><button type="button" class="chip" data-sr="light" aria-pressed="false">🌙 Night</button></div>
       ${W ? `<div class="actions"><button class="btn" data-sr="wnext" type="button">${W.nextLabel || 'Next'}</button><button class="btn ghost" data-sr="back" type="button">Back</button></div>`
-    : '<div class="actions"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">Back</button></div></div>'}
+    : `<div class="actions sr-go"><button class="btn" data-sr="pick" type="button" id="srPick"></button><button class="btn ghost" data-sr="back" type="button">${opts.onward ? 'All cars' : 'Back'}</button></div></div>`}
     </div>`, W ? 'showroom wizcol' : 'showroom');
 
   const canvas = sh.querySelector('.sr-gl'), stage = sh.querySelector('.sr-stage'), tags = sh.querySelector('.sr-tags'), slider = sh.querySelector('#srCut');
@@ -245,7 +246,8 @@ export function openShowroom(ctx, opts = {}) {
     sh.querySelector('#srBars').innerHTML = strengthBars(id).map(([k, v]) => `<div><span>${k}</span><i><u style="width:${v}%"></u></i></div>`).join('');
     sh.querySelector('#srOwn1').style.background = c.c1; sh.querySelector('#srOwn2').style.background = c.c2;
     const mine = (S.settings.car || 'falcon') === id;
-    const pick = sh.querySelector('#srPick'); if (pick) { pick.textContent = mine ? 'Racing this car' : `Race the ${c.name}`; pick.disabled = mine; }
+    // one tap moves on: with a next step it takes this car there; from the garage it picks the car and closes
+    const pick = sh.querySelector('#srPick'); if (pick) pick.textContent = opts.onward ? `${opts.onward.label} →` : mine ? 'Done' : `Race the ${c.name}`;
     syncCols();
   }
   function syncCols(skip) {
@@ -287,7 +289,7 @@ export function openShowroom(ctx, opts = {}) {
     if (k === 'undo' && undo.length) { setCols(undo.pop()); syncCols(); paint(); }
     if (k === 'light') { night = !night; lightUp(); }
     if (k === 'prev' || k === 'next') { const i = CARS.findIndex((c) => c.id === id); id = CARS[(i + (k === 'next' ? 1 : CARS.length - 1)) % CARS.length].id; info(); load(); }
-    if (k === 'pick') { opts.pick?.(id); info(); }
+    if (k === 'pick') { opts.pick?.(id); if (opts.onward) after = opts.onward.go; close(); }
     if (k === 'back') close();
     if (k === 'wnext') { after = W.next; close(); }
   };

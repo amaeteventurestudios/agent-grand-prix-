@@ -14,6 +14,7 @@ import { qualiScores } from './sim.js';
 
 export const Q_LEN = 360;                                   // session clock, seconds
 export const Q_PUSH = ['push', 'normal', 'steady'];
+export const SKIP_FROM = 12;                                // skip qualifying: start P12 or lower
 const TYRE = { S: 0, M: -0.12, H: -0.26, I: -0.05, W: -0.12 };   // one lap, in driver pace points
 const PUSH = { push: { gain: 0.09, risk: 0.22 }, normal: { gain: 0, risk: 0.03 }, steady: { gain: -0.05, risk: 0 } };
 const OUT = 1.35, IN = 1.25;                               // out and in laps, as multiples of a lap
@@ -55,7 +56,16 @@ export function qualiPlan({ entries, venue, seed, track, weather, choices = {} }
     return { id: e.id, i, go: c.go, tyre: c.tyre, push: c.push, outLap, flyStart, time, flyEnd: flyStart + time, inEnd: flyStart + (noTime ? 0 : time) + T.lapTime * IN,
       sectors: noTime ? [] : [s1, s2, time - s1 - s2], spoiled: spoiled && !noTime, noTime, plan };
   });
-  const order = runs.slice().sort((a, b) => a.time - b.time || a.i - b.i);
+  // a team that skips qualifying sets no lap and starts from P12 to P20, never in the top ten, so the
+  // session is worth running (yourself, or by your agents). Where in that range comes from the seed.
+  const skip = (e) => e.id.startsWith('you-') && choices[e.id] && choices[e.id].skip === true;
+  for (const x of runs) if (skip(entries[x.i])) Object.assign(x, { time: Infinity, noTime: true, skipped: true, sectors: [] });
+  const sorted = runs.slice().sort((a, b) => a.time - b.time || a.i - b.i);
+  const order = sorted.filter((x) => !x.skipped), back = sorted.filter((x) => x.skipped);
+  const lo = SKIP_FROM - 1, hi = Math.max(lo + 1, entries.length);
+  back.map((x) => ({ x, at: lo + Math.floor(rng((seed ^ 0x5c1b ^ Math.imul(x.i + 1, 0x85ebca6b)) >>> 0)() * (hi - lo)) }))
+    .sort((a, b) => a.at - b.at || a.x.i - b.x.i)
+    .forEach(({ x, at }) => order.splice(Math.min(at, order.length), 0, x));
   return { runs: new Map(runs.map((x) => [x.id, x])), order: order.map((x) => entries[x.i]), wet: wetT };
 }
 

@@ -2434,7 +2434,8 @@ function onboard(step = 'team', then) {
   if (step === 'car') {
     const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.')}
       ${carTiles()}${wizFoot('Choose this car')}`, 'wizp');
-    wireCarTiles(sh, () => onboard('car'));
+    // colours are painted in the showroom, so choosing a car there skips the colour step
+    wireCarTiles(sh, () => onboard('car'), { label: 'Next: your drivers', go: () => go(2) });
     wizWire(sh, () => go(1), back);
   }
   if (step === 'colours') {
@@ -2794,13 +2795,13 @@ function freePractice() {
 }
 
 // the garage tiles: tap a name to race that car, the picture for the 3D showroom
-function wireCarTiles(sh, back) {
+function wireCarTiles(sh, back, onward) {
   $$('[data-car-model]', sh).forEach((b) => b.addEventListener('click', () => {
     S.settings.car = b.dataset.carModel || null; store.save();
     $$('[data-car-model]', sh).forEach((x) => { x.closest('.car-tile').classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
     if (world) world.setModel(carModel());
   }));
-  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => showroom(back, b.dataset.show)));
+  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => showroom(back, b.dataset.show, onward)));
 }
 const modeHTML = (auto) => `<div class="mode">
       <button type="button" data-m="0" class="${auto ? '' : 'on'}"><b>Team Principal</b><span>You call pit stops, tyres and tactics. Your engineer advises.</span></button>
@@ -2819,8 +2820,8 @@ function carTiles() {
   return `<div class="garage">${MODELS.map(tile).join('')}
     <div class="car-tile simple ${cur === '' ? 'on' : ''}"><button type="button" class="ct-pick" data-car-model="" aria-pressed="${cur === ''}"><b>Simple cars</b><span>Plain blocky cars from the first version. Pick these only if the race stutters on your phone.</span></button></div></div>`;
 }
-function showroom(back, id) {
-  openShowroom({ S, show, save: store.save, team }, { id: id || carModel() || 'falcon', lite, back,
+function showroom(back, id, onward) {
+  openShowroom({ S, show, save: store.save, team }, { id: id || carModel() || 'falcon', lite, back, onward,
     pick: (cid) => { S.settings.car = cid; store.save(); if (world) world.setModel(carModel()); } });
 }
 // what each tyre does at this track: speed, and roughly how many laps before it fades
@@ -2876,20 +2877,22 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   if (step === 'car') {
     const sh = show(`${head('<p class="lede">Your car is ready. Change it here, or tap a picture to spin it round in 3D.</p>')}
       ${carTiles()}${wizFoot('Next')}`, 'wizp');
-    wireCarTiles(sh, () => pre(o, 'car'));
+    wireCarTiles(sh, () => pre(o, 'car'), { label: `Next: ${steps[i + 1] === 'quali' ? 'qualifying' : 'tyres'}`, go: () => go(1) });
     wizWire(sh, () => go(1), back);
     return;
   }
   if (step === 'quali') {
     const res = P.qres;
-    const sh = show(`${head('<p class="lede">Before the race, qualifying: every driver gets one flying lap, and the fastest lap starts at the front. You choose when your drivers go out, on which tyre, and how hard they push.</p>')}
-      ${res ? `<div class="sub">Your grid</div>${qualiTable(res, true)}` : `<div class="qintro"><div><b>⏱️ One lap each</b><span>Fastest lap is pole position</span></div><div><b>🛞 Your tyre</b><span>Softs are quickest over one lap</span></div><div><b>🚦 Your timing</b><span>The track gets faster, but don't miss the flag</span></div></div>`}
-      </div><div class="actions wiz-foot">${res ? '<button class="btn" data-wiz="next" type="button">Next: race briefing</button><button class="btn ghost" id="qWatch" type="button">Run it again</button>' : '<button class="btn" id="qWatch" type="button">Watch qualifying</button><button class="btn ghost" id="qAgents" type="button">Let my agents qualify</button>'}<button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
+    const sh = show(`${head('<p class="lede">Qualifying sets where you start: one flying lap each, and the fastest lap starts at the front.</p>')}
+      ${res ? `<div class="sub">Your grid${P.qskip ? ' (qualifying skipped)' : ''}</div>${qualiTable(res, true)}` : `<div class="qintro"><div><b>🏁 Do it yourself</b><span>Your calls: tyre, timing, push. Best shot at pole</span></div><div><b>🤖 Your agents</b><span>They qualify for you. A well-trained team does well</span></div><div><b>⏭️ Skip</b><span>No lap set. You start P12 to P20</span></div></div>`}
+      </div><div class="actions wiz-foot">${res ? `<button class="btn" data-wiz="next" type="button">Next: race briefing</button><button class="btn ghost" id="qWatch" type="button">${P.qskip ? 'Qualify after all' : 'Run it again'}</button>` : '<button class="btn" id="qWatch" type="button">Qualify myself</button><button class="btn ghost" id="qAgents" type="button">Let my agents qualify</button><button class="btn ghost" id="qSkip" type="button">Skip</button>'}<button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
     if (res) $('[data-wiz="next"]', sh).addEventListener('click', () => go(1));
     $('[data-wiz="back"]', sh).addEventListener('click', back);
     $('#qWatch', sh).addEventListener('click', () => qualiWatch(o, () => pre(o, 'quali')));
     const ag = $('#qAgents', sh);
-    if (ag) ag.addEventListener('click', () => { const Q = qualiSession(o, {}); while (!Q.done) Q.step(DT); qualiKeep(Q); pre(o, 'quali'); });
+    if (ag) ag.addEventListener('click', () => { const Q = qualiSession(o, {}); while (!Q.done) Q.step(DT); qualiKeep(Q); P.qskip = false; pre(o, 'quali'); });
+    const sk = $('#qSkip', sh);
+    if (sk) sk.addEventListener('click', () => { qualiSkip(o); pre(o, 'quali'); });
     return;
   }
   if (step === 'tyres') {
@@ -3019,8 +3022,14 @@ function qualiSession(o, choices) {
 }
 // the session's result becomes the grid: its calls go on the race's record so a leaderboard rebuilds it
 function qualiKeep(Q) {
-  G.quali = Q.result().choices;
+  G.quali = Q.result().choices; P.qskip = false;
   P.qres = Q.order.map((c) => ({ id: c.id, code: c.code, name: c.name, c1: c.team.c1, best: c.best, mine: c.id.startsWith('you-'), tyre: Q.plan.runs.get(c.id).tyre }));
+}
+// skipping: your cars set no lap and start from P12 to P20 (js/quali.js); the grid is the plan's own
+function qualiSkip(o) {
+  const choices = { 'you-0': { skip: true }, 'you-1': { skip: true } }, Q = qualiSession(o, choices);
+  G.quali = choices; P.qskip = true;
+  P.qres = Q.plan.order.map((e) => { const c = Q.byId.get(e.id), r = Q.plan.runs.get(e.id); return { id: c.id, code: c.code, name: c.name, c1: c.team.c1, best: r.time, mine: c.id.startsWith('you-'), tyre: r.tyre }; });
 }
 function qualiTable(rows, short) {
   const pole = rows[0] && rows[0].best;
