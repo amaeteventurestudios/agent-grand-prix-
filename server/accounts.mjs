@@ -245,9 +245,9 @@ function signedInAs(req, r) {
 // the leaderboards and the Command Center ask over local-only routes.
 const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || '', STRIPE_HOOK = process.env.STRIPE_WEBHOOK_SECRET || '';
 export const PLANS = {
-  year: { cents: 599, interval: 'year', count: 1, name: 'Yearly', on: true },
-  quarter: { cents: 199, interval: 'month', count: 3, name: 'Quarterly', on: false },
-  month: { cents: 99, interval: 'month', count: 1, name: 'Monthly', on: false },
+  year: { cents: 599, interval: 'year', count: 1, name: 'Yearly', on: true, price: process.env.STRIPE_PRICE_YEAR || '' },   // price: the Stripe Price ID of the product in the catalog
+  quarter: { cents: 199, interval: 'month', count: 3, name: 'Quarterly', on: false, price: process.env.STRIPE_PRICE_QUARTER || '' },
+  month: { cents: 99, interval: 'month', count: 1, name: 'Monthly', on: false, price: process.env.STRIPE_PRICE_MONTH || '' },
 };
 const months = (pl) => (pl.interval === 'year' ? 12 : 1) * pl.count;
 const usd = (c) => (c / 100).toFixed(2);
@@ -300,11 +300,12 @@ function stripeCheckout(id, email, planId = 'year') {
   const cur = passes().byId[id];
   const f = new URLSearchParams({ mode: 'subscription', client_reference_id: id, 'metadata[uid]': id, 'metadata[plan]': planId, 'metadata[game]': 'agp',
     'subscription_data[metadata][uid]': id, 'subscription_data[metadata][plan]': planId, 'subscription_data[metadata][game]': 'agp',
-    'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': 'usd', 'line_items[0][price_data][unit_amount]': String(pl.cents),
-    'line_items[0][price_data][recurring][interval]': pl.interval, 'line_items[0][price_data][recurring][interval_count]': String(pl.count),
-    'line_items[0][price_data][product_data][name]': `Agent Grand Prix Anti-Bot Pass (${pl.name.toLowerCase()})`,
-    'line_items[0][price_data][product_data][metadata][game]': 'agp',
+    'line_items[0][quantity]': '1',
     success_url: `${SITE}/?pass=ok`, cancel_url: `${SITE}/?pass=cancel` });
+  // the product made in Stripe's catalog when its Price ID is set; otherwise the same plan described inline
+  if (pl.price) f.set('line_items[0][price]', pl.price);
+  else for (const [k, v] of Object.entries({ currency: 'usd', unit_amount: String(pl.cents), 'recurring][interval': pl.interval, 'recurring][interval_count': String(pl.count),
+    'product_data][name': `Agent Grand Prix Anti-Bot Pass (${pl.name.toLowerCase()})`, 'product_data][metadata][game': 'agp' })) f.set(`line_items[0][price_data][${k}]`, v);
   if (cur && cur.customer) f.set('customer', cur.customer); else if (email) f.set('customer_email', email);
   return stripe('checkout/sessions', f);
 }
