@@ -1,5 +1,6 @@
 // Agent Grand Prix: the page. Home screen over a live race, the race itself with the pit
 // wall, results, the season and the Daily Grand Prix.
+import { LANGS, LOCALE, lang as LANG, setLang, guessed as langGuessed, keepLang } from './i18n.js';   // first: the page translates as it draws
 import { startHere } from './here.js';
 import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
@@ -28,7 +29,8 @@ import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as sto
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
-import { parseCall, radioSupported, listen, wakeSplit } from './teamradio.js';
+import { parseCall, radioSupported, listen, wakeSplit, setRadioLang } from './teamradio.js';
+setRadioLang(LANG);
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { plans as briefPlans } from './briefing.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
@@ -665,7 +667,7 @@ function talkStart() {
   $('#talkBtn').classList.add('on'); talkSaid('Listening…');
   try {
     talk.rec = listen({
-      lang: /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
+      lang: LANG !== 'en' ? LOCALE[LANG] : /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
       onStart: () => mark('mic'),
       onWords: (text, final, alts) => {
         mark('words'); talk.heard = text; talkSaid('“' + text.trim() + '”');
@@ -722,7 +724,7 @@ function freeTick() {
   const mine = () => free.n === n && free.rec;
   try {
     free.rec = listen({
-      lang: /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
+      lang: LANG !== 'en' ? LOCALE[LANG] : /^en/i.test(navigator.language || '') ? navigator.language : 'en-GB',
       onStart: () => { if (mine()) free.fails = 0; },
       onWords: (text, final, alts) => {
         if (!mine() || free.done) return;
@@ -1580,8 +1582,9 @@ function home() {
         <p class="lp-links"><button type="button" class="link" data-go="garage">Garage</button> · <button type="button" class="link" data-go="dna">Driver DNA</button> · <button type="button" class="link" data-go="agent">My agent</button> · <button type="button" class="link" data-go="rules">Support &amp; rules</button></p>
       </nav>
       ${joinUs('in')}
-      <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(true)}</div>
+      <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(false)}</div>
     </aside>
+    ${langNote()}
     <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
       <span class="lp-grab" aria-hidden="true"></span>
       <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div></div>
@@ -1590,7 +1593,7 @@ function home() {
     ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
     ${appCard()}
     ${passCard()}
-    ${joinUs('out')}${acChip()}`, `home nbhome${homePeek() ? ' peek' : ''}`);
+    ${joinUs('out')}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
   sh.onclick = homeClick;
   sheetSwipe(sh);
   sh.onchange = langChange;
@@ -1600,7 +1603,7 @@ function home() {
 // Play stays at the bottom (at the left when sideways). Tap it or swipe it up for the menu; swipe the
 // menu down (or left, sideways) to put it away. The race behind can be turned and zoomed with a finger.
 const homePeek = () => (G.peek === undefined ? GLANCE.matches : G.peek);
-function setPeek(on) { G.peek = on; $('#screen').classList.toggle('peek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
+function setPeek(on) { G.peek = on; $('#screen').classList.toggle('hpeek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
 function sheetSwipe(sh) {
   const lp = $('.lp', sh), mini = $('.lp-mini', sh);
   if (!lp || !mini) return;
@@ -1769,7 +1772,7 @@ function settingsSheet(back) {
       ${sw('sound', S.settings.sound !== false, 'Sound', 'Engines, the crowd and the radio')}
       ${sw('voice', S.settings.voice !== false, 'Engineer’s voice', 'Your race engineer speaks the calls')}
       ${sw('coach', S.settings.coach !== false, 'Race coach', 'Tips during your first races and quick races')}
-      <div class="set-row"><span><b>Language</b><small>More languages are on the way</small></span>${langPicker(true)}</div>
+      <div class="set-row"><span><b>Language</b><small>English, Français, Español, Português, العربية, Naijá</small></span>${langPicker(true)}</div>
       ${installItem(true)}
       <div class="actions"><button class="btn" id="seBack" type="button">Done</button></div>`);
     sh.onclick = (e) => {
@@ -1787,13 +1790,18 @@ function settingsSheet(back) {
   draw();
 }
 
-// Languages: English for now. The picker and S.settings.lang are where translations will plug in.
-const LANGS = [['en', 'English']];
+// Languages (js/i18n.js): the picker saves the choice and reloads the page in that language. Each
+// language's name is written in itself, so the picker is never translated.
 function langPicker(bare) {
-  const sel = `<select class="lang" aria-label="Language">${LANGS.map(([k, n]) => `<option value="${k}"${(S.settings.lang || 'en') === k ? ' selected' : ''}>${n}</option>`).join('')}<option disabled>More languages soon</option></select>`;
+  const sel = `<select class="lang" aria-label="Language" translate="no">${LANGS.map(([k, n]) => `<option value="${k}"${LANG === k ? ' selected' : ''}>${n}</option>`).join('')}</select>`;
   return bare ? sel : `<label class="nb-lang"><i aria-hidden="true">🌐</i>${sel}</label>`;
 }
-function langChange(e) { if (!e.target.matches('select.lang')) return; S.settings.lang = e.target.value; store.save(); document.documentElement.lang = S.settings.lang; }
+function langChange(e) { if (!e.target.matches('select.lang')) return; S.settings.lang = e.target.value; store.save(); setLang(e.target.value); }
+// the first visit in a language we picked from the player's country: one tap back to English
+function langNote() {
+  if (!langGuessed || G.langNoted) return '';
+  return `<div class="lang-note" translate="no"><span>🌐 ${LANGS.find(([k]) => k === LANG)[1]}</span><button type="button" data-go="lang:en">English</button><button type="button" data-go="lang:keep" aria-label="OK">✓</button></div>`;
+}
 
 // Join us: the community channels, greyed out until they open
 const SOCIAL = [
@@ -2305,6 +2313,8 @@ function homeClick(e) {
   if (go === 'settings') return settingsSheet(back);
   if (go === 'install') return doInstall(back);
   if (go.startsWith('install:')) return doInstall(home, go.slice(8));
+  if (go === 'lang:en') { S.settings.lang = 'en'; store.save(); return setLang('en'); }
+  if (go === 'lang:keep') { keepLang(); G.langNoted = true; return b.closest('.lang-note')?.remove(); }
   if (go === 'peek') return setPeek(true);
   if (go === 'unpeek') return setPeek(false);
   if (go === 'signout') return signOut().then(() => { toast('Signed out on this device. Your progress stays with your account.'); home(); });
