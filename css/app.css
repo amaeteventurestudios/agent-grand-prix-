@@ -86,7 +86,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 /* HUD over the canvas */
 .hud { position: absolute; inset: 0 0 auto 0; display: flex; justify-content: space-between; gap: 8px; padding: 10px; pointer-events: none; flex-wrap: wrap; }
 .hud-left, .hud-right { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-.hud-right { justify-content: flex-end; }
+.hud-right { justify-content: flex-end; margin-left: auto; }
 .chip, .seg { pointer-events: auto; background: var(--hud); color: var(--hud-ink); border-radius: 8px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
 .chip { padding: 6px 10px; font: 600 15px var(--f-ui); display: flex; gap: 6px; align-items: center; border: 0; white-space: nowrap; }
 .scbar { position: absolute; top: 56px; left: 50%; transform: translateX(-50%); pointer-events: none; }
@@ -94,6 +94,10 @@ button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent
 @keyframes scpulse { 50% { background: #ffe066; } }
 .chip.icon { width: 36px; justify-content: center; padding: 6px 0; font-size: 17px; }
 .chip.lap b { font-size: 17px; }
+.chip.fin { gap: 4px; font-variant-numeric: tabular-nums; }
+.chip.fin b { font-size: 16px; }
+.chip.fin .fl { opacity: .75; font-size: 13px; }
+.chip.fin .fy { opacity: .9; }
 .chip.agents { cursor: pointer; font-size: 14px; display: none; } .chip.agents::before { content: '🤖'; }
 .teamhand { width: 100%; margin: 0 0 10px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); border-radius: 10px; padding: 9px 12px; font: 700 14px var(--f-ui); cursor: pointer; text-align: left; }
 .teamhand.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }

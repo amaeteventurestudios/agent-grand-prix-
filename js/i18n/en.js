@@ -2559,4 +2559,7 @@ export default ["Meet your team",
 "Connect your AI agent",
 "coming soon",
 "Your own bot",
-"Full-distance races"];
+"Full-distance races",
+"· You",
+"· You lead",
+"Time to the chequered flag at the current lap pace"];
