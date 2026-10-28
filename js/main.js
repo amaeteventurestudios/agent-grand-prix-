@@ -2513,16 +2513,15 @@ function onboard(step = 'team', then) {
     }, back);
   }
   if (step === 'car') {
-    const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Tap a picture to spin the car round in 3D.')}
+    const sh = show(`${head('Pick your car', 'Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.')}
       ${carTiles()}${wizFoot('Choose this car')}`, 'wizp');
-    // colours are painted in the showroom, so choosing a car there skips the colour step
-    wireCarTiles(sh, () => onboard('car'), { label: 'Next: your drivers', go: () => go(2) });
+    wireCarTiles(sh);
     wizWire(sh, () => go(1), back);
   }
   if (step === 'colours') {
     // the showroom, with your car turning while you paint it: main, accent and the colour of the lights
     openShowroom({ S, show, save: store.save, team }, { id: carModel() || 'falcon', lite, back,
-      wizard: { head: hdr('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), next: () => go(1) } });
+      wizard: { head: hdr('Your colours', 'Pick a set, or mix your own main, accent and light colours. Drag to turn the car.'), nextLabel: 'Save', next: () => go(1) } });
   }
   if (step === 'drivers') {
     const prof = activeProfiles(S), style = SLOTS.map((sl) => { const o = (prof[sl] && prof[sl].origin || '').replace('preset:', ''); return OB_STYLES.includes(o) ? o : 'balanced'; });
@@ -2876,13 +2875,14 @@ function freePractice() {
 }
 
 // the garage tiles: tap a name to race that car, the picture for the 3D showroom
-function wireCarTiles(sh, back, onward) {
+function wireCarTiles(sh) {
   $$('[data-car-model]', sh).forEach((b) => b.addEventListener('click', () => {
     S.settings.car = b.dataset.carModel || null; store.save();
     $$('[data-car-model]', sh).forEach((x) => { x.closest('.car-tile').classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
     if (world) world.setModel(carModel());
   }));
-  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => showroom(back, b.dataset.show, onward)));
+  // the picture picks the car too; Next then opens it in 3D to paint
+  $$('[data-show]', sh).forEach((b) => b.addEventListener('click', () => $(`[data-car-model="${b.dataset.show}"]`, sh)?.click()));
 }
 const modeHTML = (auto) => `<div class="mode">
       <button type="button" data-m="0" class="${auto ? '' : 'on'}"><b>Team Principal</b><span>You call pit stops, tyres and tactics. Your engineer advises.</span></button>
@@ -2895,7 +2895,7 @@ function carTiles() {
   const cur = carModel() || '';
   // tap the picture to spin the car round in 3D; tap its name to race it
   const tile = (c) => `<div class="car-tile ${cur === c.id ? 'on' : ''}">
-    <button type="button" class="ct-img" data-show="${c.id}" aria-label="See the ${c.name} in 3D, all the way round"><img src="assets/cars/${c.id}.webp" alt="" width="320" height="180" loading="lazy" decoding="async"><span class="ct-3d">360°</span></button>
+    <button type="button" class="ct-img" data-show="${c.id}" aria-label="Pick the ${c.name}"><img src="assets/cars/${c.id}.webp" alt="" width="320" height="180" loading="lazy" decoding="async"><span class="ct-3d">360°</span></button>
     <button type="button" class="ct-pick" data-car-model="${c.id}" aria-pressed="${cur === c.id}"><b>${c.name}</b><span>${esc(c.line)}</span>
       <span class="ct-bars">${strengthBars(c.id).map(([k, v]) => `<i title="${k}"><u style="width:${v}%"></u><small>${k}</small></i>`).join('')}</span></button></div>`;
   return `<div class="garage">${MODELS.map(tile).join('')}
@@ -2956,10 +2956,11 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   G.laps = raceLaps(trackFor(o.venue), length);
 
   if (step === 'car') {
-    const sh = show(`${head('<p class="lede">Your car is ready. Change it here, or tap a picture to spin it round in 3D.</p>')}
+    const sh = show(`${head('<p class="lede">Pick your car, then tap Next to paint it in 3D.</p>')}
       ${carTiles()}${wizFoot('Next')}`, 'wizp');
-    wireCarTiles(sh, () => pre(o, 'car'), { label: `Next: ${steps[i + 1] === 'quali' ? 'qualifying' : 'tyres'}`, go: () => go(1) });
-    wizWire(sh, () => go(1), back);
+    wireCarTiles(sh);
+    // Next opens the chosen car in the showroom; Save there moves on to qualifying (simple cars skip it)
+    wizWire(sh, () => (carModel() ? showroom(() => pre(o, 'car'), carModel(), { label: 'Save', go: () => go(1) }) : go(1)), back);
     return;
   }
   if (step === 'quali') {
