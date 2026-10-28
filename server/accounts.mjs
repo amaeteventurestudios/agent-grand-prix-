@@ -152,6 +152,52 @@ function saveLinks(l) {
   for (const [c, x] of Object.entries(l.codes)) if (x.exp < now) delete l.codes[c];
   const tmp = LINKS + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(l)); fs.renameSync(tmp, LINKS);
 }
+// Your own agent: players make one in WhatsApp (Settings > Agents > Create an agent), name it what
+// they like and paste its API key here. The key is kept on this machine only (never sent back to a
+// page); the agent program reads the list over the local-only /agent/tokens and runs each one, and the
+// first person to message an agent is bound to its owner's account, so it follows their races.
+const TOKENS = path.join(DIR, 'agent-tokens.json');
+function tokens() { try { return { byId: {}, ...JSON.parse(fs.readFileSync(TOKENS, 'utf8')) }; } catch { return { byId: {} }; } }
+function saveTokens(t) {
+  fs.mkdirSync(DIR, { recursive: true });
+  const tmp = TOKENS + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(t), { mode: 0o600 }); fs.renameSync(tmp, TOKENS);
+}
+const WA_API = (process.env.WA_API || 'https://api.whatsapp.com/agent/v1').replace(/\/$/, '');
+let waCheck = async (token) => {
+  // a quiet look at the agent's inbox: no offset reads from the head, so nothing is used up
+  const r = await fetch(WA_API + '/updates?limit=1&timeout=0', { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(8000) });
+  if (r.status === 401 || r.status === 400 || r.status === 403) return false;
+  if (!r.ok && r.status !== 204) throw new Error('whatsapp ' + r.status);
+  return true;
+};
+export function setWaCheck(f) { waCheck = f; }   // tests hand in a fake WhatsApp
+export const agentName = (s) => String(s || '').replace(/[\u0000-\u001f<>*_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+export async function ownAgentSet(id, token, name) {
+  token = String(token || '').trim(); name = agentName(name);
+  if (!token || token.length > 512 || /\s/.test(token)) return { error: 'Paste the whole API key, with nothing else.' };
+  if (!name) return { error: 'Give your agent a name.' };
+  if (!(await waCheck(token))) return { error: "WhatsApp didn't accept that key. Copy it again from your agent's chat: Chat info > API key." };
+  const t = tokens(), was = t.byId[id];
+  t.byId[id] = { token, name, at: Date.now() };
+  saveTokens(t);
+  // a new agent is a new chat: the old binding goes, and the first message to the new agent binds again
+  if (was && was.token !== token) { const l = links(); if (String(l.byId[id] || '').startsWith(id + '|')) { delete l.byId[id]; saveLinks(l); } }
+  return { ok: true, name };
+}
+export function ownAgentName(id, name) { const t = tokens(); if (!t.byId[id]) return false; name = agentName(name); if (!name) return false; t.byId[id].name = name; saveTokens(t); return true; }
+export function ownAgentOff(id) {
+  const t = tokens(); if (!t.byId[id]) return false; delete t.byId[id]; saveTokens(t);
+  const l = links(); if (String(l.byId[id] || '').startsWith(id + '|')) { delete l.byId[id]; saveLinks(l); }
+  return true;
+}
+// the first person to message a player's own agent is that player: bind their chat to the account
+export function ownAgentBind(id, addr) {
+  if (!tokens().byId[id] || !String(addr || '').startsWith(id + '|')) return false;
+  const l = links(), cur = l.byId[id];
+  if (cur === addr) return true;
+  if (cur && String(cur).startsWith(id + '|')) return false;   // someone else got there first
+  l.byId[id] = addr; saveLinks(l); return true;
+}
 export function moveLink(into, from) { const l = links(); if (l.byId[from] && !l.byId[into]) { l.byId[into] = l.byId[from]; delete l.byId[from]; saveLinks(l); } }
 // ---------- the team's long-term memory (server/memory.mjs): what Teague and your drivers remember ----------
 // Signed-in players only. The page can list it, forget one thing or everything, and tell it how a race went;
@@ -377,6 +423,9 @@ export function serve(port = PORT) {
       try {
         if (u.pathname === '/agent/claim' && req.method === 'POST') { const b = await body(req, 2048), r = agentClaim(b.code, b.phone); return send(res, r ? 200 : 404, r ? { id: r.id, team: (r.save || {}).team || null } : { error: 'unknown or expired code' }); }
         if (u.pathname === '/agent/unlink' && req.method === 'POST') { const b = await body(req, 2048); return send(res, 200, { n: agentUnlink(null, String(b.phone || '')) }); }
+        if (u.pathname === '/agent/tokens' && req.method === 'GET') return send(res, 200, { agents: Object.entries(tokens().byId).map(([id, x]) => ({ id, token: x.token, name: x.name })) });
+        if (u.pathname === '/agent/bind' && req.method === 'POST') { const b = await body(req, 2048); const ok = ownAgentBind(String(b.id || ''), String(b.phone || '')); return send(res, ok ? 200 : 409, { ok, team: ok ? (readSave(String(b.id)) || {}).team || null : null }); }
+        if (u.pathname === '/agent/name' && req.method === 'POST') { const b = await body(req, 2048); return send(res, ownAgentName(String(b.id || ''), b.name) ? 200 : 404, {}); }
         if (u.pathname === '/agent/race' && req.method === 'GET') return send(res, 200, raceFor(u.searchParams.get('phone') || ''));
         if (u.pathname === '/agent/who' && req.method === 'GET') { const ph = u.searchParams.get('phone') || '', l = links(); return send(res, 200, { id: Object.keys(l.byId).find((k) => l.byId[k] === ph) || null }); }
         if (u.pathname === '/agent/pass' && req.method === 'GET') return send(res, 200, { active: !!passOf(String(u.searchParams.get('id') || '')), sell: !!(STRIPE_KEY && STRIPE_HOOK) });
@@ -427,13 +476,20 @@ export function serve(port = PORT) {
       } catch (e) { return send(res, 502, { error: 'Payments are not available right now. Please try again soon.' }); }
       return send(res, 404, {});
     }
-    const agentPath = u.pathname === '/api/me/agent' || u.pathname === '/api/me/agent/code' || u.pathname === '/api/me/race';
+    const agentPath = u.pathname === '/api/me/agent' || u.pathname === '/api/me/agent/code' || u.pathname === '/api/me/agent/own' || u.pathname === '/api/me/race';
     if (!on() && !(sessions() && (u.pathname === '/api/me' || u.pathname === '/api/me/save' || agentPath))) return send(res, 503, { error: 'off' });
     if (agentPath) {
       const s = open(cookies(req)['agp.sid']); if (!s) return send(res, 401, { error: 'no session' });
       const id = me(s).id; if (!safe(id)) return send(res, 401, { error: 'no session' });
       try {
-        if (u.pathname === '/api/me/agent' && req.method === 'GET') return send(res, 200, { linked: !!links().byId[id], name: process.env.AGENT_NAME || 'Teague', wa: (process.env.AGENT_WA_NUMBER || '').replace(/[^0-9]/g, '') || null });
+        if (u.pathname === '/api/me/agent' && req.method === 'GET') {
+          // own: the player's own WhatsApp agent (its name; the key never leaves this machine); linked: it, or the house agent, follows their races
+          const own = tokens().byId[id], bound = links().byId[id];
+          return send(res, 200, { linked: !!bound, own: own ? { name: own.name, chatted: !!bound && String(bound).startsWith(id + '|') } : null, name: own ? own.name : bound ? process.env.AGENT_NAME || 'Teague' : null, wa: (process.env.AGENT_WA_NUMBER || '').replace(/[^0-9]/g, '') || null });
+        }
+        if (u.pathname === '/api/me/agent/own' && req.method === 'PUT') { const b = await body(req, 4096); const r = await ownAgentSet(id, b.token, b.name); return send(res, r.ok ? 200 : 400, r); }
+        if (u.pathname === '/api/me/agent/own' && req.method === 'PATCH') { const b = await body(req, 1024); return send(res, ownAgentName(id, b.name) ? 200 : 400, { name: agentName(b.name) }); }
+        if (u.pathname === '/api/me/agent/own' && req.method === 'DELETE') { ownAgentOff(id); return send(res, 200, { own: null }); }
         if (u.pathname === '/api/me/agent' && req.method === 'DELETE') { agentUnlink(id); return send(res, 200, { linked: false }); }
         if (u.pathname === '/api/me/agent/code' && req.method === 'POST') return send(res, 200, { code: agentCode(id) });
         if (u.pathname === '/api/me/race' && req.method === 'PUT') { const rec = await body(req, RACE_MAX); if (!rec || typeof rec.id !== 'string') return send(res, 400, {}); return send(res, 200, racePut(id, rec, +u.searchParams.get('after') || 0)); }

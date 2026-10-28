@@ -1156,6 +1156,14 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .wa-card .note { font-size: 13px; opacity: .8; }
 .wa-card .actions { margin-top: 10px; }
 .wa-card a.btn { text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
+.wa-steps { margin: 8px 0 10px; padding-left: 22px; font-size: 14px; line-height: 1.45; }
+.wa-steps li { margin: 3px 0; }
+.wa-form label, .wa-rename label { display: block; margin: 8px 0; }
+.wa-form label span, .wa-rename label span { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; opacity: .75; margin-bottom: 4px; }
+.wa-form input, .wa-rename input { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line, rgba(127, 127, 127, .35)); background: var(--panel2, rgba(127, 127, 127, .08)); color: inherit; font: inherit; font-size: 16px; }
+.wa-rename { display: flex; gap: 8px; align-items: flex-end; margin: 6px 0; }
+.wa-rename label { flex: 1; margin: 0; }
+.wa-err { color: #e5484d; opacity: 1 !important; }
 .wa-code { margin: 8px 0; padding: 10px 14px; border-radius: 10px; background: rgba(0, 0, 0, .06); font: 800 26px/1.2 var(--f-display, inherit); letter-spacing: .06em; text-align: center; user-select: all; }
 @media (prefers-color-scheme: dark) { .wa-code { background: rgba(255, 255, 255, .08); } }
 
