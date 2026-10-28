@@ -391,6 +391,30 @@ function buildTower() {
 
 const tyreHTML = (c) => `<span class="tyre" style="--c:${COMPOUNDS[c].color}"><b>${c}</b></span>`;
 
+// time to the chequered flag at each car's current pace (its last lap), in race time: the leader's
+// and your lead car's, so you can see whether there's time left to attack or it's time to defend
+function toFlag(R, c) {
+  if (!c || c.dnf) return null;
+  if (c.finished) return 0;
+  const pace = c.lastLap > 0 ? c.lastLap : R.track.lapTime * 1.1;
+  return Math.max(0, (R.laps * R.track.L - c.dist) / R.track.L * pace);
+}
+const clock = (s) => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = String(s % 60).padStart(2, '0'); return h ? `${h}:${String(m).padStart(2, '0')}:${x}` : `${m}:${x}`; };
+function finUI(R) {
+  const el = $('#hudFin'), lead = R.order[0];
+  el.hidden = !R.started || G.attract || !lead;
+  if (el.hidden) return;
+  if (!el.firstChild) el.innerHTML = '<span aria-hidden="true">🏁</span><span class="fl">Leader</span><b class="tl"></b><span class="fy">· You <b class="ty"></b></span><span class="fyl">· You lead</span><b class="fdone">Chequered flag</b>';
+  const you = mine().map((id) => R.byId.get(id)).filter((c) => c && !c.dnf).sort((a, b) => a.pos - b.pos)[0];
+  const ty = you && you !== lead ? toFlag(R, you) : null, done = lead.finished;
+  const put = (sel, v) => { const n = el.querySelector(sel); if (n.textContent !== v) n.textContent = v; };
+  const show = (sel, on) => { const n = el.querySelector(sel); if (n.hidden === on) n.hidden = !on; };
+  show('.fl', !done); show('.tl', !done); show('.fdone', done);
+  show('.fy', !done && ty !== null); show('.fyl', !done && you === lead);
+  if (!done) put('.tl', clock(toFlag(R, lead)));
+  if (!done && ty !== null) put('.ty', clock(ty));
+}
+
 function tick() {
   lessonTick();
   const R = G.race; if (!R) return;
@@ -398,6 +422,7 @@ function tick() {
   // HUD
   const lead = R.order[0];
   $('#hudLap').textContent = R.leaderLap(); $('#hudLaps').textContent = R.laps;
+  finUI(R);
   $('#hudFlag').textContent = G.venue.flag; $('#hudCity').textContent = G.venue.city;
   $('#hudWx').innerHTML = weatherHTML(R);
   const sc = $('#hudSc');
