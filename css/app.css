@@ -1282,6 +1282,88 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .pc-fine { margin: 8px 0 0; color: rgba(255, 255, 255, .7); font-size: 12.5px; }
 
 /* Join us (middle bottom; inside the panel on phones) */
+/* desktop home: the menu only as tall as it needs; Get the app above the pass; a title at the top and
+   your team along the bottom (both drivers and the AI race engineer, where you connect WhatsApp) */
+.lp { align-self: start; max-height: 100%; }
+.rcol { grid-row: 1 / 4; max-height: calc(100% - 52px); overflow: auto; scrollbar-width: none; }
+.rcol::-webkit-scrollbar { display: none; }
+.rcol .gc { grid-column: auto; grid-row: auto; justify-self: stretch; width: auto; padding: 12px 14px; }
+.rcol .gc h3 { font-size: 22px; }
+.rcol .gc-play { position: static; transform: none; margin-top: 8px; width: 100%; box-shadow: none; font-size: 15px; padding: 7px 12px; }
+.rcol .gc-row i { width: 44px; height: 44px; }
+.rcol .gc-row svg { width: 23px; height: 23px; }
+.hero { grid-column: 2; grid-row: 1; justify-self: center; align-self: start; text-align: center; color: #fff; padding: 18px 64px 20px; border-radius: 18px;
+  background: linear-gradient(180deg, rgba(10, 20, 48, .82), rgba(10, 24, 66, .72)); border: 1.5px solid rgba(80, 130, 255, .45); box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+  position: relative; max-width: 100%; backdrop-filter: blur(4px); }
+.hero::before, .hero::after { content: ""; position: absolute; top: 26px; width: 34px; height: 34px; opacity: .55; transform: skewX(-14deg);
+  background: repeating-conic-gradient(#fff 0 25%, transparent 0 50%) 0 0 / 17px 17px; }
+.hero::before { left: 18px; } .hero::after { right: 18px; }
+.hero-brand { margin: 0; font: 800 italic clamp(40px, 4.4vw, 64px)/.9 var(--f-display); letter-spacing: -.01em; }
+.hero-brand em { color: #3d86ff; font-style: inherit; }
+.hero-t { margin: 6px 0 0; font: 800 italic clamp(20px, 1.8vw, 28px)/1 var(--f-display); text-transform: uppercase; letter-spacing: .03em; }
+.hero-s { margin: 6px 0 12px; font: 500 16px/1.3 var(--f-ui); color: rgba(255, 255, 255, .88); }
+.hero-go { display: inline-flex; align-items: center; gap: 12px; background: #1267f4; color: #fff; box-shadow: 0 3px 0 #0b4fc0; min-height: 48px; padding: 0 28px;
+  font: 800 italic 22px var(--f-display); text-transform: uppercase; letter-spacing: .03em; }
+.hero-go svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; }
+.hero-go span { font-size: 26px; line-height: 1; }
+.hs { grid-column: 2; grid-row: 3; align-self: end; justify-self: center; width: min(1040px, 100%); container-type: inline-size;
+  background: #fbf7ee; color: #1d1f24; border-radius: 18px; border: 1.5px solid #e6dcc8; box-shadow: 0 18px 50px rgba(0, 0, 0, .3); overflow: hidden; }
+.hs-head { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1.5px solid #e6dcc8; }
+.hs-head > b { font: 800 italic 22px/1 var(--f-display); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-head > span { color: #5b6170; font: 600 13px var(--f-ui); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; margin: 0 auto; }
+.hs-cfg { display: inline-flex; align-items: center; gap: 6px; border: 1.5px solid #9fbdf8; background: #fff; color: #1267f4; border-radius: 10px; padding: 6px 12px; font: 700 14px var(--f-ui); white-space: nowrap; }
+.hs-cfg svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.hs-row { display: grid; grid-template-columns: 1fr 1fr 2fr; }
+.hs-row > * + * { border-left: 1.5px solid #e6dcc8; }
+.hs-d { display: flex; gap: 10px; align-items: flex-start; border: 0; background: none; color: inherit; text-align: left; padding: 12px; min-width: 0; }
+.hs-d:hover { background: rgba(29, 31, 36, .04); }
+.hs-d .portrait { flex: none; border-radius: 12px; }
+.hs-dt { display: grid; min-width: 0; }
+.hs-dt small { color: #737a88; font: 600 11.5px var(--f-ui); text-transform: uppercase; letter-spacing: .06em; }
+.hs-dt b { font: 800 italic 22px/1.05 var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-dt em { font: 600 13px var(--f-ui); font-style: normal; color: #4a5160; }
+.hs-tr { display: grid; gap: 3px; margin-top: 6px; }
+.hs-tr span { font: 500 12.5px/1.2 var(--f-ui); color: #4a5160; padding-left: 14px; position: relative; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hs-tr span::before { content: ""; position: absolute; left: 2px; top: 5px; width: 6px; height: 6px; border-radius: 50%; background: #1267f4; }
+.hs-e { padding: 12px 14px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.hs-et { display: flex; gap: 10px; align-items: center; }
+.hs-eh { width: 44px; height: 44px; flex: none; border-radius: 12px; background: #e8f0ff; }
+.hs-et b { display: block; font: 800 italic 22px/1 var(--f-display); text-transform: uppercase; }
+.hs-et small { color: #5b6170; font-size: 13px; }
+.hs-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.hs-chips span { background: #fff; border: 1px solid #e6dcc8; border-radius: 8px; padding: 3px 8px; font: 600 12px var(--f-ui); color: #4a5160; white-space: nowrap; }
+.hs-del { margin: 0; font: 600 13px var(--f-ui); color: #5b6170; }
+.hs-del b { color: #1d1f24; }
+.hs-con { display: flex; gap: 8px; align-items: stretch; }
+.hs-con > * { display: flex; align-items: center; gap: 8px; text-align: left; border-radius: 12px; padding: 7px 10px; min-width: 0; }
+.hs-con i { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; }
+.hs-con svg { width: 22px; height: 22px; }
+.hs-con b { display: block; font: 800 15px/1.1 var(--f-ui); white-space: nowrap; }
+.hs-con small { display: block; font-size: 11.5px; opacity: .8; white-space: nowrap; }
+.hs-con .ag-wa { flex: 1.3; }
+.hs-con .ag-soon { flex: 1; }
+.hs-con .ag-soon b { font-size: 13.5px; }
+/* a narrower middle column: the drivers stack, the engineer keeps the room for Connect */
+@container (max-width: 860px) {
+  .hs-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); grid-template-rows: auto auto; }
+  .hs-d { grid-column: 1; padding: 8px 12px; align-items: center; }
+  .hs-d + .hs-d { border-left: 0; border-top: 1.5px solid #e6dcc8; }
+  .hs-d .portrait { width: 52px; height: 52px; }
+  .hs-tr { display: none; }
+  .hs-e { grid-column: 2; grid-row: 1 / 3; }
+  .hs-head > span { font-size: 12px; }
+  .hs-con { flex-wrap: wrap; }
+  .hs-con .ag-wa { flex: 1 1 100%; }
+  .hs-con .ag-soon { flex: 1 1 40%; padding: 5px 8px; }
+  .hs-con .ag-soon i { width: 28px; height: 28px; }
+  .hs-con .ag-soon svg { width: 18px; height: 18px; }
+}
+@container (max-width: 640px) {
+  .hs-chips span:nth-child(2) { display: none; }
+  .hs-head > span { display: none; }
+  .hs-head .hs-cfg { margin-left: auto; }
+}
+.screen.nbhome .ag.out { display: none; }
 .join { background: #fbf7ee; color: #1d1f24; border-radius: 16px; padding: 12px 16px; text-align: center; border: 1.5px solid #e6dcc8; }
 .join.out { box-shadow: 0 14px 40px rgba(0, 0, 0, .25); padding: 10px 12px; }
 .join.out .join-i { gap: 6px; }
@@ -1293,10 +1375,10 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .join-i i { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--c); filter: grayscale(1); opacity: .5; }
 .join-i svg { width: 26px; height: 26px; }
 
-@media (max-width: 1080px) and (min-width: 761px) and (min-height: 541px) { .screen.nbhome .sheet { grid-template-columns: 320px 1fr; } .rcol { grid-column: 2; grid-row: 2 / 4; justify-self: end; width: 300px; } .gc { justify-self: end; } .ag.out { display: none; } .ag.in { display: block; } }
+@media (max-width: 1080px) and (min-width: 761px) and (min-height: 541px) { .screen.nbhome .sheet { grid-template-columns: 320px 1fr; } .rcol { grid-column: 2; grid-row: 2 / 4; justify-self: end; width: 300px; } .rcol { grid-row: 1 / 4; } .ag.out, .hero, .hs { display: none; } .ag.in { display: block; } }
 /* phones: the panel holds everything; it tucks away to watch the race */
 @media (max-width: 760px), (max-height: 540px) {
-  .gc, .rcol, .ag.out { display: none; }
+  .gc, .rcol, .ag.out, .hero, .hs { display: none; }
   .ag.in { display: block; }
   .join.in { display: block; }
   .lp-hide { display: block; }

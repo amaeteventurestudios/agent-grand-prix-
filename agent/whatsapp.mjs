@@ -16,6 +16,7 @@ import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, raceLaps, trackFor } fr
 import { DT, fmtTime } from '../js/sim.js';
 import * as Chat from './chat.mjs';
 import * as PW from './pitwall.mjs';
+import * as Wiki from '../js/wiki.js';
 
 const TOKEN = process.env.WHATSAPP_AGENT_TOKEN;
 const API = (process.env.WA_API || 'https://api.whatsapp.com/agent/v1').replace(/\/$/, '');
@@ -330,6 +331,10 @@ const HELP = [
   '• *memories* · what I remember about you',
   '• *forget me* · I forget everything I remember about you',
   '',
+  '📖 *Racing words*',
+  '• *what is an undercut?* · ask about any racing word',
+  '• *wiki* · every word I know',
+  '',
   '📻 *During a race*',
   '• *box softs* · pit (or mediums, hards, inters, wets)',
   '• *stay out* · cancel the stop',
@@ -349,7 +354,14 @@ const RACE_HELP = [
   '• *attack*, *defend*',
   '• *boost*',
   '• *status*, *stop*',
+  '• *what is …?* · any racing word',
 ].join('\n');
+
+function wikiList() {
+  return ['📖 *RACING WIKI*', '', 'Ask me about any racing word, e.g.', '• *what is an undercut?*', '• *what does dirty air mean?*', '• *define safety car*', '',
+    ...Wiki.CATS.map(([c, title]) => `${title}\n${Wiki.WIKI.filter((e) => e.cat === c).map((e) => e.term).join(' · ')}`).join('\n\n').split('\n'),
+    ...(SITE ? ['', `Every word with examples: ${SITE.replace(/\/$/, '')}/wiki`] : [])].join('\n');
+}
 
 function handle(from, text, name, { noChat = false } = {}) {
   const p = player(from, name);
@@ -428,6 +440,10 @@ function handle(from, text, name, { noChat = false } = {}) {
     return startRace(from, p, 'quick', v, len);
   }
   if (/^(hi+|hello|hey|hey there|hiya|yo|good (morning|afternoon|evening)|start|menu)$/.test(t)) return send(from, welcome(p));
+  // the racing wiki: "what is an undercut?", "define dirty air", "wiki" answer at once, with no AI
+  if (/^(wiki|glossary|terms|racing terms|words|dictionary)$/.test(t)) return send(from, wikiList());
+  const w = Wiki.lookup(text);
+  if (w) return send(from, L && ['gap', 'status', 'pace', 'p1'].includes(w.id) ? summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`) : Wiki.answer(w, { fmt: 'wa', site: SITE }));
   if (!noChat && ((Chat.enabled() && CHAT.all > 0) || chatModel)) return converse(from, p, text);
   if (L) return send(from, RACE_HELP);
   return send(from, welcome(p));

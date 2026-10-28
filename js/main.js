@@ -17,7 +17,7 @@ import { raceDNA, activeProfiles, dnaState, setProfile } from './dnastore.js';
 import { STRATEGISTS, decide } from './strategist.js';
 import './coach.js';
 import { carMetrics } from './proving.js';
-import { PARAMS, PRESETS, SLOTS, fromPreset } from './dna.js';
+import { PARAMS, PRESETS, SLOTS, QUICK, fromPreset } from './dna.js';
 import { openStudio, dnaLine, proposalHTML } from './studio.js';
 import { openShowroom } from './showroom.js';
 import { buildReport, reportHTML, shareText } from './report.js';
@@ -30,6 +30,7 @@ import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKIN
 import { strengthBars } from './carspec.js';
 import * as store from './store.js';
 import { parseCall, radioSupported, listen, wakeSplit, setRadioLang } from './teamradio.js';
+import { lookup as wikiLookup } from './wiki.js';
 setRadioLang(LANG);
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { plans as briefPlans } from './briefing.js';
@@ -796,6 +797,8 @@ function understand(text, alts = []) {
   const cars = myCars().map((c) => ({ id: c.id, name: c.name, code: c.code }));
   // a question for a driver ("Nova, can you pass him?", "how are the tyres?") goes to that driver's
   // brain; a remark ("good job") too, unless it also carries a call
+  // "what does dirty air mean?", "what's an undercut?": the engineer answers from the racing wiki
+  if (/\b(mean|means|meaning|define|explain|wiki)\b|^\s*what(?:'s|’s| is| are)\s+(?:an?\s|the\s(?:two|overcut|undercut|slipstream|cliff|apex|racing line|safety|virtual))/i.test(text)) { const w = wikiLookup(text); if (w) return { wiki: w }; }
   const k = brainIntent(text), q = isQuestion(text);
   // "can you save the tyres?" is a call said politely, not a question about the tyres
   const ask = q && !(/^\s*(\w+,?\s+)?(can|could|would|will) you\b/i.test(text) && k !== 'pass' && parseCall(text, cars, G.mineSel || 'you-0')?.calls);
@@ -832,6 +835,7 @@ function radioDo(r, text) {
   addRadio({ from: 'you', text: text.trim().replace(/^./, (x) => x.toUpperCase()) });
   talkSaid('“' + text.trim() + '”', 'ok');
   if (r.clarify) { reply(G.mineSel || 'you-0', 'r_sayagain'); addRadio({ from: 'driver', code: R.byId.get(G.mineSel || 'you-0').code, text: `Say again: ${r.clarify}` }); return radioDone(); }
+  if (r.wiki) { addRadio({ from: 'engineer', text: `${r.wiki.term}: ${r.wiki.short}` }); toast(`📖 ${r.wiki.term}: ${r.wiki.short}`); return radioDone(); }
   if (r.brain) { driverAsk(R.byId.get(r.id), r.brain); return radioDone(); }
   if (r.ask === 'why') { driverAsk(R.byId.get(r.id), brainIntent(text) || 'why'); return radioDone(); }
   if (r.ask === 'best') { if (/strategist|engineer/i.test(text)) strategist(R.byId.get(r.id)); else driverAsk(R.byId.get(r.id), brainIntent(text) || 'opinion'); return radioDone(); }
@@ -1622,9 +1626,9 @@ function home() {
     </div>
     ${legalLinks(' pg')}
     ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
-    ${appCard()}
-    <div class="rcol">${passCard()}${joinUs('out')}</div>
-    ${agentCard()}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
+    ${heroCard()}
+    <div class="rcol">${appCard()}${passCard()}${joinUs('out')}</div>
+    ${homeStrip()}${agentCard()}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
   sh.onclick = homeClick;
   sheetSwipe(sh);
   sh.onchange = langChange;
@@ -1635,7 +1639,7 @@ function home() {
 // menu down (or left, sideways) to put it away. The race behind can be turned and zoomed with a finger.
 // the small print on the front page, as on most game sites
 const SUPPORT = 'hello@agentgrandprix.com';
-const legalLinks = (c = '') => `<p class="lp-legal${c}"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="mailto:${SUPPORT}">Support</a></p>`;
+const legalLinks = (c = '') => `<p class="lp-legal${c}"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="wiki" target="_blank" rel="noopener">Wiki</a> · <a href="mailto:${SUPPORT}">Support</a></p>`;
 const homePeek = () => (G.peek === undefined ? GLANCE.matches : G.peek);
 function setPeek(on) { G.peek = on; $('#screen').classList.toggle('hpeek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
 function sheetSwipe(sh) {
@@ -1675,6 +1679,45 @@ function sheetSwipe(sh) {
     el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
   };
   drag(mini, true); drag(lp, false);
+}
+// the big title at the top of the home screen (desktop)
+function heroCard() {
+  return `<div class="hero"><p class="hero-brand">AGENT <em>GRAND PRIX</em></p><p class="hero-t">You are the team principal</p>
+    <p class="hero-s">Two AI drivers. One AI race engineer. Your championship.</p>
+    <button class="btn hero-go" data-go="team" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3 19c.7-3.2 3-5 6-5s5.3 1.8 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M16.5 14c2.4.2 4 1.8 4.5 4.5"/></svg>${firstVisit() ? 'Build my team' : 'Manage my team'}<span aria-hidden="true">›</span></button></div>`;
+}
+// your team along the bottom of the home screen (desktop): both drivers and the AI race engineer,
+// who is also where you connect your own AI agent on WhatsApp (Telegram and your own bot come later)
+function homeStrip() {
+  const t = team(), prof = activeProfiles(S), auto = !!S.settings.auto, on = wa.linked;
+  const done = S.season.round - 1, teams = Object.entries(S.season.teamPts).sort((a, b) => b[1] - a[1]);
+  const tp = teams.findIndex(([k]) => k === 'you') + 1, pts = S.season.teamPts.you || 0;
+  const ord = (n) => n + (n % 100 > 10 && n % 100 < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+  const where = done ? `Season ${S.season.no || 1} · ${tp ? ord(tp) : ord(teams.length + 1)} place · ${pts} pts` : `Season ${S.season.no || 1} · round 1 of ${CALENDAR.length}`;
+  const traits = (p) => {
+    if (!p || !p.params) return [];
+    return QUICK.map((q) => ({ q, v: (q.maps.reduce((a, m) => a + (m[0] === '-' ? 100 - p.params[m.slice(1)] : p.params[m]), 0) / q.maps.length) }))
+      .filter(({ v }) => Math.abs(v - 50) >= 6)
+      .sort((a, b) => Math.abs(b.v - 50) - Math.abs(a.v - 50)).slice(0, 3).map(({ q, v }) => (v > 50 ? q.hi : q.lo));
+  };
+  const drv = (d, i) => {
+    const p = prof[SLOTS[i]], tr = traits(p);
+    return `<button type="button" class="hs-d" data-go="driver:car${i + 1}" title="${esc(d.name)}: career and Driver DNA">${helmetSVG(d, t, { size: 76 })}
+      <span class="hs-dt"><small>Driver 0${i + 1}${d.num != null ? ` · #${esc(d.num)}` : ''}</small><b>${esc(d.name)}</b><em>${esc(p?.name || 'Balanced')}</em>
+      <span class="hs-tr">${(tr.length ? tr : ['Even in everything']).map((x) => `<span>${esc(x)}</span>`).join('')}</span></span></button>`;
+  };
+  return `<div class="hs" aria-label="Your team">
+    <div class="hs-head">${helmetSVG({ name: t.name, code: t.short }, t, { size: 30, num: false, bg: false })}<b>${esc(t.name)}</b><span>${where}</span>
+      <button type="button" class="hs-cfg" data-go="team"><svg viewBox="0 0 20 20" aria-hidden="true">${IC.settings}</svg>Configure drivers</button></div>
+    <div class="hs-row">${t.drivers.map(drv).join('')}
+      <div class="hs-e"><div class="hs-et"><svg class="hs-eh" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="20" r="11" fill="#1267f4"/><path d="M14 18a10 10 0 0 1 20 0" stroke="#0b2a6b" stroke-width="3" fill="none"/><rect x="9" y="17" width="6" height="9" rx="2.5" fill="#20232a"/><rect x="33" y="17" width="6" height="9" rx="2.5" fill="#20232a"/><path d="M36 26c0 5-4 7-8 7" stroke="#20232a" stroke-width="2" fill="none"/><path d="M8 47c1-8 7-12 16-12s15 4 16 12z" fill="#0b2a6b"/></svg>
+        <div><b>AI race engineer</b><small>Your second-in-command</small></div></div>
+        <div class="hs-chips"><span>📊 Strategy &amp; analysis</span><span>⚙️ Runs the team when you hand it over</span><span>💬 WhatsApp updates</span></div>
+        <p class="hs-del">Delegation: <b>${auto ? 'Autonomous' : 'Advisory'}</b> <span title="${auto ? 'Your AI agents make the calls.' : 'You make the calls; the engineer advises.'}">ⓘ</span></p>
+        <div class="hs-con"><button type="button" class="ag-wa${on ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${on ? 'WhatsApp connected' : 'Connect WhatsApp'}</b><small>${on ? `✓ ${esc(aName())} is linked` : 'takes one minute'}</small></span></button>
+          <span class="ag-soon" title="Telegram: coming soon"><i style="--c:#2aabee"><svg viewBox="0 0 24 24" aria-hidden="true">${SOCIAL[0][2]}</svg></i><span><b>Telegram</b><small>coming soon</small></span></span>
+          <span class="ag-soon" title="Your own bot: coming soon"><i style="--c:#1d1f24"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="8" width="12" height="9" rx="3" fill="#fff"/><circle cx="10" cy="12.5" r="1.2" fill="#1d1f24"/><circle cx="14" cy="12.5" r="1.2" fill="#1d1f24"/><path d="M12 5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></i><span><b>Your own bot</b><small>coming soon</small></span></span></div>
+      </div></div></div>`;
 }
 // the Anti-Bot Pass on the home screen's right
 function passCard() {
@@ -2013,6 +2056,7 @@ function waPanel(box, code = null, edit = false) {
     box.innerHTML = `<div class="wa-card on"><b>✅ ${n} is your agent</b>
       ${wa.own.chatted ? `<p>${n} follows every race you start here, on any device signed in to this account. When you hand the team to your agents, ${n} texts you the big calls with a pick and a deadline; in Team Principal mode it stays quiet apart from race control.</p>`
         : `<p><b>Last step:</b> open ${n}'s chat in WhatsApp and say hi. ${n} links itself to your team and follows your races from then on.</p>`}
+      <p class="small">📖 Send it <b>box</b>, <b>push</b> or <b>defend</b> in a race, or ask about any racing word (“what is an undercut?”). Every word is in the <a href="wiki" target="_blank" rel="noopener">racing wiki</a>.</p>
       <form class="wa-rename"><label><span>Rename</span><input name="name" maxlength="24" value="${n}"></label><button class="btn ghost" type="submit">Save</button></form>
       <div class="actions"><button class="btn ghost" type="button" data-wa="key">New API key</button><button class="btn ghost" type="button" data-wa="remove">Remove</button></div></div>`;
   } else if (wa.own && edit) {
@@ -2854,6 +2898,7 @@ function helpSheet(back) {
       <li><b>Battle.</b> Attack to go for gaps, Defend to hold position. Both cost a little.</li>
       <li><b>Autonomous.</b> Flip the switch and your AI makes every call. Races you run fully autonomous are marked that way.</li>
       <li><b>Boost.</b> The green BOOST button on the race view fires the battery for 12 seconds. Use it when you're within a second of the car ahead.</li>
+      <li><b>Racing words.</b> Not sure what an undercut is? The <a href="wiki" target="_blank" rel="noopener">racing wiki</a> has every term and command. On the radio, ask “what does dirty air mean?”</li>
       <li><b>Cameras.</b> Tap any car to follow it. Live (the TV director), Overview, Chase, Cockpit, TV and Pit views. Keys 1–6 on a keyboard, space to pause.</li>
     </ul>
     <div class="actions"><button class="btn" id="hBack" type="button">Got it</button><button class="btn ghost" id="hWin" type="button">Race guide</button></div>`);
@@ -2921,6 +2966,7 @@ function winSheet(back) {
       <li><b>ERS (battery).</b> Harvest when you're alone so you have charge for a fight. Then hit BOOST or Deploy when you're within a second of the car ahead, or to defend.</li>
       <li><b>Pace.</b> Save tyres on a long stint and Push in the last two laps. Attack makes passes more likely but risks contact. Defend makes you harder to pass.</li>
       <li><b>Two compounds.</b> In a dry race you must use two different dry tyres, or you get a 20-second penalty.</li>
+      <li><b>New to the words?</b> The <a href="wiki" target="_blank" rel="noopener">racing wiki</a> explains every term and command in a sentence.</li>
       <li><b>Pit-exit fights.</b> Coming out just ahead of a rival? Defend and BOOST for the first lap while your new tyres warm up.</li>
     </ul>
     <div class="actions"><button class="btn" id="wBack" type="button">Back</button></div>`);

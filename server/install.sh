@@ -33,6 +33,7 @@ GAME='root * '"$WEB"'
 	reverse_proxy /api/stripe/* 127.0.0.1:8141
 	reverse_proxy /api/board/* 127.0.0.1:8142
 	reverse_proxy /api/live/* 127.0.0.1:8143
+	try_files {path} {path}.html
 	file_server
 	header /assets/* Cache-Control "public, max-age=604800"
 	header /vendor/* Cache-Control "public, max-age=604800"
