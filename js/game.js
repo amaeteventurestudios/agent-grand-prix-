@@ -90,7 +90,8 @@ export const LENGTHS = [
 const GP_LAPS = { sakhir: 57, jeddah: 50, suzuka: 53, shanghai: 56, mexico: 71, montreal: 70, monaco: 78, barcelona: 66,
   spielberg: 71, britain: 52, budapest: 70, ardennes: 44, zandvoort: 72, monza: 53, baku: 51, singapore: 62, saopaulo: 71,
   abudhabi: 58, miami: 57, austin: 56, lasvegas: 50, melbourne: 58, lusail: 57, imola: 63, madrid: 57, sochi: 53, newdelhi: 60 };
-export const fullLaps = (track, venueId) => GP_LAPS[venueId] || Math.min(78, Math.max(44, Math.round(305 / (track.lapTime * 0.16))));
+// two laps more than the real Grand Prix, so ours is never the same race
+export const fullLaps = (track, venueId) => (GP_LAPS[venueId] ? GP_LAPS[venueId] + 2 : 0) || Math.min(78, Math.max(44, Math.round(305 / (track.lapTime * 0.16))));
 export function raceLaps(track, length = 'short') {
   if (length === 'medium') return Math.min(20, Math.max(12, Math.round(470 / track.lapTime)));
   if (length === 'long') return Math.min(36, Math.max(20, Math.round(900 / track.lapTime)));
