@@ -1403,3 +1403,14 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 /* Arabic reads right to left: the page flips with dir="rtl"; these keep the few placed corners on the right side */
 .rtl .lp-hide { right: auto; left: 0; }
 .rtl .lp-brand, .rtl .brand, .rtl .lang { direction: ltr; unicode-bidi: isolate; }
+.lp-legal { margin: 8px 0 0; text-align: center; font: 600 11px var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: #9aa0ab; }
+.lp-legal a { color: inherit; text-decoration: none; padding: 4px 2px; }
+.lp-legal a:hover { color: #1d1f24; text-decoration: underline; }
+.lp-mini .lp-legal { margin: 0; font-size: 10px; }
+/* desktop: the small print sits at the bottom right of the page, over the race */
+.lp-legal.pg { display: none; }
+@media (min-width: 761px) and (min-height: 541px) {
+  .lp .lp-legal { display: none; }
+  .lp-legal.pg { display: block; position: fixed; right: 18px; bottom: 12px; margin: 0; z-index: 3; color: rgba(255, 255, 255, .78); text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+  .lp-legal.pg a:hover { color: #fff; }
+}

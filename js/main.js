@@ -1583,13 +1583,16 @@ function home() {
       </nav>
       ${joinUs('in')}
       <div class="lp-foot"><span>v1.0</span>${signedIn() ? '<button type="button" class="lp-btn" data-go="signout">Sign out</button>' : canSignIn() ? '<button type="button" class="lp-btn" data-go="account">Sign in</button>' : ''}${langPicker(false)}</div>
+      ${legalLinks()}
     </aside>
     ${langNote()}
     <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
       <span class="lp-grab" aria-hidden="true"></span>
       <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div></div>
       <div class="lp-macts"><button class="btn lp-go" data-go="${newcomer ? 'play' : next.go}" type="button">▶ ${newcomer ? 'Start here' : 'Play'}</button><button type="button" class="lp-mmenu" data-go="unpeek" aria-label="Open the menu">☰ Menu</button></div>
+      ${legalLinks()}
     </div>
+    ${legalLinks(' pg')}
     ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
     ${appCard()}
     ${passCard()}
@@ -1602,6 +1605,9 @@ function home() {
 // On a phone the menu starts tucked away, so the race is the first thing you see: a small bar with
 // Play stays at the bottom (at the left when sideways). Tap it or swipe it up for the menu; swipe the
 // menu down (or left, sideways) to put it away. The race behind can be turned and zoomed with a finger.
+// the small print on the front page, as on most game sites
+const SUPPORT = 'support@agentgrandprix.com';
+const legalLinks = (c = '') => `<p class="lp-legal${c}"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="mailto:${SUPPORT}">Support</a></p>`;
 const homePeek = () => (G.peek === undefined ? GLANCE.matches : G.peek);
 function setPeek(on) { G.peek = on; $('#screen').classList.toggle('hpeek', on); if (!on) $('.lp')?.scrollTo(0, 0); }
 function sheetSwipe(sh) {
@@ -2302,6 +2308,7 @@ function accountSheet(back, o = {}) {
 // racing needs an account when the server says so (a guest can still watch and read everything)
 const GATED = new Set(['daily', 'dailyfull', 'season', 'quick', 'just', 'practice', 'again', 'live', 'academy', 'build', 'team']);
 function homeClick(e) {
+  if (e.target.closest?.('a[href]')) return;   // the small print links open on their own
   const b = e.target.closest('[data-go]'); if (!b) return;
   const go = b.dataset.go, n = dayNumber(), back = b.closest('.pm') ? playMenu : home;   // sheets opened from Play return to Play
   if (account.ways.need && !signedIn() && (GATED.has(go) || go.startsWith('v:'))) return accountSheet(back, { gate: true, then: () => homeClick({ target: b }) });

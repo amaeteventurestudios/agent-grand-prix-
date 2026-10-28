@@ -2544,4 +2544,7 @@ export default ["Meet your team",
 "All cars",
 "Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.",
 "Pick the {2}",
-"Pick your car, then tap Next to paint it in 3D."];
+"Pick your car, then tap Next to paint it in 3D.",
+"support@agentgrandprix.com",
+"Support",
+"a[href]"];
