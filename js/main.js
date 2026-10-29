@@ -67,6 +67,7 @@ function resize() {
   if (cams.mode === 'overview') camera.fov = cams.baseFov();
   camera.updateProjectionMatrix();
   if (world) cams.fitOverview(cams.mode === 'overview' && !G.race?.started);
+  heroView();
 }
 new ResizeObserver(resize).observe(stage);
 
@@ -292,7 +293,10 @@ function speedUI() {
   $$('[data-speed]').forEach((x) => x.classList.toggle('on', +x.dataset.speed === G.speed));
 }
 $$('[data-cam]').forEach((b) => b.addEventListener('click', () => setCam(b.dataset.cam)));
-function setCam(m) { cams.setMode(m); $$('[data-cam]').forEach((x) => x.classList.toggle('on', x.dataset.cam === m)); }
+function setCam(m) { cams.setMode(m); $$('[data-cam]').forEach((x) => x.classList.toggle('on', x.dataset.cam === m)); camOpen(false); }
+// phones: one Camera button opens the six views; picking one closes it
+function camOpen(on) { app.classList.toggle('camopen', on); $('#camBtn').setAttribute('aria-expanded', String(on)); }
+$('#camBtn').addEventListener('click', () => camOpen(!app.classList.contains('camopen')));
 // phones held upright: the race fills the screen and Strategy, Timing and Radio live in a panel you
 // swipe up from the bottom (peek: just the tab bar, half, full)
 const PHONE_UP = '(orientation: portrait) and (max-width: 1199px)';
@@ -301,7 +305,7 @@ const SHEETS = ['peek', 'half', 'full'];
 function sheet(s) { if (app.dataset.sheet !== s) app.dataset.sheet = s; }
 app.dataset.sheet = 'peek';
 $$('[data-tab]').forEach((b) => b.addEventListener('click', () => {
-  if (phoneUp()) { if (app.dataset.sheet === 'peek') sheet('half'); else if (app.dataset.tab === b.dataset.tab) sheet('peek'); }
+  if (phoneUp() || appOn()) { if (app.dataset.sheet === 'peek') sheet('half'); else if (app.dataset.tab === b.dataset.tab) sheet('peek'); }
   setTab(b.dataset.tab);
 }));
 $('#grip').addEventListener('click', () => sheet(SHEETS[(SHEETS.indexOf(app.dataset.sheet) + 1) % 3]));
@@ -316,6 +320,7 @@ $('#grip').addEventListener('click', () => sheet(SHEETS[(SHEETS.indexOf(app.data
 }
 function setTab(t) {
   app.dataset.tab = t; $$('[data-tab]').forEach((x) => x.classList.toggle('on', x.dataset.tab === t));
+  if (t === 'eng') engPane(); camOpen(false);
   if (t === 'radio') $('#radioDot').hidden = true;
 }
 setTab('wall');
@@ -1214,7 +1219,7 @@ function weatherHTML(R) {
   const fc = nextRain(R);
   const icon = R.rain > 0.5 ? '🌧️' : R.rain > 0.05 ? '🌦️' : G.venue.time === 'night' ? '🌙' : G.venue.time === 'dusk' ? '🌇' : '☀️';
   // the weather is the race's own forecast, not the real one at the venue, and says so
-  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${tempTxt(G.venue.temp)}`;
+  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${G.venue.temp}°C<span class="tf"> / ${Math.round(G.venue.temp * 9 / 5 + 32)}°F</span>`;
   if (fc !== null && R.rain < 0.05) txt += ` <span class="fc">· rain in ~${fc} lap${fc > 1 ? 's' : ''}</span>`;
   return txt;
 }
@@ -1537,9 +1542,10 @@ function show(html, cls = '') {
   const sc = $('#screen'); sc.className = 'screen ' + cls; sc.hidden = false;
   const sheet = $('#sheet'); sheet.onclick = sheet.oninput = sheet.onchange = null;   // screens that use handler properties start clean
   sheet.innerHTML = html; sheet.scrollTop = 0;
+  heroView();
   return sheet;
 }
-function hide() { $('#screen').hidden = true; }
+function hide() { $('#screen').hidden = true; heroView(); }
 
 // On a phone (portrait, or landscape with little height) the home screen opens on the race itself:
 // the cars running behind a small title and one card, and the full menu fills the screen only when you
@@ -1563,6 +1569,7 @@ const IC = {
   pass: '<path d="m10 2.8 2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5L2.8 8.1l5-.7z"/>',
   settings: '<circle cx="10" cy="10" r="2.7"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/>',
   help: '<circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.8a2.3 2.3 0 1 1 3.2 2.1c-.6.3-1 .8-1 1.5v.6M10 14.6v.1"/>',
+  install: '<rect x="5.5" y="2" width="9" height="16" rx="2"/><path d="M10 6v6M7.5 9.5 10 12l2.5-2.5"/>',
   more: '<circle cx="5" cy="10" r="1"/><circle cx="10" cy="10" r="1"/><circle cx="15" cy="10" r="1"/>',
 };
 const icon = (k) => `<svg class="ic" viewBox="0 0 20 20" aria-hidden="true">${IC[k] || ''}</svg>`;
@@ -1570,6 +1577,7 @@ const icon = (k) => `<svg class="ic" viewBox="0 0 20 20" aria-hidden="true">${IC
 // and every way to race; the Anti-Bot Pass sits on the right, Get the app and Join us in the middle. On a phone
 // the panel shows Continue and the main modes (the rest behind "All modes"), and can be tucked away to watch.
 function home() {
+  if (appOn()) return appTab(G.tab);
   const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n], first = firstVisit();
   const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
   const lr = S.lastRace && venueById(S.lastRace.venue), nAc = doneCount(S), newcomer = first && !S.stats.starts && !nAc;
@@ -1756,6 +1764,222 @@ function appCard() {
       <button type="button" data-go="install:android"><i>${'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2"/><path d="M6.5 5.5h11M6.5 18h11"/></svg>'}</i><b>Android</b><small>Chrome</small></button></div>
     <button type="button" class="gc-play" data-go="play"><span aria-hidden="true">▶</span> Or play in the browser</button></div>`;
 }
+// ---------- the phone app ----------
+// On a phone (and an iPad held upright) the game opens as an app, not a small desktop: five tabs along
+// the bottom (Home, Race, Team, Engineer, More), one job per screen, and the race itself as its own
+// full-screen space with no tabs. Everything here reads the same saved state and opens the same sheets
+// as the desktop home, so a call or a setting made on a phone goes through the same code.
+const MOB = matchMedia('(pointer: coarse) and (max-width: 760px), (pointer: coarse) and (max-height: 540px), (pointer: coarse) and (orientation: portrait) and (max-width: 1080px)');
+const appOn = () => !params.has('desk') && (params.has('app') || MOB.matches);
+// on a phone, Hand to agents / Take control sits above the race buttons, under your thumb, rather than in the top bar
+const appMark = () => { const on = appOn(), b = $('#agentsBtn'); document.documentElement.classList.toggle('mob', on); if (on) $('meta[name="theme-color"]')?.setAttribute('content', '#060b18'); if (b) (on ? $('#stage') : $('.hud-right')).append(b); };
+appMark();
+MOB.addEventListener?.('change', () => { appMark(); if (G.attract && !$('#screen').hidden && /\b(nbhome|appsc)\b/.test($('#screen').className)) home(); });
+const TABS = [
+  ['home', 'Home', '<path d="M3.5 10.5 12 3.8l8.5 6.7M6 9v10.5h4.5v-6h3v6H18V9"/>'],
+  ['race', 'Race', '<path d="M5 21V4M5 4.5c4-2 6.5 2 10.5 0S20 4 20 4v9s-1.5-1-4.5.5-6.5-2-10.5 0"/>'],
+  ['team', 'Team', '<circle cx="9" cy="8" r="3.2"/><path d="M3 19.5c.7-3.4 3-5.2 6-5.2s5.3 1.8 6 5.2"/><circle cx="17" cy="9" r="2.5"/><path d="M16.6 14.2c2.4.2 4 1.9 4.6 4.6"/>'],
+  ['eng', 'Engineer', '<path d="M4.5 13v-1a7.5 7.5 0 0 1 15 0v1"/><rect x="3" y="12.5" width="4" height="6" rx="1.6"/><rect x="17" y="12.5" width="4" height="6" rx="1.6"/><path d="M19 18.5c0 2-2 3-4.5 3H12"/>'],
+  ['more', 'More', '<circle cx="5.5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18.5" cy="12" r="1.4"/>'],
+];
+const tabIcon = (p) => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+const ordinal = (n) => n + (n % 100 > 10 && n % 100 < 14 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+// the season so far: points and place of your team among those that have scored
+function seasonLine() {
+  const teams = Object.entries(S.season.teamPts).sort((a, b) => b[1] - a[1]);
+  const pts = S.season.teamPts.you || 0, idx = teams.findIndex(([k]) => k === 'you');
+  return { no: S.season.no || 1, pts, place: S.season.round > 1 ? (idx >= 0 ? idx + 1 : teams.length + 1) : 0, round: S.season.round };
+}
+// the weather you can expect, from the circuit's own climate
+const climate = (v) => `${v.temp >= 30 ? 'Hot' : v.temp >= 22 ? 'Warm' : v.temp >= 14 ? 'Mild' : 'Cool'} · ${v.rain >= 0.35 ? 'rain likely' : v.rain >= 0.15 ? 'showers possible' : 'dry'}`;
+const tempC = (v) => `${Math.round(v.temp)}°C`;
+// a driver's Driver DNA as the eight Quick dials (0 to 100), straight from their profile
+const dialsOf = (p) => (p && p.params ? QUICK.map((q) => ({ q, v: Math.round(q.maps.reduce((a, m) => a + (m[0] === '-' ? 100 - p.params[m.slice(1)] : p.params[m]), 0) / q.maps.length) })) : []);
+const traitsOf = (p) => dialsOf(p).filter(({ v }) => Math.abs(v - 50) >= 6).sort((a, b) => Math.abs(b.v - 50) - Math.abs(a.v - 50)).map(({ q, v }) => (v > 50 ? q.hi : q.lo));
+// each car's place in the last race you ran (not the agent's), when there is one
+const lastPlace = (k) => { const r = S.lastReport, id = r && r.mine && r.mine[k], row = id && r.rows.find((x) => x.id === id); return row ? (row.dnf ? 'DNF' : 'P' + row.pos) : ''; };
+const engName = () => { const v = VOICES.find((x) => x.id === voiceId()); return v ? v.name : 'Your engineer'; };
+const ENG_FACE = '<svg class="ap-eface" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="24" fill="#0d2a66"/><circle cx="24" cy="21" r="9.5" fill="#f2c9a5"/><path d="M14.5 19a9.5 9.5 0 0 1 19 0" stroke="#08132e" stroke-width="3.2" fill="none"/><rect x="11" y="17" width="5" height="8" rx="2.2" fill="#c6ff3d"/><rect x="32" y="17" width="5" height="8" rx="2.2" fill="#c6ff3d"/><path d="M34.5 25c0 4-3 6-7 6" stroke="#c6ff3d" stroke-width="1.8" fill="none"/><path d="M9 48c1.2-8 7-12 15-12s13.8 4 15 12z" fill="#1267f4"/></svg>';
+
+function appTab(t = 'home') {
+  if (!TABS.some(([k]) => k === t)) t = 'home';
+  G.tab = t;
+  const body = { home: appHome, race: appRace, team: appTeam, eng: appEng, more: appMore }[t]();
+  const sh = show(`<div class="ma ma-${t}">${body}
+    <nav class="app-tabs" aria-label="Main">${TABS.map(([k, name, p]) => `<button type="button" data-at="${k}" class="${k === t ? 'on' : ''}"${k === t ? ' aria-current="page"' : ''}>${tabIcon(p)}<span>${name}</span></button>`).join('')}</nav></div>`,
+    `appsc${t === 'home' ? ' apphome' : ''}`);
+  sh.onclick = appClick; sh.onchange = langChange;
+  const main = $('.app-main', sh);
+  if (main) { main.scrollTop = G.appScroll?.[t] || 0; main.onscroll = () => { (G.appScroll ||= {})[t] = main.scrollTop; heroView(); }; }
+  heroView();
+  bootDone();
+}
+function appClick(e) {
+  const tb = e.target.closest('[data-at]'); if (tb) { (G.appScroll ||= {})[tb.dataset.at] = 0; return appTab(tb.dataset.at); }
+  const b = e.target.closest('[data-go]'), go = b && b.dataset.go;
+  if (go === 'play' || go === 'menu') return appTab('race');
+  if (go === 'voice') return voiceSheet(home);
+  if (go === 'deleg:0' || go === 'deleg:1') { S.settings.auto = go === 'deleg:1'; store.save(); return appTab('eng'); }
+  homeClick(e);
+}
+// the Home tab's Next race card is a window onto the live race behind the app: the 3D view is
+// shifted so the cars sit in that window, and follows it as the page scrolls
+function heroView() {
+  const hero = G.attract && !$('#screen').hidden && $('#screen').classList.contains('apphome') ? $('.ap-hero') : null;
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  if (!hero) { if (camera.view && camera.view.enabled) { camera.clearViewOffset(); camera.aspect = w / h; camera.updateProjectionMatrix(); } return; }
+  // centre the full view on the window: a bigger virtual frame, of which the screen shows one part
+  const r = hero.getBoundingClientRect(), sy = Math.round(h / 2 - clamp(r.top + r.height * 0.55, 40, h / 2)), sx = Math.round(Math.max(0, w / 2 - (r.left + r.width / 2)));
+  camera.aspect = (w + 2 * sx) / (h + 2 * sy); camera.setViewOffset(w + 2 * sx, h + 2 * sy, 2 * sx, 2 * sy, w, h); camera.updateProjectionMatrix();
+}
+
+function appHome() {
+  const t = team(), nx = nextRace(), v = nx.venue, sl = seasonLine(), prof = activeProfiles(S), first = firstVisit();
+  const newcomer = first && !S.stats.starts && !doneCount(S);
+  const drv = (d, k) => {
+    const pl = lastPlace(k), tr = traitsOf(prof[SLOTS[k]]).slice(0, 2);
+    return `<button type="button" class="ap-d" data-go="driver:car${k + 1}" style="--c1:${esc(t.c1 || '#1267f4')}">
+      <span class="ap-dn">${d.num != null ? esc(d.num) : k + 1}</span>${portraitSVG(d, t, { size: 84, bg: false })}
+      <span class="ap-dt"><b>${esc(d.name)}</b>${pl ? `<i class="ap-pl">${pl}</i>` : ''}</span>
+      <span class="ap-tr">${(tr.length ? tr : ['Even in everything']).map((x) => `<small>${esc(x)}</small>`).join('')}</span></button>`;
+  };
+  const review = S.lastReport && S.lastReport.review && S.lastReport.review.find((x) => x.kind !== 'note' || !x.id);
+  return `<header class="app-top ap-hd">
+      <div class="ap-brand">${helmetSVG({ name: t.name, code: t.short }, t, { size: 38, num: false, bg: false })}<div><b>${esc(newcomer ? 'Agent Grand Prix' : t.name)}</b><small>You are the team principal</small></div></div>
+      <div class="ap-ssn"><small>Season ${sl.no}</small><b>${sl.pts} pts</b><small>${sl.place ? ordinal(sl.place) + ' place' : `round ${Math.min(sl.round, CALENDAR.length)} of ${CALENDAR.length}`}</small></div>
+    </header>
+    <main class="app-main">
+      <section class="ap-hero" aria-label="Next race">
+        <span class="ap-k">${esc(nx.kicker)}</span>
+        <h1>${esc(v.city)}</h1><p class="ap-where">${v.flag} ${esc(v.country)} · ${esc(v.circuit)}</p>
+        <div class="ap-facts"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>${tempC(v)}</span><span>${esc(climate(v))}</span>${nx.note ? `<span>${esc(nx.note)}</span>` : ''}</div>
+      </section>
+      <div class="ap-sheet">
+        ${awayCard()}
+        <div class="ap-h"><h2>Drivers</h2><button type="button" class="ap-more" data-at="team">My team ›</button></div>
+        <div class="ap-drv">${t.drivers.map(drv).join('')}</div>
+        <button type="button" class="ap-eng" data-at="eng">${ENG_FACE}
+          <span class="ap-et"><small>AI race engineer</small><b>${esc(engName())}</b>
+            <span class="ap-st"><i class="${wa.linked ? 'on' : ''}"></i>${wa.linked ? 'WhatsApp linked' : 'WhatsApp not linked'} · ${S.settings.auto ? 'Autonomous' : 'Advisory'}</span></span>
+          <span class="ap-say">${review ? esc(review.text) : newcomer ? 'Two AI drivers race for you. I read the race and advise; you make the calls.' : `I'll have a plan for ${esc(v.city)} on the grid.`}</span></button>
+        ${standalone() ? '' : `<button type="button" class="ap-inst" data-go="install"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3"/></svg><span><b>Get the app</b><small>full screen, one tap from your home screen</small></span><em>›</em></button>`}
+      </div>
+      <div class="ap-cta-wrap"><button type="button" class="ap-cta" data-go="${newcomer ? 'play' : nx.go}">${newcomer ? 'Start here' : nx.cta}<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button></div>
+    </main>`;
+}
+// what Home offers next: today's Daily if you haven't raced it, else the next Championship round
+function nextRace() {
+  const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n];
+  const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
+  if (!done) return { go: 'daily', venue: dv, kicker: `Next race · Daily Grand Prix #${n}`, cta: 'Enter race', note: 'free for everyone' };
+  if (!seasonOver && !passLocked('season')) return { go: 'season', venue: sv, kicker: `Next race · Round ${S.season.round} of ${CALENDAR.length}`, cta: 'Enter race', note: '' };
+  return { go: 'daily', venue: dv, kicker: `Daily Grand Prix #${n}`, cta: 'Race it again', note: `you finished P${done.best}` };
+}
+
+function appRace() {
+  const n = dayNumber(), dv = dailyVenue(n), done = S.daily.days[n], first = firstVisit();
+  const sv = CALENDAR[(S.season.round - 1) % CALENDAR.length], seasonOver = S.season.round > CALENDAR.length;
+  const lr = S.lastRace && venueById(S.lastRace.venue), nAc = doneCount(S), newcomer = first && !S.stats.starts && !nAc;
+  const row = (go, ic, title, sub) => `<button type="button" class="ap-row${passLocked(go) ? ' locked' : ''}" data-go="${go}">${icon(ic)}<span><b>${title}</b><small>${sub}</small></span>${star(go) || '<em>›</em>'}</button>`;
+  return `<header class="app-top"><h1 class="ap-title">Race</h1>${acChip()}</header>
+    <main class="app-main"><div class="ap-pad">
+      ${newcomer ? `<p class="ap-lede">New to the pit wall? Start with one of these.</p>
+        <div class="ap-group">${row('academy', 'academy', 'Racing Academy', 'learn the pit wall in five short lessons')}${row('just', 'quick', 'Jump into a race', 'a short race at Sakhir with the coach beside you')}${row('practice', 'practice', 'Free practice', 'no points, no pressure')}</div>` : ''}
+      <button type="button" class="ap-daily" data-go="daily"><img class="ap-dimg" src="assets/cars/hero/${esc(carModel() || 'falcon')}.webp" alt="" width="1200" height="675" decoding="async"><span class="ap-k">Today · Daily Grand Prix #${n}</span><b>${dv.flag} ${esc(dv.city)}</b>
+        <small>${done ? `You finished P${done.best}. Race it again for fun.` : 'The same race for everyone today. Always free.'}</small><i>${done ? 'Race again' : 'Race'} ›</i></button>
+      ${S.lastRace && lr ? `<div class="ap-group">${row('again', 'quick', 'Race again', `${lr.flag} ${esc(lr.city)}, same set-up`)}</div>` : ''}
+      <h2 class="ap-sub">Every way to race</h2>
+      <div class="ap-group">
+        ${row('quick', 'quick', 'New race', `any of ${VENUES.length} circuits${lr ? `, last: ${esc(lr.city)}` : ''}`)}
+        ${row('season', 'season', 'Season & career', seasonOver ? 'season over: see the standings' : `round ${S.season.round} of ${CALENDAR.length}: ${sv.flag} ${esc(sv.city)}`)}
+        ${row('live', 'live', 'Live Grand Prix', 'ten real teams on one grid')}
+        ${row('dailyfull', 'dailyfull', 'Full distance', 'today’s Daily, a whole Grand Prix')}
+      </div>
+      <div class="ap-group">
+        ${row('academy', 'academy', 'Racing Academy', `five short lessons${nAc ? ` · ${nAc}/${LESSONS.length} done` : ''}`)}
+        ${row('practice', 'practice', 'Free practice', 'no points, no pressure')}
+        ${row('watch', 'live', 'Watch a race', 'sit back and watch the field')}
+      </div>
+      <div class="ap-group">${row('board', 'board', 'Leaderboard', 'today and the weekly Sora prizes')}${row('standings', 'season', 'Championship standings', `season ${S.season.no || 1}`)}</div>
+    </div></main>`;
+}
+
+function appTeam() {
+  const t = team(), first = firstVisit(), prof = activeProfiles(S), sl = seasonLine(), car = carModel() || 'falcon', cs = careerState(S);
+  const drv = (d, k) => {
+    const p = prof[SLOTS[k]], c = cs[SLOTS[k]], r = rankOf(c.xp), dials = dialsOf(p);
+    return `<article class="ap-card ap-dc" style="--c1:${esc(t.c1 || '#1267f4')}">
+      <div class="ap-dch">${portraitSVG(d, t, { size: 72, bg: false })}<div><small>Driver 0${k + 1}${d.num != null ? ` · #${esc(d.num)}` : ''}</small><b>${esc(d.name)}</b><span>${esc(p?.name || 'Balanced')} · ${esc(r.name)}</span></div></div>
+      <div class="ap-stats"><div><b>${c.races}</b><small>Races</small></div><div><b>${c.wins}</b><small>Wins</small></div><div><b>${c.podiums}</b><small>Podiums</small></div><div><b>${c.xp}</b><small>XP</small></div></div>
+      ${dials.length ? `<ul class="ap-dials">${dials.map(({ q, v }) => `<li><span>${esc(q.label)}</span><i><u style="width:${v}%"></u></i><b>${v}</b></li>`).join('')}</ul>` : ''}
+      <div class="ap-acts"><button type="button" class="btn ghost" data-go="driver:car${k + 1}">Career</button><button type="button" class="btn ghost" data-go="dna">Driver DNA</button></div></article>`;
+  };
+  return `<header class="app-top"><h1 class="ap-title">${esc(first ? 'My team' : t.name)}</h1>${acChip()}</header>
+    <main class="app-main"><div class="ap-pad">
+      <button type="button" class="ap-car" data-go="garage"><img src="assets/cars/hero/${esc(car)}.webp" alt="" width="1200" height="675" decoding="async"><span><small>Your car</small><b>${esc((MODELS.find((m) => m.id === car) || {}).name || 'Simple car')}</b><em>Garage ›</em></span></button>
+      <div class="ap-stats ap-season"><div><b>${sl.pts}</b><small>Points</small></div><div><b>${sl.place ? ordinal(sl.place) : '–'}</b><small>Place</small></div><div><b>${S.stats.starts}</b><small>Starts</small></div><div><b>${S.stats.wins}</b><small>Wins</small></div></div>
+      ${first ? `<button type="button" class="ap-cta ap-inline" data-go="build">Build my team<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>` : ''}
+      <h2 class="ap-sub">Drivers</h2>
+      ${t.drivers.map(drv).join('')}
+      <div class="ap-group">
+        ${first ? '' : `<button type="button" class="ap-row" data-go="team">${icon('team')}<span><b>Edit team</b><small>name, drivers, colours and numbers</small></span><em>›</em></button>`}
+        <button type="button" class="ap-row" data-go="standings">${icon('season')}<span><b>Championship standings</b><small>season ${sl.no}, round ${Math.min(sl.round, CALENDAR.length)} of ${CALENDAR.length}</small></span><em>›</em></button>
+        ${S.lastReport ? `<button type="button" class="ap-row" data-go="report">${icon('board')}<span><b>Last race report</b><small>${S.lastReport.venue.flag} ${esc(S.lastReport.venue.city)} · ${esc(S.lastReport.label || '')}</small></span><em>›</em></button>` : ''}
+      </div>
+    </div></main>`;
+}
+
+function appEng() {
+  S.agent ||= { since: dayNumber(), playbook: {}, reports: [], unseen: [] };
+  const auto = !!S.settings.auto, pb = playbookOf(S), rep = S.lastReport, on = wa.linked;
+  const reports = (S.agent.reports || []).slice(-5).reverse();
+  return `<header class="app-top"><h1 class="ap-title">Engineer</h1>${acChip()}</header>
+    <main class="app-main"><div class="ap-pad">
+      <div class="ap-card ap-eh">${ENG_FACE}<div><small>AI race engineer</small><b>${esc(engName())}</b><span>Reads the race, advises on the radio, and runs the team when you hand it over.</span></div>
+        <button type="button" class="btn ghost" data-go="voice">Voice</button></div>
+      <h2 class="ap-sub">Delegation</h2>
+      <div class="ap-seg" role="radiogroup" aria-label="Who makes the calls in your next race">
+        <button type="button" role="radio" aria-checked="${!auto}" class="${auto ? '' : 'on'}" data-go="deleg:0"><b>Advisory</b><small>You make the calls. Your engineer advises.</small></button>
+        <button type="button" role="radio" aria-checked="${auto}" class="${auto ? 'on' : ''}" data-go="deleg:1"><b>Autonomous</b><small>Your agents make every call. Take it back any time.</small></button></div>
+      <p class="ap-note">This is the start for your next race. In a race, Hand to agents and Take it back switch it any time.</p>
+      <h2 class="ap-sub">Your AI agent</h2>
+      <div class="ap-card ap-wa">
+        <button type="button" class="ap-row${on ? ' on' : ''}" data-go="agent"><i class="ap-wai"><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${on ? 'WhatsApp linked' : 'Connect WhatsApp'}</b><small>${on ? `${esc(aName())} follows your races and texts you the big calls` : 'your engineer texts you the big calls; takes one minute'}</small></span><em>›</em></button>
+        <div class="ap-soon"><span><i style="--c:#2aabee"><svg viewBox="0 0 24 24" aria-hidden="true">${SOCIAL[0][2]}</svg></i>Telegram</span><span><i style="--c:#1d1f24"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="8" width="12" height="9" rx="3" fill="#fff"/><circle cx="10" cy="12.5" r="1.2" fill="#1d1f24"/><circle cx="14" cy="12.5" r="1.2" fill="#1d1f24"/><path d="M12 5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></i>Your own bot</span><small>coming soon</small></div>
+        <p class="ap-note">${on ? 'When your agents run the team, check-in questions come to you on WhatsApp, with a safe default if you don’t answer.' : 'Once linked, check-in questions during races your agents run come to you on WhatsApp.'}</p>
+      </div>
+      <button type="button" class="ap-row ap-card" data-go="agent">${icon('daily')}<span><b>Missed Dailies</b><small>${pb.on ? `your agent races them at ${pb.cover}:00 if you haven't` : 'off: your agent leaves missed Dailies alone'}</small></span><em>›</em></button>
+      ${rep && rep.review && rep.review.length ? `<h2 class="ap-sub">Debrief · ${rep.venue.flag} ${esc(rep.venue.city)}</h2>
+        <ul class="ap-card ap-rev">${rep.review.slice(0, 6).map((x) => `<li class="${esc(x.kind)}">${esc(x.text)}</li>`).join('')}</ul>
+        <button type="button" class="btn ghost ap-wide" data-go="report">Full race report</button>` : `<h2 class="ap-sub">Debrief</h2><p class="ap-note">After your first race your engineer's review of it shows here: what happened to both cars, and how your calls worked.</p>`}
+      ${reports.length ? `<h2 class="ap-sub">Races your agent ran</h2><div class="ap-group">${reports.map((r) => `<button type="button" class="ap-row" data-go="ar:${r.n}"><span><b>${r.report.venue.flag} ${esc(r.report.venue.city)} · Daily #${r.n}</b><small>${r.places.map((p) => (p ? 'P' + p : 'DNF')).join(' · ')} · +${r.pts} pts</small></span><em>›</em></button>`).join('')}</div>` : ''}
+    </div></main>`;
+}
+
+function appMore() {
+  const pr = account.pass.price || { monthly: '0.50', yearly: '5.99' };
+  const row = (go, ic, title, sub) => `<button type="button" class="ap-row" data-go="${go}">${icon(ic)}<span><b>${title}</b><small>${sub}</small></span><em>›</em></button>`;
+  return `<header class="app-top"><h1 class="ap-title">More</h1>${acChip()}</header>
+    <main class="app-main"><div class="ap-pad">
+      <div class="ap-group">
+        ${row('account', 'account', signedIn() ? 'Profile & wallet' : 'Profile', signedIn() ? 'your account and Sora' : 'sign in so your team follows you')}
+        ${row('pass', 'pass', 'Anti-Bot Pass', account.pass.active ? 'active: verified human' : `every mode for $${esc(pr.monthly)} a month`)}
+        ${standalone() ? '' : row('install', 'install', 'Get the app', 'full screen, one tap from your home screen')}
+      </div>
+      <div class="ap-group">
+        ${row('help', 'help', 'How to play', 'the pit wall in two minutes')}
+        ${row('win', 'season', 'How to win', 'tyres, stops, the battery and rain')}
+        <a class="ap-row" href="wiki" target="_blank" rel="noopener">${icon('academy')}<span><b>Racing wiki</b><small>every racing word, explained</small></span><em>›</em></a>
+        ${row('settings', 'settings', 'Settings', 'sound, the engineer, the coach and language')}
+        ${row('rules', 'help', 'Support & rules', 'fair play, and how to reach us')}
+      </div>
+      <div class="ap-group ap-langrow"><span>${icon('settings')}<b>Language</b></span>${langPicker(false)}</div>
+      ${joinUs('in')}
+      <div class="ap-foot">${signedIn() ? '<button type="button" class="btn ghost" data-go="signout">Sign out</button>' : ''}<span>Agent Grand Prix v1.0</span></div>
+      ${legalLinks()}
+    </div></main>`;
+}
+
 // Play: every way to race. A first visit gets the three ways in first; locked modes carry a ★ Pass tag.
 const PASS_GATED = new Set(['quick', 'season', 'dailyfull', 'live', 'again']);
 const passLocked = (k) => !!(account.pass.sell && !account.pass.active && PASS_GATED.has(k));
@@ -3465,6 +3689,7 @@ function pauseMenu() {
   const sh = show(`<h2>Paused</h2><p class="lede">${G.venue.flag} ${esc(G.venue.city)} · lap ${G.race.leaderLap()} of ${G.race.laps}</p>
     <div class="actions" style="flex-direction:column">
       <button class="btn wide" id="pResume" type="button">Resume</button>
+      ${appOn() && !fairRace() ? `<div class="seg pspeed" role="group" aria-label="Race speed">${[1, 2, 4, 8, 16].map((v) => `<button type="button" data-ps="${v}" class="${G.speed === v ? 'on' : ''}">${v}×</button>`).join('')}</div>` : ''}
       <button class="btn ghost wide" id="pVoice" type="button">Radio voices</button>
       <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
@@ -3474,6 +3699,7 @@ function pauseMenu() {
       <button class="btn ghost wide" id="pRestart" type="button">${G.kind === 'academy' ? 'Restart lesson' : 'Restart race'}</button>
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
+  $$('[data-ps]', sh).forEach((x) => x.addEventListener('click', () => { $(`.hud [data-speed="${x.dataset.ps}"]`)?.click(); $$('[data-ps]', sh).forEach((y) => y.classList.toggle('on', y === x)); }));
   $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
   $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
   $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
@@ -3504,9 +3730,21 @@ function agentsUI(force) {
   if (!force && b.dataset.k === key) return;
   b.dataset.k = key; b.hidden = !show;
   b.classList.toggle('on', on);
-  b.textContent = on ? 'Agents racing · Take back' : 'Hand to agents';
+  b.textContent = on ? `Agents racing · ${appOn() ? 'Take control' : 'Take back'}` : 'Hand to agents';
   b.setAttribute('aria-label', on ? 'Your agents run the team. Tap to take it back.' : 'Hand the team to your AI agents');
+  engPane();
 }
+// phones: the Engineer panel in a race. Who is making the calls comes from the cars themselves (each
+// car's auto flag in the race engine), so it never says the agents are racing when they aren't.
+function engPane() {
+  const el = $('#engPane'); if (!el || !appOn()) return;
+  const R = G.race, show = !!R && !G.attract && !R.done && G.kind !== 'academy' && myRunning().length > 0, on = show && agentsOn();
+  el.innerHTML = `<div class="ep-h">${ENG_FACE}<div><small>AI race engineer</small><b>${esc(engName())}</b>
+      <span class="ap-st"><i class="${on ? 'on' : ''}"></i>${on ? 'Agents racing: your engineer makes every call' : 'Advisory: you make the calls'}</span></div></div>
+    ${show ? `<button type="button" class="btn ep-go${on ? ' ghost' : ''}" data-ep="hand">${on ? 'Take control' : 'Hand the team to my agents'}</button>` : ''}
+    <p class="ep-wa">${wa.linked ? `WhatsApp: ${esc(aName())} is linked to your account` : 'WhatsApp: not linked. Connect it from the Engineer tab at home.'}</p>`;
+}
+$('#engPane').addEventListener('click', (e) => { if (e.target.closest('[data-ep="hand"]')) handTeam(!agentsOn()); });
 $('#agentsBtn').addEventListener('click', () => handTeam(!agentsOn()));
 
 // Finish the race now: only when you race the AI alone (never the Daily, a season round, a lesson or
