@@ -1,0 +1,319 @@
+/* Agent Grand Prix on a phone: the app. Five tabs (Home, Race, Team, Engineer, More), one job per screen,
+   the race as its own full-screen space. Everything here sits under html.mob or .screen.appsc, which only
+   phones and upright tablets get, so the desktop layout never sees these rules. */
+html.mob {
+  --a-bg: #060b18; --a-bg2: #0a1428; --a-card: #0e1a33; --a-card2: #132546; --a-line: rgba(120, 160, 255, .16);
+  --a-ink: #eef3ff; --a-mute: #93a5c9; --a-blue: #1f6bff; --a-blue2: #4d8dff; --a-lime: #c6ff3d;
+  --a-safe-t: env(safe-area-inset-top, 0px); --a-safe-b: env(safe-area-inset-bottom, 0px);
+  --a-safe-l: env(safe-area-inset-left, 0px); --a-safe-r: env(safe-area-inset-right, 0px);
+}
+/* the app keeps one dark cobalt look in both themes, like the race view itself */
+.screen.appsc {
+  --bg: var(--a-bg); --panel: var(--a-card); --panel2: var(--a-card2); --ink: var(--a-ink); --mute: var(--a-mute); --line: var(--a-line);
+  --accent: var(--a-blue2); --accent-ink: #fff; color-scheme: dark;
+  padding: 0; display: block; background: var(--a-bg); overflow: hidden; color: var(--a-ink);
+}
+.screen.appsc.apphome { background: transparent; }
+.screen.appsc .sheet { position: absolute; inset: 0; width: auto; max-height: none; height: 100%; padding: 0; border-radius: 0; background: transparent; box-shadow: none; overflow: hidden; color: inherit; }
+.ma { position: absolute; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; font: 15px/1.4 var(--f-body); }
+.ma button { -webkit-user-select: none; user-select: none; }
+
+/* top bar */
+.ma h1, .ma h2 { text-wrap: balance; }
+.app-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; position: relative; z-index: 2;
+  padding: calc(var(--a-safe-t) + 10px) max(16px, var(--a-safe-r)) 10px max(16px, var(--a-safe-l));
+  background: rgba(6, 11, 24, .9); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-bottom: 1px solid var(--a-line); }
+.ap-title { margin: 0; font: italic 800 30px/1 var(--f-display); text-transform: uppercase; letter-spacing: .01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ma .ac-chip { position: static; flex: none; background: var(--a-card); color: var(--a-ink); border: 1px solid var(--a-line); box-shadow: none; }
+.ap-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ap-brand svg { flex: none; }
+.ap-brand b { display: block; font: italic 800 22px/1 var(--f-display); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-brand small, .ap-ssn small { display: block; font: 600 11px/1.3 var(--f-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--a-mute); }
+.ap-ssn { text-align: right; flex: none; padding-left: 12px; border-left: 1px solid var(--a-line); }
+.ap-ssn b { display: block; font: italic 800 20px/1.05 var(--f-display); }
+
+/* scrolling body */
+.app-main { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; position: relative; }
+.ap-pad { padding: 14px max(16px, var(--a-safe-r)) 28px max(16px, var(--a-safe-l)); max-width: 720px; margin: 0 auto; }
+.ma h2.ap-sub { margin: 22px 2px 8px; font: 700 13px/1 var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--a-mute); }
+.ap-lede { margin: 2px 2px 12px; color: var(--a-mute); }
+.ap-note { margin: 8px 2px 0; font-size: 13px; color: var(--a-mute); }
+
+/* bottom tabs */
+.app-tabs { display: grid; grid-template-columns: repeat(5, 1fr); position: relative; z-index: 2;
+  padding: 4px max(6px, var(--a-safe-r)) calc(4px + var(--a-safe-b)) max(6px, var(--a-safe-l));
+  background: rgba(6, 11, 24, .96); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); border-top: 1px solid var(--a-line); }
+.app-tabs button { position: relative; display: grid; justify-items: center; align-content: center; gap: 3px; min-height: 54px; padding: 4px 0; border: 0; background: none; color: var(--a-mute); font: 600 11.5px/1 var(--f-ui); letter-spacing: .02em; }
+.app-tabs svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.app-tabs button.on { color: #fff; }
+.app-tabs button.on svg { stroke: var(--a-blue2); }
+.app-tabs button.on::before { content: ''; position: absolute; top: -4px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--a-blue2); }
+
+/* lists of rows, grouped like a settings app */
+.ap-group, .ap-card { background: var(--a-card); border: 1px solid var(--a-line); border-radius: 16px; margin-bottom: 12px; }
+.ap-group { overflow: hidden; }
+.ap-card { padding: 14px; }
+.ap-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px;
+  border: 0; border-bottom: 1px solid var(--a-line); background: none; color: var(--a-ink); text-align: left; text-decoration: none; font: inherit; }
+.ap-group > .ap-row:last-child { border-bottom: 0; }
+.ap-row:active, .ap-d:active, .ap-eng:active, .ap-daily:active, .ap-car:active { background-color: rgba(255, 255, 255, .05); }
+.ap-row > span:only-of-type:first-child { grid-column: 1 / 3; }
+.ap-row .ic { width: 22px; height: 22px; stroke: var(--a-blue2); }
+.ap-row b { display: block; font: 600 16px/1.2 var(--f-body); }
+.ap-row small { display: block; margin-top: 2px; font-size: 13px; color: var(--a-mute); }
+.ap-row em { font-style: normal; font-size: 22px; line-height: 1; color: var(--a-mute); }
+.ap-row.locked b::after { content: ''; }
+.ma .pm-star { font-size: 11px; }
+.ap-row.ap-card { border: 1px solid var(--a-line); padding: 10px 14px; }
+
+/* buttons */
+.ma .btn { border-radius: 12px; min-height: 44px; background: var(--a-blue); color: #fff; }
+.ma .btn.ghost { background: transparent; color: var(--a-ink); border: 1px solid rgba(160, 190, 255, .28); }
+.ap-wide { width: 100%; }
+.ap-cta { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 58px; border: 0; border-radius: 14px;
+  background: linear-gradient(100deg, #1559f0 0%, #2f7bff 60%, #4d8dff 100%); color: #fff; font: italic 800 23px/1 var(--f-display); letter-spacing: .05em; text-transform: uppercase;
+  box-shadow: 0 10px 28px rgba(31, 107, 255, .38), inset 0 1px 0 rgba(255, 255, 255, .25); }
+.ap-cta svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ap-cta:active { transform: translateY(1px); filter: brightness(.95); }
+.ap-cta.ap-inline { margin: 4px 0 6px; }
+
+/* Home: the Next race card is a window onto the live race */
+.ma-home .app-main { display: flex; flex-direction: column; }
+.ap-hero { flex: none; min-height: clamp(220px, 38svh, 360px); display: flex; flex-direction: column; justify-content: flex-end; gap: 4px;
+  padding: 16px max(16px, var(--a-safe-r)) 18px max(16px, var(--a-safe-l));
+  background: linear-gradient(180deg, rgba(6, 11, 24, 0) 30%, rgba(6, 11, 24, .55) 70%, var(--a-bg) 100%); text-shadow: 0 1px 14px rgba(0, 0, 0, .55); }
+.ap-k { display: inline-flex; align-items: center; gap: 8px; font: 700 12px/1 var(--f-ui); letter-spacing: .14em; text-transform: uppercase; color: #a9c6ff; }
+.ap-k::before { content: ''; width: 18px; height: 3px; border-radius: 2px; background: var(--a-lime); }
+.ap-hero h1 { margin: 2px 0 0; font: italic 800 clamp(44px, 13vw, 64px)/.92 var(--f-display); text-transform: uppercase; letter-spacing: .005em; color: #fff; }
+.ap-where { margin: 0; font: 600 14px/1.3 var(--f-ui); letter-spacing: .06em; text-transform: uppercase; color: #dbe6ff; }
+.ap-facts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; text-shadow: none; }
+.ap-facts span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 999px; background: rgba(8, 16, 34, .72); border: 1px solid var(--a-line); font: 600 12.5px/1 var(--f-ui); color: #e6eeff; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.ap-facts svg { width: 15px; height: 15px; fill: none; stroke: #ffd36b; stroke-width: 1.8; stroke-linecap: round; }
+.ap-sheet { flex: 1 0 auto; background: var(--a-bg); padding: 4px max(16px, var(--a-safe-r)) 10px max(16px, var(--a-safe-l)); }
+.ap-sheet > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+.ap-sheet .hc.away { margin: 8px auto 4px; }
+.ap-h { display: flex; align-items: baseline; justify-content: space-between; margin: 10px 2px 8px; }
+.ma .ap-h h2 { margin: 0; font: italic 800 20px/1 var(--f-display); letter-spacing: .04em; text-transform: uppercase; }
+.ap-more { border: 0; background: none; padding: 6px 0 6px 10px; color: var(--a-blue2); font: 700 13px var(--f-ui); letter-spacing: .06em; text-transform: uppercase; }
+.ap-drv { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ap-d { position: relative; display: grid; align-content: start; gap: 4px; min-width: 0; padding: 10px 10px 12px; border: 1px solid var(--a-line); border-radius: 16px; text-align: left; color: var(--a-ink); overflow: hidden;
+  background: radial-gradient(120% 80% at 80% 0%, color-mix(in srgb, var(--c1) 45%, transparent), transparent 70%), linear-gradient(180deg, var(--a-card2), var(--a-card)); }
+.ap-dn { position: absolute; left: 10px; top: 6px; font: italic 800 34px/1 var(--f-display); color: #7fa8ff; text-shadow: 0 2px 10px rgba(0, 0, 0, .4); }
+.ap-d svg { justify-self: end; width: 84px; height: 84px; }
+.ap-dt { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.ap-dt b { font: italic 800 18px/1.05 var(--f-display); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ap-pl { flex: none; padding: 3px 7px; border-radius: 6px; background: #fff; color: #08132e; font: italic 800 14px/1 var(--f-display); }
+.ap-tr { display: flex; flex-wrap: wrap; gap: 4px; }
+.ap-tr small { padding: 3px 7px; border-radius: 999px; background: rgba(255, 255, 255, .07); font: 600 11px/1.2 var(--f-ui); color: #c9d6f2; }
+.ap-eng { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px 12px; align-items: center; width: 100%; margin-top: 12px; padding: 12px; border: 1px solid var(--a-line); border-radius: 16px; text-align: left; color: var(--a-ink);
+  background: linear-gradient(135deg, #102552, var(--a-card) 70%); }
+.ap-eface { width: 52px; height: 52px; display: block; }
+.ap-et small { display: block; font: 700 11px/1 var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--a-mute); }
+.ap-et b { display: block; margin: 3px 0 2px; font: italic 800 22px/1 var(--f-display); text-transform: uppercase; }
+.ap-st { display: inline-flex; align-items: center; gap: 6px; font: 600 12px/1.2 var(--f-ui); color: #c9d6f2; }
+.ap-st i { width: 8px; height: 8px; border-radius: 50%; background: #6b7896; flex: none; }
+.ap-st i.on { background: var(--a-lime); box-shadow: 0 0 8px rgba(198, 255, 61, .6); }
+.ap-say { grid-column: 1 / -1; padding: 10px 12px; border-radius: 12px; background: rgba(4, 10, 24, .55); border: 1px solid var(--a-line); font-size: 14px; color: #dfe8fb; }
+.ap-inst { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 12px 14px; border: 1px dashed rgba(160, 190, 255, .3); border-radius: 14px; background: none; color: var(--a-ink); text-align: left; }
+.ap-inst svg { width: 24px; height: 24px; fill: none; stroke: var(--a-blue2); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.ap-inst b { display: block; font-size: 15px; } .ap-inst small { color: var(--a-mute); font-size: 12.5px; } .ap-inst em { font-style: normal; color: var(--a-mute); font-size: 22px; }
+.ap-cta-wrap { position: sticky; bottom: 0; z-index: 1; padding: 10px max(16px, var(--a-safe-r)) 12px max(16px, var(--a-safe-l)); background: linear-gradient(180deg, rgba(6, 11, 24, 0), var(--a-bg) 35%); }
+.ap-cta-wrap .ap-cta { max-width: 720px; margin: 0 auto; }
+
+/* Race tab */
+.ap-daily { display: grid; gap: 4px; width: 100%; margin-bottom: 12px; padding: 18px 16px 16px; border: 1px solid rgba(120, 160, 255, .3); border-radius: 18px; text-align: left; color: #fff;
+  position: relative; overflow: hidden; isolation: isolate; background: #050a18; box-shadow: 0 12px 30px rgba(10, 40, 120, .35); min-height: 176px; align-content: end; }
+.ap-daily::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(5, 10, 24, .97) 0%, rgba(5, 10, 24, .75) 42%, rgba(5, 10, 24, 0) 85%); }
+.ap-dimg { position: absolute; z-index: -2; right: -18%; top: 50%; width: 92%; height: auto; transform: translateY(-50%); }
+.ap-daily b { font: italic 800 34px/1 var(--f-display); text-transform: uppercase; }
+.ap-daily small { color: #d5e2ff; font-size: 14px; }
+.ap-daily i { justify-self: start; margin-top: 10px; padding: 9px 16px; border-radius: 999px; background: #fff; color: #0a1a40; font: italic 800 17px/1 var(--f-display); text-transform: uppercase; letter-spacing: .04em; }
+
+/* Team tab */
+.ap-car { position: relative; display: block; width: 100%; padding: 0; border: 1px solid var(--a-line); border-radius: 18px; overflow: hidden; color: var(--a-ink); text-align: left;
+  background: radial-gradient(70% 60% at 50% 62%, #2457c4 0%, #10275a 55%, var(--a-card) 100%); }
+.ap-car img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; }
+.ap-car span { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: baseline; gap: 10px; padding: 26px 14px 12px; background: linear-gradient(180deg, transparent, rgba(4, 10, 24, .85)); }
+.ap-car small { font: 700 11px var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--a-mute); }
+.ap-car b { font: italic 800 22px/1 var(--f-display); text-transform: uppercase; }
+.ap-car em { margin-left: auto; font: 700 13px var(--f-ui); font-style: normal; color: var(--a-blue2); letter-spacing: .06em; text-transform: uppercase; }
+.ap-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; text-align: center; }
+.ap-stats div { padding: 8px 4px; border-radius: 12px; background: rgba(255, 255, 255, .04); }
+.ap-stats b { display: block; font: italic 800 22px/1 var(--f-display); }
+.ap-stats small { display: block; margin-top: 3px; font: 700 10.5px/1 var(--f-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--a-mute); }
+.ap-season div { background: var(--a-card); border: 1px solid var(--a-line); }
+.ap-dc { background: radial-gradient(90% 60% at 100% 0%, color-mix(in srgb, var(--c1) 30%, transparent), transparent 70%), var(--a-card); }
+.ap-dch { display: flex; align-items: center; gap: 12px; }
+.ap-dch svg { flex: none; border-radius: 14px; background: rgba(255, 255, 255, .05); }
+.ap-dch small { display: block; font: 700 11px var(--f-ui); letter-spacing: .1em; text-transform: uppercase; color: var(--a-mute); }
+.ap-dch b { display: block; font: italic 800 26px/1 var(--f-display); text-transform: uppercase; margin: 2px 0; }
+.ap-dch span { font-size: 13px; color: #c9d6f2; }
+.ap-dials { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.ap-dials li { display: grid; grid-template-columns: minmax(0, 1fr) 38% 26px; align-items: center; gap: 10px; font-size: 13px; }
+.ap-dials span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #d3def5; }
+.ap-dials i { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .08); overflow: hidden; }
+.ap-dials u { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #1f6bff, #6aa0ff); }
+.ap-dials b { text-align: right; font: 700 13px var(--f-ui); }
+.ap-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+
+/* Engineer tab */
+.ap-eh { display: grid; grid-template-columns: 56px minmax(0, 1fr) auto; gap: 12px; align-items: center; background: linear-gradient(135deg, #102552, var(--a-card) 70%); }
+.ap-eh .ap-eface { width: 56px; height: 56px; }
+.ap-eh small { display: block; font: 700 11px var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--a-mute); }
+.ap-eh b { display: block; font: italic 800 24px/1.05 var(--f-display); text-transform: uppercase; }
+.ap-eh span { display: block; font-size: 13px; color: #c9d6f2; }
+.ap-eh .btn { min-height: 40px; padding: 0 14px; }
+.ap-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ap-seg button { display: grid; gap: 4px; align-content: start; padding: 12px; border-radius: 14px; border: 1px solid var(--a-line); background: var(--a-card); color: var(--a-ink); text-align: left; }
+.ap-seg button.on { border: 2px solid var(--a-blue2); padding: 11px; background: rgba(31, 107, 255, .16); }
+.ap-seg b { font: italic 800 19px/1 var(--f-display); text-transform: uppercase; }
+.ap-seg small { font-size: 12.5px; color: var(--a-mute); }
+.ap-wa { padding: 4px 14px 14px; }
+.ap-wa .ap-row { padding: 10px 0; border-bottom: 1px solid var(--a-line); }
+.ap-wai { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #1267f4; }
+.ap-wai svg { width: 24px; height: 24px; }
+.ap-wa .ap-row.on .ap-wai { box-shadow: 0 0 0 2px var(--a-lime); }
+.ap-soon { display: flex; align-items: center; gap: 14px; margin-top: 12px; opacity: .55; font: 600 13px var(--f-ui); }
+.ap-soon span { display: inline-flex; align-items: center; gap: 6px; }
+.ap-soon i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--c); }
+.ap-soon i svg { width: 16px; height: 16px; }
+.ap-soon small { margin-left: auto; color: var(--a-mute); font-size: 12px; }
+.ap-rev { list-style: none; padding: 4px 14px; }
+.ap-rev li { position: relative; padding: 10px 0 10px 18px; border-bottom: 1px solid var(--a-line); font-size: 14px; }
+.ap-rev li:last-child { border-bottom: 0; }
+.ap-rev li::before { content: ''; position: absolute; left: 0; top: 17px; width: 8px; height: 8px; border-radius: 50%; background: #6b7896; }
+.ap-rev li.good::before { background: var(--a-lime); }
+.ap-rev li.bad::before { background: #ff5a5f; }
+
+/* More tab */
+.ap-langrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; }
+.ap-langrow span { display: inline-flex; align-items: center; gap: 12px; }
+.ap-langrow .ic { width: 22px; height: 22px; stroke: var(--a-blue2); }
+.ma .join.in h3 { margin: 0 0 2px; color: var(--a-ink); font: italic 800 20px/1 var(--f-display); text-transform: uppercase; }
+.ma .join.in p { color: var(--a-mute); }
+.ma select.lang { background: var(--a-card2); color: var(--a-ink); border: 1px solid var(--a-line); border-radius: 10px; padding: 8px 10px; font: 600 14px var(--f-ui); }
+.ma .join.in { display: block; margin: 0 0 12px; padding: 14px; border-radius: 16px; background: var(--a-card); border: 1px solid var(--a-line); }
+.ap-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 16px 2px 6px; color: var(--a-mute); font-size: 13px; }
+.ma .lp-legal { display: block; margin: 6px 2px 0; color: var(--a-mute); font-size: 13px; text-align: left; }
+.ma .lp-legal a { color: var(--a-mute); }
+
+/* sideways: the tabs become a rail down the left, Home puts the race beside your team */
+@media (max-height: 540px) {
+  .ma { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .app-tabs { grid-column: 1; grid-row: 1 / 3; grid-template-columns: 1fr; grid-auto-rows: minmax(0, 1fr); align-content: center; width: calc(76px + var(--a-safe-l));
+    padding: calc(var(--a-safe-t) + 6px) 4px calc(6px + var(--a-safe-b)) max(4px, var(--a-safe-l)); border-top: 0; border-right: 1px solid var(--a-line); }
+  .app-tabs button { min-height: 0; }
+  .app-tabs button.on::before { top: 25%; bottom: 25%; left: -4px; right: auto; width: 3px; height: auto; border-radius: 0 3px 3px 0; }
+  .app-top, .app-main { grid-column: 2; }
+  .app-top { padding-top: calc(var(--a-safe-t) + 8px); padding-bottom: 8px; padding-left: 16px; }
+  .ap-title { font-size: 26px; }
+  .ma-home .app-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 48%); grid-template-rows: minmax(0, 1fr) auto; }
+  .ma-home .ap-hero { grid-column: 1; grid-row: 1 / 3; position: sticky; top: 0; height: 100%; min-height: 0; padding-left: 16px;
+    background: linear-gradient(180deg, rgba(6, 11, 24, 0) 40%, rgba(6, 11, 24, .7) 100%); }
+  .ap-hero h1 { font-size: clamp(40px, 9vh, 56px); }
+  .ma-home .ap-sheet { grid-column: 2; grid-row: 1; border-left: 1px solid var(--a-line); padding-left: 14px; }
+  .ma-home .ap-cta-wrap { grid-column: 2; grid-row: 2; padding-left: 14px; border-left: 1px solid var(--a-line); }
+  .ap-cta { height: 52px; font-size: 21px; }
+  .ap-car img { max-height: 52vh; }
+}
+@media (prefers-reduced-motion: reduce) { .ap-cta:active { transform: none; } }
+
+/* every other screen on a phone (race set-up, your driver, the pass, settings, results…) opens as a
+   full-screen page of the app in the same dark cobalt, never as a small card floating over the race */
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) {
+  --bg: var(--a-bg); --panel: var(--a-bg); --panel2: var(--a-card); --ink: var(--a-ink); --mute: var(--a-mute); --line: var(--a-line);
+  --accent: var(--a-blue2); --accent-ink: #fff; --shade: var(--a-bg); color-scheme: dark;
+  display: block; padding: 0; background: var(--a-bg); color: var(--a-ink); overflow: hidden;
+}
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet {
+  position: absolute; inset: 0; width: auto; height: 100%; max-height: none; border-radius: 0; box-shadow: none; background: var(--a-bg); color: var(--a-ink);
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: calc(var(--a-safe-t) + 18px) max(18px, var(--a-safe-r)) calc(var(--a-safe-b) + 24px) max(18px, var(--a-safe-l));
+}
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet > * { max-width: 680px; margin-left: auto; margin-right: auto; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .sheet h2 { font-size: 32px; text-transform: uppercase; letter-spacing: .01em; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .btn { border-radius: 12px; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .btn:not(.ghost) { background: linear-gradient(100deg, #1559f0, #2f7bff); color: #fff; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .btn.ghost { background: transparent; color: var(--a-ink); border-color: rgba(160, 190, 255, .28); }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) input, html.mob .screen:not(.appsc):not(.showroom):not(.dna) select, html.mob .screen:not(.appsc):not(.showroom):not(.dna) textarea { background: var(--a-card); color: var(--a-ink); border-color: var(--a-line); }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .sh-x { background: var(--a-card); color: var(--a-ink); border-color: var(--a-line); box-shadow: none; }
+/* one-decision set-up screens keep Next and Back at the bottom, under your thumb */
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet:has(> .wiz-foot) { display: flex; flex-direction: column; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet:has(> .wiz-foot) > * { width: 100%; flex: none; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet > .wiz-foot { margin-top: auto; position: sticky; bottom: calc(-24px - var(--a-safe-b)); padding: 12px 0 calc(24px + var(--a-safe-b)); margin-bottom: calc(-24px - var(--a-safe-b)); background: linear-gradient(180deg, rgba(6, 11, 24, 0), var(--a-bg) 22%); border-top: 0; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .wiz-foot .btn { flex: 1; min-height: 52px; font-size: 17px; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .wiz-foot { flex-wrap: wrap; gap: 8px; }
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) .wiz-foot .btn:first-child:nth-last-child(n+3) { flex-basis: 100%; }
+
+/* ---------- the race on a phone ---------- */
+.mob-only, .tabs .ti, .eng-pane { display: none; }
+html.mob #app {
+  --panel: #0a1428; --panel2: #10203f; --ink: var(--a-ink); --mute: var(--a-mute); --line: var(--a-line); --accent: var(--a-blue2); --accent-ink: #fff;
+  --hud: rgba(7, 13, 28, .78); --hud-ink: #eef3ff; color-scheme: dark; background: var(--a-bg); color: var(--a-ink);
+}
+html.mob #app .chip, html.mob #app .seg, html.mob #app .dc, html.mob #app .suggest { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+html.mob #app .chip, html.mob #app .seg { border: 1px solid rgba(140, 175, 255, .16); }
+/* the speed buttons live in the pause menu on a phone, so the top bar stays one slim row */
+html.mob .hud .seg.speed { display: none !important; }
+html.mob .hud .chip.venue span:last-child, html.mob .hud .chip.wx .state { display: none; }
+html.mob .hud { padding-top: max(8px, var(--a-safe-t)); padding-left: max(8px, var(--a-safe-l)); padding-right: max(8px, var(--a-safe-r)); }
+/* who is making the calls: plain when you are, lit up when your agents are, with Take back */
+html.mob .chip.agents { font-weight: 700; }
+html.mob .chip.agents.on { border-color: var(--a-lime); color: var(--a-lime); box-shadow: 0 0 0 1px rgba(198, 255, 61, .35), 0 0 16px rgba(198, 255, 61, .25); }
+html.mob .chip.agents.on::before { content: ''; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--a-lime); animation: agpLive 1.6s ease-in-out infinite; }
+@keyframes agpLive { 50% { opacity: .35; } }
+/* the race's own controls (Strategy, Timing, Radio, Engineer, Camera) sit in one dock at the bottom */
+html.mob .tabs .mob-only { display: block; }
+html.mob .tabs { background: rgba(6, 11, 24, .96); border-top: 1px solid var(--a-line); }
+html.mob .tabs button[data-tab], html.mob .tabs #camBtn { display: grid; justify-items: center; gap: 3px; flex: 1; padding: 7px 2px 6px; border: 0; background: none; color: var(--a-mute); font: 600 11.5px/1 var(--f-ui); }
+html.mob .tabs .ti { display: block; width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+html.mob .tabs button.on, html.mob .tabs #camBtn[aria-expanded="true"] { color: #fff; }
+html.mob .tabs button.on .ti, html.mob .tabs #camBtn[aria-expanded="true"] .ti { stroke: var(--a-blue2); }
+html.mob .tabs .dot { position: absolute; top: 6px; right: calc(50% - 18px); }
+/* the camera views open from the Camera button, not on screen all the time */
+html.mob #camPill { display: none; }
+html.mob #app.camopen #camPill:not([hidden]) { display: flex; }
+/* the Engineer panel: who is making the calls, the handover button, then your engineer's messages */
+html.mob #app[data-tab="eng"] .eng-pane { display: block; }
+html.mob #app[data-tab="eng"] .car-card, html.mob #app[data-tab="eng"] .controls { display: none; }
+html.mob #app[data-tab="eng"] .tower { display: none; }
+html.mob #app[data-tab="eng"] .radio li:not(.engineer):not(.info) { display: none; }
+html.mob #app[data-tab="eng"] .radio-wrap { display: block; }
+.eng-pane .ep-h { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; }
+.eng-pane .ap-eface { width: 52px; height: 52px; }
+.eng-pane small { display: block; font: 700 11px var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--a-mute); }
+.eng-pane b { display: block; font: italic 800 22px/1.05 var(--f-display); text-transform: uppercase; }
+.eng-pane .ap-st { margin-top: 2px; }
+.eng-pane .ep-go { width: 100%; margin-top: 12px; }
+.eng-pane .ep-wa { margin: 10px 0 14px; font-size: 13px; color: var(--a-mute); }
+html.mob .pspeed { display: flex; justify-content: center; }
+html.mob .pspeed button { flex: 1; }
+html.mob .hud .chip.venue, html.mob .hud .chip.wx .tf { display: none; }
+html.mob .hud .chip.wx .sim { font-size: 9px; padding: 1px 4px; }
+html.mob .hud .hud-right { flex-wrap: nowrap; }
+html.mob .hud .chip { min-height: 36px; }
+html.mob #stage > .chip.agents { position: absolute; left: 50%; transform: translateX(-50%); bottom: 118px; z-index: 6; pointer-events: auto; min-height: 38px; padding: 6px 14px; border-radius: 999px; font: 700 14px var(--f-ui); background: var(--hud); color: var(--hud-ink); }
+html.mob #stage > .chip.agents.on { background: rgba(10, 22, 6, .82); }
+html.mob #stage > .chip.agents.on { color: var(--a-lime); border-color: rgba(198, 255, 61, .7); }
+
+/* the race on a phone held sideways: the race fills the screen; the dock floats at the bottom left and
+   Strategy, Timing, Radio and Engineer open as a drawer about a third of the screen wide on the right */
+@media (max-height: 559px) and (orientation: landscape) {
+  html.mob #app { position: relative; grid-template-columns: minmax(0, 1fr) 0px; grid-template-rows: minmax(0, 1fr); grid-template-areas: "stage panel"; }
+  html.mob #app:not([data-sheet="peek"]) { grid-template-columns: minmax(0, 1fr) clamp(280px, 34%, 380px); }
+  html.mob #app[data-sheet="peek"] .tower, html.mob #app[data-sheet="peek"] .wall { display: none; }
+  html.mob #app .tower, html.mob #app .wall { overflow-y: auto; border-left: 1px solid var(--a-line); padding-top: max(10px, var(--a-safe-t)); padding-right: max(12px, var(--a-safe-r)); padding-bottom: max(12px, var(--a-safe-b)); }
+  html.mob .tabs { position: absolute; left: max(8px, var(--a-safe-l)); bottom: max(8px, var(--a-safe-b)); z-index: 12; display: flex; gap: 2px; width: auto; padding: 4px; border: 1px solid var(--a-line); border-radius: 16px;
+    background: rgba(6, 11, 24, .84); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  html.mob .tabs .grip { display: none; }
+  html.mob .tabs button[data-tab], html.mob .tabs #camBtn { flex: none; width: 56px; padding: 5px 2px 4px; font-size: 10.5px; border-radius: 12px; border-bottom: 0; }
+  html.mob .tabs button.on { background: rgba(77, 141, 255, .16); }
+  html.mob #app[data-sheet="peek"] .tabs button.on { background: none; color: var(--a-mute); }
+  html.mob #app[data-sheet="peek"] .tabs button.on .ti { stroke: currentColor; }
+  html.mob .tabs .ti { width: 21px; height: 21px; }
+  html.mob #app.camopen #camPill:not([hidden]) { left: max(8px, var(--a-safe-l)); bottom: calc(max(8px, var(--a-safe-b)) + 62px); transform: none; }
+  html.mob #stage > .chip.agents { left: auto; right: max(8px, var(--a-safe-r)); bottom: auto; top: calc(max(6px, var(--a-safe-t)) + 46px); transform: none; }
+  html.mob .hud .hud-right { margin-right: 0; }
+}
+/* a page's own buttons (Race again, Done…) stay at the bottom while you scroll it */
+html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet > .actions:last-child { position: sticky; bottom: calc(-24px - var(--a-safe-b)); z-index: 3; margin-bottom: calc(-24px - var(--a-safe-b)); padding: 12px 0 calc(16px + var(--a-safe-b)); background: linear-gradient(180deg, rgba(6, 11, 24, 0), var(--a-bg) 24%); }

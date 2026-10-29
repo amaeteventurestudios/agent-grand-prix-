@@ -13,6 +13,12 @@ npx gltfpack@0.22.0 -i assets/vehicles/falcon/falcon.glb -o assets/vehicles/falc
 blender -b art/cars/falcon.blend -P art/cars/render.py -- /tmp/falcon 0 '#c6f53a' '#1b1d22'
 ```
 
+`cars/hero.py` renders the phone app's car pictures (`assets/cars/hero/<name>.webp`): a low three-quarter view in a dark cobalt studio with a glossy floor, a blue rim light and a lime kicker, in the brand livery.
+
+```
+blender -b art/cars/falcon.blend -P art/cars/hero.py -- /tmp/falcon.png '#1f4fd8' '#0e1424' '#c6ff3d' 1200 675
+```
+
 The safety car (`cars/safety.py`) is built and exported by its own script: a long-bonnet grand tourer in its own colours (vertex colour is the real colour), with roof lamps `lamp_L` and `lamp_R` as separate meshes the game flashes.
 
 ```
