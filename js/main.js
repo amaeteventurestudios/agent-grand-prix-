@@ -1618,14 +1618,18 @@ function home() {
       ${legalLinks()}
     </aside>
     ${langNote()}
+    <div class="mhero" aria-label="Agent Grand Prix"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><p class="mhero-t">You are the team principal</p>
+      <p class="mhero-s">Two AI drivers. One AI race engineer.</p>${S.settings.noDesk ? '' : '<button type="button" class="mhero-d" data-go="nodesk">💻 Best on a computer<span class="mhero-p">. On a phone, turn it sideways</span>. <b aria-hidden="true">×</b></button>'}</div>
     <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
       <span class="lp-grab" aria-hidden="true"></span>
-      <div class="lp-mrow"><div class="lp-mtxt"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><small>${newcomer ? 'Your team awaits' : `Next: ${next.what} · ${next.where}`}</small></div><button type="button" class="lp-mwa${wa.linked ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i>${wa.linked ? 'Agent linked' : 'AI agent'}</button></div>
+      <div class="lp-mrow"><span class="lp-mhel">${team().drivers.map((d) => helmetSVG(d, team(), { size: 34, bg: false })).join('')}</span><div class="lp-mtxt"><b>${esc(newcomer ? 'Your team awaits' : team().name)}</b><small>${newcomer ? 'Two AI drivers race for you. You make the calls.' : `Next: ${next.what} · ${next.where}`}</small></div></div>
       <div class="lp-macts"><button class="btn lp-go" data-go="${newcomer ? 'play' : next.go}" type="button">▶ ${newcomer ? 'Start here' : 'Play'}</button><button type="button" class="lp-mmenu" data-go="unpeek" aria-label="Open the menu">☰ Menu</button></div>
+      <div class="lp-mcon"><button type="button" class="lp-mwa${wa.linked ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${wa.linked ? 'WhatsApp connected' : 'Connect your AI agent'}</b><small>${wa.linked ? `✓ ${esc(aName())} is linked` : 'on WhatsApp, takes one minute'}</small></span></button>
+        <span class="lp-msoon" title="Telegram: coming soon"><i style="--c:#2aabee"><svg viewBox="0 0 24 24" aria-hidden="true">${SOCIAL[0][2]}</svg></i></span><span class="lp-msoon" title="Your own bot: coming soon"><i style="--c:#1d1f24"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="8" width="12" height="9" rx="3" fill="#fff"/><circle cx="10" cy="12.5" r="1.2" fill="#1d1f24"/><circle cx="14" cy="12.5" r="1.2" fill="#1d1f24"/><path d="M12 5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></i></span></div>
+      <div class="lp-mchips"><button type="button" data-go="pass">★ Anti-Bot Pass${account.pass.active ? ' · active' : ` · $${esc(pr.monthly)}/mo`}</button>${standalone() ? '' : '<button type="button" data-go="install">📲 Get the app</button>'}</div>
       ${legalLinks()}
     </div>
     ${legalLinks(' pg')}
-    ${S.settings.noTurn ? '' : '<button type="button" class="lp-turn" data-go="noturn"><span aria-hidden="true">⤾</span> Turn your phone sideways for the best view <b aria-hidden="true">×</b></button>'}
     ${heroCard()}
     <div class="rcol">${appCard()}${passCard()}${joinUs('out')}</div>
     ${homeStrip()}${agentCard()}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
@@ -2456,6 +2460,7 @@ function homeClick(e) {
   if (go === 'unpeek') return setPeek(false);
   if (go === 'signout') return signOut().then(() => { toast('Signed out on this device. Your progress stays with your account.'); home(); });
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
+  if (go === 'nodesk') { S.settings.noDesk = true; store.save(); return b.remove(); }
   if (go === 'daily') needTeam(() => pre({ kind: 'daily', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
   if (go === 'dailyfull') needTeam(() => pre({ kind: 'dailyfull', venue: dailyVenue(n), seed: hashString('daily-' + n), day: n }));
   if (go === 'season') {

@@ -2869,4 +2869,11 @@ export default ["Meet your team",
 "pass card",
 "The pass that shows you are a real person. It unlocks full-distance races and more.",
 "👉 Say {0}.",
-"More: {0}/wiki#{1}"];
+"More: {0}/wiki#{1}",
+"💻 Best on a computer",
+"Two AI drivers race for you. You make the calls.",
+"on WhatsApp, takes one minute",
+"· active",
+"· ${0}/mo",
+"📲 Get the app",
+"Two AI drivers. One AI race engineer."];
