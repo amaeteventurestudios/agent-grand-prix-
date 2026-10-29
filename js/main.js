@@ -1621,7 +1621,7 @@ function home() {
     <div class="mhero" aria-label="Agent Grand Prix"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><p class="mhero-t">You are the team principal</p>
       <p class="mhero-s">Two AI drivers. One AI race engineer.</p>${S.settings.noDesk ? '' : '<button type="button" class="mhero-d" data-go="nodesk">💻 Best on a computer<span class="mhero-p">. On a phone, turn it sideways</span>. <b aria-hidden="true">×</b></button>'}</div>
     <div class="lp-mini" data-go="unpeek" role="group" aria-label="Menu">
-      <span class="lp-grab" aria-hidden="true"></span>
+      <div class="lp-mtop"><span class="lp-mhint" aria-hidden="true"><i>⌃</i> slide up for the menu</span><span class="lp-grab" aria-hidden="true"></span><button type="button" class="lp-mtuck" data-go="tuck"><i aria-hidden="true">⌄</i> slide down to watch</button></div>
       <div class="lp-mrow"><span class="lp-mhel">${team().drivers.map((d) => helmetSVG(d, team(), { size: 34, bg: false })).join('')}</span><div class="lp-mtxt"><b>${esc(newcomer ? 'Your team awaits' : team().name)}</b><small>${newcomer ? 'Two AI drivers race for you. You make the calls.' : `Next: ${next.what} · ${next.where}`}</small></div></div>
       <div class="lp-macts"><button class="btn lp-go" data-go="${newcomer ? 'play' : next.go}" type="button">▶ ${newcomer ? 'Start here' : 'Play'}</button><button type="button" class="lp-mmenu" data-go="unpeek" aria-label="Open the menu">☰ Menu</button></div>
       <div class="lp-mcon"><button type="button" class="lp-mwa${wa.linked ? ' on' : ''}" data-go="agent"><i><svg viewBox="0 0 24 24" aria-hidden="true">${WA_ICON}</svg></i><span><b>${wa.linked ? 'WhatsApp connected' : 'Connect your AI agent'}</b><small>${wa.linked ? `✓ ${esc(aName())} is linked` : 'on WhatsApp, takes one minute'}</small></span></button>
@@ -1629,10 +1629,11 @@ function home() {
       <div class="lp-mchips"><button type="button" data-go="pass">★ Anti-Bot Pass${account.pass.active ? ' · active' : ` · $${esc(pr.monthly)}/mo`}</button>${standalone() ? '' : '<button type="button" data-go="install">📲 Get the app</button>'}</div>
       ${legalLinks()}
     </div>
+    <button type="button" class="lp-tab" data-go="untuck"><i aria-hidden="true">⌃</i> Slide up for Play</button>
     ${legalLinks(' pg')}
     ${heroCard()}
     <div class="rcol">${appCard()}${passCard()}${joinUs('out')}</div>
-    ${homeStrip()}${agentCard()}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}`);
+    ${homeStrip()}${agentCard()}${acChip()}`, `home nbhome${homePeek() ? ' hpeek' : ''}${G.tuck ? ' htuck' : ''}`);
   sh.onclick = homeClick;
   sheetSwipe(sh);
   sh.onchange = langChange;
@@ -1664,16 +1665,19 @@ function sheetSwipe(sh) {
       if (!st.on) {
         if (Math.hypot(dx, dy) < 10) return;
         const along = side() && !opening ? Math.abs(dx) > Math.abs(dy) : Math.abs(dy) > Math.abs(dx);
-        if (!along || d < 0) { st = null; return; }
-        st.on = true; el.setPointerCapture?.(e.pointerId); lp.classList.add('drag');
+        if (!along || (d < 0 && !opening)) { st = null; return; }
+        st.down = opening && d < 0;   // the Play bar pulled down: tuck it away to watch the race
+        st.on = true; el.setPointerCapture?.(e.pointerId); (st.down ? mini : lp).classList.add('drag');
       }
-      if (!opening) lp.style.transform = side() ? `translateX(${-Math.max(0, d)}px)` : `translateY(${Math.max(0, d)}px)`;
+      if (st.down) mini.style.transform = `translateY(${Math.max(0, -d)}px)`;
+      else if (!opening) lp.style.transform = side() ? `translateX(${-Math.max(0, d)}px)` : `translateY(${Math.max(0, d)}px)`;
       st.d = d;
     });
     const end = () => {
       if (!st) return;
-      const was = st; st = null; lp.classList.remove('drag'); lp.style.transform = '';
+      const was = st; st = null; lp.classList.remove('drag'); lp.style.transform = ''; mini.classList.remove('drag'); mini.style.transform = '';
       if (!was.on) return;
+      if (was.down) { if (-was.d > 40 || -was.d / Math.max(1, performance.now() - was.t) > 0.5) setTuck(true); el.dragAt = performance.now(); return; }
       const size = side() ? lp.offsetWidth : lp.offsetHeight, fast = was.d / Math.max(1, performance.now() - was.t) > 0.5;
       if (was.d > (opening ? 30 : size / 3) || fast) setPeek(!opening);
       el.dragAt = performance.now();
@@ -1683,7 +1687,15 @@ function sheetSwipe(sh) {
     el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
   };
   drag(mini, true); drag(lp, false);
+  // the tab left behind when the Play bar is tucked away: tap it or slide it up to bring the bar back
+  const tab = $('.lp-tab', sh);
+  if (tab) {
+    let y0 = null;
+    tab.addEventListener('pointerdown', (e) => { y0 = e.clientY; });
+    tab.addEventListener('pointerup', (e) => { if (y0 != null && y0 - e.clientY > 20) { tab.dragAt = performance.now(); setTuck(false); } y0 = null; });
+  }
 }
+function setTuck(on) { G.tuck = on; $('#screen').classList.toggle('htuck', on); }
 // the big title at the top of the home screen (desktop)
 function heroCard() {
   return `<div class="hero"><p class="hero-brand">AGENT <em>GRAND PRIX</em></p><p class="hero-t">You are the team principal</p>
@@ -2458,6 +2470,8 @@ function homeClick(e) {
   if (go === 'lang:keep') { keepLang(); G.langNoted = true; return b.closest('.lang-note')?.remove(); }
   if (go === 'peek') return setPeek(true);
   if (go === 'unpeek') return setPeek(false);
+  if (go === 'tuck') return setTuck(true);
+  if (go === 'untuck') return setTuck(false);
   if (go === 'signout') return signOut().then(() => { toast('Signed out on this device. Your progress stays with your account.'); home(); });
   if (go === 'noturn') { S.settings.noTurn = true; store.save(); return b.remove(); }
   if (go === 'nodesk') { S.settings.noDesk = true; store.save(); return b.remove(); }

@@ -2876,4 +2876,8 @@ export default ["Meet your team",
 "· active",
 "· ${0}/mo",
 "📲 Get the app",
-"Two AI drivers. One AI race engineer."];
+"Two AI drivers. One AI race engineer.",
+"slide up for the menu",
+"slide down to watch",
+"Slide up for Play",
+"home nbhome{0}{1}"];
