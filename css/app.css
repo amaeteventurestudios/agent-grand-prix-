@@ -1282,9 +1282,9 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .pc-fine { margin: 8px 0 0; color: rgba(255, 255, 255, .7); font-size: 12.5px; }
 
 /* Join us (middle bottom; inside the panel on phones) */
-/* desktop home: the menu only as tall as it needs; Get the app above the pass; a title at the top and
+/* desktop home: the menu only as tall as it needs, sitting on the same bottom line as the team strip and Join us; Get the app above the pass; a title at the top and
    your team along the bottom (both drivers and the AI race engineer, where you connect WhatsApp) */
-.lp { align-self: start; max-height: 100%; }
+.lp { align-self: end; max-height: 100%; }
 .rcol { grid-row: 1 / 4; max-height: calc(100% - 52px); overflow: auto; scrollbar-width: none; }
 .rcol::-webkit-scrollbar { display: none; }
 .rcol .gc { grid-column: auto; grid-row: auto; justify-self: stretch; width: auto; padding: 12px 14px; }
@@ -1518,7 +1518,8 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
   .lp .lp-legal { display: none; }
   .lp-legal.pg { display: block; position: fixed; right: 18px; bottom: 12px; margin: 0; z-index: 3; color: rgba(255, 255, 255, .78); text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
   .lp-legal.pg a:hover { color: #fff; }
-  .rcol { margin-bottom: 20px; }
+  .rcol, .lp, .hs { margin-bottom: 20px; }   /* the three panels share one bottom line, above the small print */
+  .lp { max-height: calc(100% - 20px); }
 }
 
 /* Connect your AI agent: bottom centre on desktop, in the menu on phones */
