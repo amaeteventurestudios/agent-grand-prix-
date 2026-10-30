@@ -9,7 +9,6 @@ import bpy, bmesh, math, os, json
 from mathutils import Vector
 
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-bpy.ops.wm.read_factory_settings(use_empty=True)
 
 # arms for the standing poses that watch the race on the garage screen: (elbow, wrist, hand) per side
 ARMS = {
@@ -18,14 +17,17 @@ ARMS = {
     'watch': {1: ((-0.08, 0.37, 1.2), (0.0, 0.23, 1.0), (0.02, 0.18, 0.96)), -1: ((-0.08, -0.37, 1.2), (0.0, -0.23, 1.0), (0.02, -0.18, 0.96))},
     'despair': {1: ((0.02, 0.36, 1.6), (0.05, 0.2, 1.8), (0.06, 0.12, 1.83)), -1: ((0.02, -0.36, 1.6), (0.05, -0.2, 1.8), (0.06, -0.12, 1.83))},
 }
+# whole-body poses: any joints moved from the standing pose (art/people/driver.py adds the drivers' ones)
+BODY = {}
 
 def skel(pose):
     J = {}
-    if pose in ARMS:
+    if pose in ARMS or pose in BODY:
         J, E, R = skel('stand')
-        for s, (e, w, h) in ARMS[pose].items():
+        for s, (e, w, h) in ARMS.get(pose, {}).items():
             k = 'L' if s > 0 else 'R'
             J[f'elb{k}'], J[f'wri{k}'], J[f'han{k}'] = e, w, h
+        J.update(BODY.get(pose, {}))
         if pose == 'cheer': J['head'] = (0.0, 0, 1.69); J['neck'] = (0.0, 0, 1.56)   # head back a touch
         if pose == 'despair': J['head'] = (0.05, 0, 1.66)                          # head forward, hands on the helmet
         return J, E, R
@@ -118,17 +120,22 @@ def figure(pose, lod):
     bpy.ops.object.join()
     return ob
 
-report = {}
-mat = bpy.data.materials.new('crew'); mat.use_nodes = True
-for pose in ('stand', 'kneel', 'cheer', 'pump', 'watch', 'despair'):
-    for lod in (0, 1):
-        ob = figure(pose, lod)
-        ob.data.materials.append(mat)
-        report[ob.name] = sum(len(p.vertices) - 2 for p in ob.data.polygons)
-os.makedirs(f'{root}/assets/people', exist_ok=True)
-bpy.ops.wm.save_as_mainfile(filepath=f'{root}/art/people/crew.blend')
-out = f'{root}/assets/people/crew.glb'
-bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, export_yup=True,
-    export_vertex_color='ACTIVE', export_normals=True, export_materials='EXPORT')
-report['bytes'] = os.path.getsize(out)
-print('REPORT', json.dumps(report))
+def main():
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    report = {}
+    mat = bpy.data.materials.new('crew'); mat.use_nodes = True
+    for pose in ('stand', 'kneel', 'cheer', 'pump', 'watch', 'despair'):
+        for lod in (0, 1):
+            ob = figure(pose, lod)
+            ob.data.materials.append(mat)
+            report[ob.name] = sum(len(p.vertices) - 2 for p in ob.data.polygons)
+    os.makedirs(f'{root}/assets/people', exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=f'{root}/art/people/crew.blend')
+    out = f'{root}/assets/people/crew.glb'
+    bpy.ops.export_scene.gltf(filepath=out, export_format='GLB', export_apply=True, export_yup=True,
+        export_vertex_color='ACTIVE', export_normals=True, export_materials='EXPORT')
+    report['bytes'] = os.path.getsize(out)
+    print('REPORT', json.dumps(report))
+
+if __name__ == '__main__':
+    main()

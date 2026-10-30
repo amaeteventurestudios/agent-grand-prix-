@@ -45,6 +45,7 @@ function parse(root, id) {
         const wheel = /wheel_(FL|FR|RL|RR)/.exec(o.name)?.[1] || null;
         const glass = /glass/.test(o.name) || /glass/.test(o.material?.name || '');
         const part = { geo: o.geometry, local, wheel, glass };
+        if (!wheel && !glass) markHelmet(o.geometry, local);
         if (wheel) {
           o.geometry.computeBoundingBox();
           const hub = o.geometry.boundingBox.getCenter(new THREE.Vector3()).applyMatrix4(local);
@@ -59,6 +60,41 @@ function parse(root, id) {
   return { id, lods, cams };
 }
 
+// the driver's helmet is part of the body mesh: find it (the loose piece of the right size sitting in
+// the cockpit) and mark its vertices, so a car whose driver has climbed out can leave it out
+function markHelmet(geo, local) {
+  if (geo.attributes.helm) return;
+  const pos = geo.attributes.position, n = pos.count, idx = geo.index;
+  const helm = new Float32Array(n);
+  geo.setAttribute('helm', new THREE.BufferAttribute(helm, 1));
+  if (!idx) return;
+  // pieces: vertices joined by triangles
+  const up = new Int32Array(n); for (let i = 0; i < n; i++) up[i] = i;
+  const find = (i) => { while (up[i] !== i) { up[i] = up[up[i]]; i = up[i]; } return i; };
+  const ix = idx.array;
+  for (let t = 0; t < ix.length; t += 3) {
+    const a = find(ix[t]), b = find(ix[t + 1]), c = find(ix[t + 2]);
+    up[b] = a; up[find(c)] = a;
+  }
+  const box = new Map(), v = new THREE.Vector3();
+  for (let i = 0; i < n; i++) {
+    const r = find(i); v.fromBufferAttribute(pos, i).applyMatrix4(local);
+    let b = box.get(r); if (!b) box.set(r, b = new THREE.Box3());
+    b.expandByPoint(v);
+  }
+  // in the car's frame: x forward, y up; a helmet is about 0.4 long, 0.26 wide and tall, on the centre line
+  let best = null, bs = 1e9;
+  const sz = new THREE.Vector3(), ct = new THREE.Vector3();
+  for (const [r, b] of box) {
+    b.getSize(sz); b.getCenter(ct);
+    if (Math.abs(ct.z) > 0.06 || ct.y < 0.3 || ct.y > 0.8 || ct.x < -1.2 || ct.x > 1.2) continue;
+    if (sz.x < 0.15 || sz.x > 0.6 || sz.y < 0.1 || sz.y > 0.4 || sz.z < 0.12 || sz.z > 0.36) continue;
+    const score = Math.abs(sz.x - 0.4) + Math.abs(sz.y - 0.26) + Math.abs(sz.z - 0.26);
+    if (score < bs) { bs = score; best = r; }
+  }
+  if (best != null) for (let i = 0; i < n; i++) if (find(i) === best) helm[i] = 1;
+}
+
 const glow = { value: 0.8 };
 // how brightly the light strips glow (the showroom's night preview turns them up)
 export const liveryGlow = (k) => { const was = glow.value; if (k !== undefined) glow.value = k; return was; };
@@ -70,8 +106,9 @@ export function liveryMaterial(env) {
   m.onBeforeCompile = (s) => {
     s.uniforms.uGlow = glow;
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute vec3 iC1;\nattribute vec3 iC2;\nattribute vec3 iC3;\nattribute vec2 iF;\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nvarying vec2 vF;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvC1 = iC1; vC2 = iC2; vC3 = iC3; vF = iF;');
+      .replace('#include <common>', '#include <common>\nattribute vec3 iC1;\nattribute vec3 iC2;\nattribute vec3 iC3;\nattribute vec2 iF;\nattribute float iE;\nattribute float helm;\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nvarying vec2 vF;')
+      // an empty cockpit (the driver is out celebrating): the helmet folds away to nothing
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvC1 = iC1; vC2 = iC2; vC3 = iC3; vF = iF;\ntransformed *= 1.0 - step(0.5, helm * iE);');
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vC1;\nvarying vec3 vC2;\nvarying vec3 vC3;\nvarying vec2 vF;\nuniform float uGlow;')
       .replace('#include <color_fragment>', `
@@ -91,7 +128,7 @@ export function liveryMaterial(env) {
       .replace('#include <metalnessmap_fragment>', 'float metalnessFactor = mix(isMetal * 0.85, vF.y, painted);')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += mk.b * vC3 * uGlow;');
   };
-  m.customProgramCacheKey = () => 'agp-livery-3';
+  m.customProgramCacheKey = () => 'agp-livery-4';
   return m;
 }
 
@@ -129,6 +166,7 @@ export class Fleet {
       geo.setAttribute('iC2', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
       geo.setAttribute('iC3', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 3), 3));
       geo.setAttribute('iF', new THREE.InstancedBufferAttribute(new Float32Array(this.cap * 2), 2));
+      geo.setAttribute('iE', new THREE.InstancedBufferAttribute(new Float32Array(this.cap), 1));
       const im = new THREE.InstancedMesh(geo, p.glass ? this.glassMat : this.mat, this.cap);
       im.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       im.frustumCulled = false; im.count = 0;
@@ -182,13 +220,14 @@ export class Fleet {
         C.set(c.c2); im.geometry.attributes.iC2.setXYZ(i, C.r, C.g, C.b);
         C.set(c.glow || this.glowDefault); im.geometry.attributes.iC3.setXYZ(i, C.r, C.g, C.b);
         const f = finishOf(c.finish); im.geometry.attributes.iF.setXY(i, f.r, f.m);
+        im.geometry.attributes.iE.setX(i, c.empty ? 1 : 0);
       }
     }
     sh.im.instanceMatrix.needsUpdate = true;
     for (const L of this.layers) for (const { im } of L) {
       if (!im.count) continue;
       im.instanceMatrix.needsUpdate = true;
-      im.geometry.attributes.iC1.needsUpdate = im.geometry.attributes.iC2.needsUpdate = im.geometry.attributes.iC3.needsUpdate = im.geometry.attributes.iF.needsUpdate = true;
+      im.geometry.attributes.iC1.needsUpdate = im.geometry.attributes.iC2.needsUpdate = im.geometry.attributes.iC3.needsUpdate = im.geometry.attributes.iF.needsUpdate = im.geometry.attributes.iE.needsUpdate = true;
     }
   }
 

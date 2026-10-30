@@ -9,7 +9,8 @@ import { DT, LIFE, tyreLife, fmtLap, fmtTime } from './sim.js';
 import { QualiSession, Q_LEN, fmtQ } from './quali.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
 import { World } from './world.js';
-import { MODELS } from './cars.js';
+import { Ceremony } from './ceremony.js';
+import { MODELS, loadGLB } from './cars.js';
 import { Cams } from './cams.js';
 import { Sound } from './audio.js';
 import { Voice, VOICES } from './voice.js';
@@ -78,6 +79,7 @@ const team = () => (S.team && !S.team.draft ? S.team : DEFAULT_TEAM);   // a tea
 const mine = () => (G.attract ? [] : ['you-0', 'you-1']);
 
 function loadVenue(venue) {
+  stopCere();
   if (world && world.venue.id === venue.id) return;
   if (world) world.dispose();
   world = new World(renderer, venue, trackFor(venue), { lite, car: carModel() });
@@ -87,6 +89,7 @@ function loadVenue(venue) {
 
 // ---------- the live race behind the home screen ----------
 function attract() {
+  stopCere();
   G.attract = true; G.ended = false; sound.stop(); live.clear(); G.room = null; stopListening(); G.lesson = null; lessonCard(null);
   const n = dayNumber(), venue = dailyVenue(n);
   loadVenue(venue);
@@ -225,16 +228,18 @@ function frame(now) {
     const shots = GLANCE.matches ? ['chase', 'tv', 'live'] : ['live', 'tv'];
     if (G.attractT > 9 && !reduce) { G.attractT = 0; G.sel = R.order[Math.floor(Math.random() * 4)].id; cams.setMode(shots[(shots.indexOf(cams.mode) + 1) % shots.length]); }
   }
+  if (G.cere && world) G.cere.update(dt);
   if (R && world) {
     // behind the home screen and menus the race is scenery: no tags or rings over the titles
-    const showTags = !G.attract && cams.mode !== 'fpv' && cams.mode !== 'pit' && cams.mode !== 'crew';
+    const cere = !!G.cere;
+    const showTags = !G.attract && !cere && cams.mode !== 'fpv' && cams.mode !== 'pit' && cams.mode !== 'crew';
     const focus = cams.mode === 'overview' ? cams.controls.target : cams.look;
-    world.update(R, R.started && !G.paused ? clamp(G.acc / DT, 0, 1) : 1, dt, camera, G.attract && cams.mode === 'tv' ? null : G.sel, mine(), showTags,
-      { speed: G.paused ? 0 : G.attract ? 1 : G.speed, focus, showRing: !G.attract && cams.mode !== 'fpv' });
+    world.update(R, R.started && !G.paused ? clamp(G.acc / DT, 0, 1) : 1, dt, camera, (G.attract && cams.mode === 'tv') || cere ? null : G.sel, cere ? [] : mine(), showTags,
+      { speed: cere ? 1 : G.paused ? 0 : G.attract ? 1 : G.speed, focus, showRing: !G.attract && !cere && cams.mode !== 'fpv' });
     cams.update(dt, cams.mode === 'overview' ? null : G.sel);
     if (!G.attract) sound.update(R, world, camera, G.sel, cams.mode, G.paused || R.done || !$('#screen').hidden ? 0 : G.speed);
   }
-  if (world && R && !G.attract) garageFeed(R);
+  if (world && R && !G.attract && !G.cere) garageFeed(R);
   renderer.render(world ? world.scene : new THREE.Scene(), camera);
   uiT += dt;
   if (uiT > 0.2 && R && !G.attract) { uiT = 0; tick(); }
@@ -244,7 +249,7 @@ function frame(now) {
     const L = G.lesson;
     if (G.kind === 'academy' && L && !L.done) lessonOver();
     else if (G.kind === 'academy' && L && !$('#lesson').hidden) { if (L.summed) lessonSummary(L, L.summed); }
-    else setTimeout(results, 1800);
+    else if (!startCere(R)) setTimeout(results, 1800);
   }
   // adaptive resolution
   fpsT += dt; fpsN++;
@@ -1440,6 +1445,37 @@ function addRadio(m) {
   while (ol.children.length > 30) ol.lastChild.remove();
   if (app.dataset.tab !== 'radio') $('#radioDot').hidden = false;
 }
+// why a car stopped, in a few words, and what that means
+const OUT = {
+  engine: ['Engine failure', 'The engine let go and the car rolled to a stop.'],
+  battery: ['ERS failure', 'The battery that drives the hybrid boost died and the car lost its power.'],
+  gearbox: ['Gearbox failure', 'The gearbox broke, so the car could no longer drive.'],
+  hydraulics: ['Hydraulics failure', 'The hydraulics that work the gears and steering failed.'],
+  fuel: ['Out of fuel', 'The car ran dry before the flag.'],
+  crash: ['Crashed out', ''],
+};
+const outWhy = (c) => (OUT[c.out] || OUT.crash)[0];
+// your car is out: a big card in the middle of the race view says why, as well as the line in the feed
+function retireCard(c, e) {
+  const [title, what] = OUT[e.kind || c.out] || OUT.crash;
+  const crash = (e.kind || c.out) === 'crash';
+  const detail = crash ? e.text.replace(/\s*Out( of the race)?\.?$/, '').replace(/!\s*$/, '.') : what;
+  const rule = crash
+    ? 'A car that hits the wall is out for the rest of the race. Pushing hard, worn tyres, a wet track and wheel-to-wheel fights make a crash more likely.'
+    : 'Breakdowns are rare (about one race in 40 for each car) and pushing hard makes them a little more likely. It is nobody\'s fault.';
+  const other = myCars().find((x) => x && x !== c && !x.dnf);
+  const stage = $('#stage'); stage.querySelector('.retire')?.remove();
+  const el = document.createElement('div'); el.className = 'retire'; el.setAttribute('role', 'alert');
+  el.innerHTML = `<small>Out of the race · lap ${e.lap}</small><b>${esc(title)}</b>
+    <p class="who" translate="no"><i style="background:${esc(c.team.c1)}"></i>${esc(c.name)} (${esc(c.code)})</p>
+    <p>${esc(detail)}</p><p class="rule"><span>${rule}</span> <span>A retired car scores no points.</span></p>
+    <p class="next">${other ? `${esc(other.name.split(' ')[0])} is still racing for you.` : 'Both your cars are out. The race runs on to the flag.'}</p>
+    <button type="button" class="btn">OK</button>`;
+  stage.append(el);
+  const close = () => { el.classList.add('out'); setTimeout(() => el.remove(), 300); };
+  el.querySelector('button').addEventListener('click', close);
+  setTimeout(() => el.isConnected && close(), 12000);
+}
 function toast(text, hot) {
   const box = $('#toast'), d = document.createElement('div');
   d.textContent = text; if (hot) d.className = 'hot';
@@ -1490,6 +1526,7 @@ function drainEvents() {
       else if (/rain has stopped/.test(e.text)) say(['stopped']);
       else if (e.type === 'dnf' && isMine) say([carTag(e.car), 'out'], true);
       if (e.type === 'dnf' && car) director([car.id], 7);
+      if (e.type === 'dnf' && isMine && car) retireCard(car, e);
       if (e.type === 'flag' && /Chequered/.test(e.text)) sound.roar(1);
       if (e.type === 'lap') sound.roar(0.5);
     } else if (e.type === 'sc') {
@@ -3585,6 +3622,7 @@ function qualiUI(force) {
 
 function startRace(picks, auto, saved = null) {
   hide();
+  if (!reduce) loadGLB('people/driver').catch(() => {});   // the podium celebration's drivers, ready for the flag
   if (!(saved && saved.live)) { G.room = null; stopListening(); }
   // a Racing Academy lesson rides on this race when startLesson() asked for one
   G.lesson = saved ? null : G.nextLesson || null; G.nextLesson = null;
@@ -3773,6 +3811,21 @@ const TROPHIES = {
 };
 const TYRE_EMOJI = { S: '🔴', M: '🟡', H: '⚪', I: '🟢', W: '🔵' };
 
+// the podium celebration after the flag (js/ceremony.js): the top three back to their boxes, out of the
+// cars and onto their crews, then the podium with trophies and champagne. Skip goes straight to the results.
+function startCere(R) {
+  if (reduce || !world || !R.result || G.kind === 'academy' || R.result.filter((x) => !x.dnf).length < 3) return false;
+  $('#suggest').hidden = true; G.suggest = null;
+  app.classList.add('cere-on');
+  G.cere = new Ceremony({ race: R, world, camera, cams, ui: $('#stage'), sound, lite, venue: G.venue,
+    done: () => { G.cere = null; app.classList.remove('cere-on'); if (G.race === R && !G.attract) results(); } });
+  return true;
+}
+function stopCere() {
+  if (!G.cere) return;
+  const c = G.cere; c.onDone = null; G.cere = null; app.classList.remove('cere-on'); c.finish();
+}
+
 function results() {
   // the record of the race just run, kept before it is cleared: the leaderboard checks a Daily by
   // replaying it on the server, so it is sent the race itself rather than a finishing place
@@ -3880,7 +3933,7 @@ function results() {
   G.resHead = `
     <div class="sub">${G.venue.flag} ${esc(G.venue.city)} Grand Prix · ${label}</div>
     <h2>${best === 1 ? 'You won!' : best <= 3 ? 'Podium!' : best <= 10 ? 'In the points' : 'Tough day'}</h2>
-    <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? 'retired' : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>`;
+    <p class="lede">${my.map((x) => `${esc(x.car.name)} ${x.dnf ? `retired (${outWhy(x.car).toLowerCase()})` : 'finished P' + x.pos}${x.penalty ? ' (with a 20 s penalty: one compound only)' : ''}`).join(', ')}. +${pts} points.${assisted ? '' : ' Fully autonomous.'}</p>`;
   G.resMore = `${xpHTML()}${earned.length ? `<div class="tro">${earned.map((t) => `<span>${t}</span>`).join('')}</div>` : ''}
     ${seasonLine || dailyLine ? `<p class="lede">${seasonLine} ${dailyLine}</p>` : ''}`;
   G.resActs = `
@@ -4011,6 +4064,8 @@ window.__agp = {
     G.laps = length ? raceLaps(trackFor(v), length) : null; startRace({}, false); lightsSequence(true);
   },
   get room() { const L = G.room; return L ? { id: L.id, n: L.n, me: L.me, calls: L.calls.length, snaps: L.snaps || {} } : null; },
+  // the podium celebration: cere(sec) moves it on by sec seconds; cere() says where it is
+  cere(sec = 0) { const c = G.cere; if (!c) return null; for (let k = 0; k < sec / 0.05; k++) { c.update(0.05); world.update(G.race, 1, 0.05, camera, null, [], false, { speed: 1, focus: cams.look, showRing: false }); } return { t: c.t, phase: c.phase, plan: c.plan, top: c.top.map((d) => ({ k: d.k, t0: d.t0, show: d.show, pose: d.pose, al: d.al, figs: !!c.figs, arrived: d.arrived })) }; },
   cam: setCam, tab: setTab, select, results, pre, academy: startLesson, practice: freePractice,
   get lesson() { const L = G.lesson; return L ? { step: L.step && L.step.id, i: L.i, n: L.steps.length, done: L.done } : null; }, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
   // team radio without a mic: radio('Nova, push') runs a transcript through the same path as speech

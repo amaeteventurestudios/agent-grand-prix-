@@ -37,3 +37,10 @@ Budgets per car: LOD 0 at most 30k triangles, LOD 1 8k, LOD 2 1.5k, and 450 KB c
 ```
 blender -b --factory-startup -P art/people/people.py
 ```
+
+`people/driver.py` builds the drivers for the podium celebration (`js/ceremony.js`) from the same figure, in the poses a driver needs after the flag: waving, one- and two-handed fist pumps, two running strides, a leap onto the crew, a trophy over the head, and champagne sprayed or poured. One level of detail, compressed with gltfpack.
+
+```
+blender -b --factory-startup -P art/people/driver.py
+npx gltfpack@0.22.0 -i assets/people/driver.glb -o assets/people/driver.glb -cc -kn -km -vp 14 -vn 8 -vc 8
+```
