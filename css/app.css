@@ -1634,3 +1634,16 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .retire.out { opacity: 0; transition: opacity .3s; }
 @media (max-width: 560px) { .retire b { font-size: 30px; } .retire p { font-size: 14px; } .cere-cap small { font-size: 28px; } .cere-cap b { font-size: 19px; } }
 @media (max-height: 559px) and (orientation: landscape) { .app.cere-on .tabs { visibility: hidden; } .cere-cap { bottom: 12px; } }
+
+/* your race, still on from another device: Continue here */
+.resume-card { display: grid; gap: 2px; width: 100%; text-align: left; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; border: 2px solid #c6ff3d;
+  background: linear-gradient(135deg, rgba(198, 255, 61, .16), rgba(18, 103, 244, .10)); color: inherit; font: inherit; cursor: pointer; }
+.resume-card .rc-k { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.resume-card .rc-k i { width: 8px; height: 8px; border-radius: 50%; background: #e10600; box-shadow: 0 0 0 0 rgba(225, 6, 0, .6); animation: rcPulse 1.6s infinite; }
+.resume-card b { font-size: 20px; line-height: 1.2; }
+.resume-card small { font-size: 13px; opacity: .8; }
+.resume-card em { font-style: normal; font-weight: 800; justify-self: start; margin-top: 6px; padding: 7px 14px; border-radius: 999px; background: #c6ff3d; color: #0b1020; }
+.resume-card.lp { border-color: var(--accent, #1267f4); background: var(--panel2, rgba(18, 103, 244, .08)); }
+.resume-card.lp em { background: var(--accent, #1267f4); color: #fff; }
+@keyframes rcPulse { 70% { box-shadow: 0 0 0 7px rgba(225, 6, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(225, 6, 0, 0); } }
+@media (prefers-reduced-motion: reduce) { .resume-card .rc-k i { animation: none; } }

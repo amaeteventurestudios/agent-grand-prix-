@@ -251,20 +251,64 @@ export function agentUnlink(id, phone) {
   for (const [k, v] of Object.entries(l.byId)) if ((id && k === id) || (!id && phone && v === phone)) { delete l.byId[k]; n++; }
   saveLinks(l); return n;
 }
-export function racePut(id, rec, after) {
-  const r = races.get(id) || { cmds: [], seq: 0, agentAt: 0 };
-  // a new race (another record id) starts with an empty inbox
-  if (!r.rec || r.rec.id !== rec.id) { r.cmds = []; }
+// The same record follows the player to any device they sign in on. One device runs the race at a
+// time: dev is the device that last started or took it over, and a record sent from another device
+// is turned away with taken, so that page stops and offers to take the race back. Each record is
+// also kept on disk (one small file per account), so a deploy or restart doesn't lose a race.
+const RACES = path.join(DIR, 'races');
+const raceFile = (id) => path.join(RACES, id + '.json');
+const RACE_AGE = 6 * 3600e3;
+function raceOf(id) {
+  let r = races.get(id);
+  if (!r) {
+    try { const j = JSON.parse(fs.readFileSync(raceFile(id), 'utf8')); if (j && j.rec && Date.now() - j.at < RACE_AGE) { r = { cmds: [], seq: 0, agentAt: 0, ...j, wrote: j.at }; races.set(id, r); } } catch { /* none kept */ }
+  }
+  return r || null;
+}
+function raceKeep(id, r, force) {
+  if (!force && r.wrote && Date.now() - r.wrote < 5000) return;
+  r.wrote = Date.now();
+  try { fs.mkdirSync(RACES, { recursive: true }); const tmp = raceFile(id) + '.' + process.pid + '.tmp'; fs.writeFileSync(tmp, JSON.stringify({ rec: r.rec, at: r.at, dev: r.dev || '' })); fs.renameSync(tmp, raceFile(id)); } catch { /* disk trouble: memory still has it */ }
+}
+function raceDrop(id) { races.delete(id); try { fs.unlinkSync(raceFile(id)); } catch { /* already gone */ } }
+const devOk = (d) => typeof d === 'string' && /^[a-z0-9]{6,24}$/.test(d);
+export function racePut(id, rec, after, dev = '') {
+  const r = raceOf(id) || { cmds: [], seq: 0, agentAt: 0 };
+  // the same race, now run on another device: this one has been taken over
+  if (r.rec && r.rec.id === rec.id && r.dev && devOk(dev) && r.dev !== dev && !r.rec.done) return { taken: true, follow: false, cmds: [], seq: r.seq };
+  // a new race (another record id) starts with an empty inbox, and belongs to the device that started it
+  if (!r.rec || r.rec.id !== rec.id) { r.cmds = []; r.dev = devOk(dev) ? dev : ''; }
+  if (!r.dev && devOk(dev)) r.dev = dev;
   r.rec = rec; r.at = Date.now();
   races.set(id, r);
+  raceKeep(id, r, !!rec.done);
   r.cmds = r.cmds.filter((c) => c.seq > after);
   return { follow: !!links().byId[id] && Date.now() - r.agentAt < 15000, cmds: r.cmds, seq: r.seq };
+}
+// the race this account has running somewhere, for a device that wants to carry it on
+export function raceMine(id) {
+  const r = raceOf(id);
+  if (!r || !r.rec || r.rec.done || Date.now() - r.at > RACE_AGE) return { rec: null };
+  return { rec: r.rec, at: r.at, age: Date.now() - r.at, dev: r.dev || '' };
+}
+export function raceTake(id, dev, recId) {
+  const r = raceOf(id);
+  if (!r || !r.rec || r.rec.done || (recId && r.rec.id !== recId) || !devOk(dev)) return { rec: null };
+  r.dev = dev; r.at = Date.now(); raceKeep(id, r, true);
+  return { rec: r.rec };
+}
+// a page that finished or left its race clears it, unless another device has taken the race over
+export function raceEnd(id, dev, recId) {
+  const r = raceOf(id); if (!r) return true;
+  if (recId && r.rec && r.rec.id !== recId) return false;
+  if (r.dev && devOk(dev) && r.dev !== dev) return false;
+  raceDrop(id); return true;
 }
 export function raceFor(phone) {
   const l = links(), ids = Object.keys(l.byId).filter((k) => l.byId[k] === phone);
   let best = null;
   for (const id of ids) {
-    const r = races.get(id);
+    const r = raceOf(id);
     if (r && Date.now() - r.at > 6 * 3600e3) { races.delete(id); continue; }   // a race left open for hours is over
     if (r && r.rec && (!best || r.at > best.r.at)) best = { id, r };
   }
@@ -273,11 +317,11 @@ export function raceFor(phone) {
   return { linked: true, id: best.id, rec: best.r.rec, at: best.r.at, age: Date.now() - best.r.at, team: (readSave(best.id) || {}).team || null };
 }
 export function raceCmd(id, car, cmd) {
-  const r = races.get(id); if (!r || !/^you-[01]$/.test(car) || !cmd || typeof cmd !== 'object') return false;
+  const r = raceOf(id); if (!r || !/^you-[01]$/.test(car) || !cmd || typeof cmd !== 'object') return false;
   r.cmds.push({ seq: ++r.seq, car, cmd }); if (r.cmds.length > 200) r.cmds.shift();
   return true;
 }
-setInterval(() => { const now = Date.now(); for (const [id, r] of races) if (now - r.at > 6 * 3600e3) races.delete(id); }, 600000).unref();
+setInterval(() => { const now = Date.now(); for (const [id, r] of races) if (now - r.at > RACE_AGE) raceDrop(id); }, 600000).unref();
 const body = (req, max) => new Promise((ok, no) => { let b = ''; req.on('data', (d) => { b += d; if (b.length > max) { no(new Error('too big')); req.destroy(); } }); req.on('end', () => { try { ok(JSON.parse(b || '{}')); } catch (e) { no(e); } }); });
 
 const send = (res, code, body, headers = {}) => { res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers }); res.end(JSON.stringify(body)); };
@@ -515,7 +559,7 @@ export function serve(port = PORT) {
       } catch (e) { return send(res, 502, { error: 'Payments are not available right now. Please try again soon.' }); }
       return send(res, 404, {});
     }
-    const agentPath = u.pathname === '/api/me/agent' || u.pathname === '/api/me/agent/code' || u.pathname === '/api/me/agent/own' || u.pathname === '/api/me/race';
+    const agentPath = u.pathname === '/api/me/agent' || u.pathname === '/api/me/agent/code' || u.pathname === '/api/me/agent/own' || u.pathname === '/api/me/race' || u.pathname === '/api/me/race/take';
     if (!on() && !(sessions() && (u.pathname === '/api/me' || u.pathname === '/api/me/save' || agentPath))) return send(res, 503, { error: 'off' });
     if (agentPath) {
       const s = open(cookies(req)['agp.sid']); if (!s) return send(res, 401, { error: 'no session' });
@@ -531,8 +575,11 @@ export function serve(port = PORT) {
         if (u.pathname === '/api/me/agent/own' && req.method === 'DELETE') { ownAgentOff(id); return send(res, 200, { own: null }); }
         if (u.pathname === '/api/me/agent' && req.method === 'DELETE') { agentUnlink(id); return send(res, 200, { linked: false }); }
         if (u.pathname === '/api/me/agent/code' && req.method === 'POST') return send(res, 200, { code: agentCode(id) });
-        if (u.pathname === '/api/me/race' && req.method === 'PUT') { const rec = await body(req, RACE_MAX); if (!rec || typeof rec.id !== 'string') return send(res, 400, {}); return send(res, 200, racePut(id, rec, +u.searchParams.get('after') || 0)); }
-        if (u.pathname === '/api/me/race' && req.method === 'DELETE') { races.delete(id); return send(res, 200, { ok: true }); }
+        const dev = u.searchParams.get('dev') || '', rid = u.searchParams.get('id') || '';
+        if (u.pathname === '/api/me/race' && req.method === 'PUT') { const rec = await body(req, RACE_MAX); if (!rec || typeof rec.id !== 'string') return send(res, 400, {}); return send(res, 200, racePut(id, rec, +u.searchParams.get('after') || 0, dev)); }
+        if (u.pathname === '/api/me/race' && req.method === 'GET') return send(res, 200, raceMine(id));
+        if (u.pathname === '/api/me/race/take' && req.method === 'POST') return send(res, 200, raceTake(id, dev, rid));
+        if (u.pathname === '/api/me/race' && req.method === 'DELETE') return send(res, 200, { ok: raceEnd(id, dev, rid) });
       } catch { return send(res, 400, { error: 'bad request' }); }
       return send(res, 404, {});
     }

@@ -162,22 +162,26 @@ async function agentStatus() {
 const callText = (c, cmd) => cmd.box ? `${c.code} boxes for ${COMPOUNDS[cmd.box].name.toLowerCase()}s` : 'box' in cmd ? `${c.code} stays out`
   : cmd.auto === true ? `${c.code}: your agents have the car` : cmd.auto === false ? `${c.code}: back to you` : cmd.pace ? `${c.code}: ${cmd.pace === 'save' ? 'save tyres' : cmd.pace}`
   : cmd.ers ? `${c.code}: ${cmd.ers === 'deploy' ? 'boost' : cmd.ers}` : cmd.battle ? `${c.code}: ${cmd.battle}` : null;
+// The same record also goes up whenever you're signed in, so the race follows you: open the game on
+// another device and it offers to carry the race on there (see "your race follows you" below).
 function agentSync(R) {
-  if (!wa.linked || wa.busy || !account.on) return;
+  if (wa.busy || !account.on || !(wa.linked || signedIn())) return;
   const rec = live.rec, now = performance.now();
   const racing = rec && R && !G.attract && R.started && G.kind !== 'live' && G.kind !== 'academy';
   if (!racing) {
-    // not racing here: clear what the agent follows (also a race left open by an earlier visit, once per page)
-    if (wa.sent || !wa.cleared) { wa.sent = null; wa.cleared = true; fetch('/api/me/race', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {}); }
+    // this page's race is over or left: clear it (the server keeps it if another device has taken it over)
+    if (wa.sent) { fetch(`/api/me/race?dev=${devId}&id=${encodeURIComponent(wa.sent)}`, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {}); wa.sent = null; }
     return;
   }
-  if (now - wa.at < 2000 || (wa.sent === rec.id && wa.doneSent)) return;
+  if (now - wa.at < (wa.linked ? 2000 : 4000) || (wa.sent === rec.id && wa.doneSent) || moved.id === rec.id) return;
   if (wa.sent !== rec.id) { wa.seq = 0; wa.doneSent = false; wa.lost = 0; }
   wa.at = now; wa.busy = true;
   const done = R.done;
-  fetch(`/api/me/race?after=${wa.seq}`, { method: 'PUT', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...rec, at: undefined, done }) })
+  fetch(`/api/me/race?after=${wa.seq}&dev=${devId}`, { method: 'PUT', credentials: 'same-origin', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...rec, at: undefined, done }) })
     .then((x) => (x.ok ? x.json() : null)).catch(() => null).then((r) => {
-      wa.busy = false; wa.sent = rec.id; if (done) wa.doneSent = true;
+      wa.busy = false;
+      if (r && r.taken) { if (G.race === R) racedElsewhere(rec.id); return; }
+      wa.sent = rec.id; if (done) wa.doneSent = true;
       wa.follow = !!(r && r.follow);
       if (r) for (const c of r.cmds || []) {
         if (c.seq <= wa.seq) continue;
@@ -193,6 +197,56 @@ function agentSync(R) {
       if (wa.lost && performance.now() - wa.lost > 20000 && G.race === R && !R.done) for (const id of mine()) { const c = R.byId.get(id); if (c && c.ask) R.command(id, { ask: false }); }
     });
 }
+
+// ---------- your race follows you to any device you sign in on ----------
+// Every device has its own id. While you race, the record above goes to your account (agentSync); the
+// server lets one device run a race at a time. Another device you sign in on finds the race and offers
+// "Continue here": it takes the race over and rebuilds it to the same moment, as a refresh does, and
+// the first device stops with "This race moved to another device" and can take it back. While no
+// device has the race open, it waits where you left it.
+const devId = (() => {
+  try { let d = localStorage.getItem('agp.dev'); if (!/^[a-z0-9]{6,24}$/.test(d || '')) { d = (Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 8)).replace(/[^a-z0-9]/g, '').slice(0, 16).padEnd(8, '0'); localStorage.setItem('agp.dev', d); } return d; }
+  catch (e) { return 'tmp' + Math.random().toString(36).slice(2, 10).replace(/[^a-z0-9]/g, '0'); }
+})();
+const away = { rec: null, at: 0 }, moved = { id: null };
+async function checkAway() {
+  if (!account.on || !signedIn()) { away.rec = null; return null; }
+  try {
+    const r = await fetch('/api/me/race', { credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null));
+    const x = r && r.rec;
+    away.rec = x && r.dev !== devId && VENUES.some((v) => v.id === x.venue) && !(live.rec && live.rec.id === x.id && !moved.id) ? x : null;
+    away.at = away.rec ? Date.now() - (r.age || 0) : 0;
+  } catch (e) { away.rec = null; }
+  return away.rec;
+}
+const KIND_NAME = { daily: 'Daily Grand Prix', dailyfull: 'Daily, full distance', quick: 'Race', season: 'Championship round', practice: 'Free practice', watch: 'Race' };
+const ago = (t) => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.round(m / 60)} h ago`; };
+function resumeCard(kind = 'ap') {
+  const x = away.rec; if (!x || !G.attract) return '';
+  const v = VENUES.find((y) => y.id === x.venue), what = `${KIND_NAME[x.kind] || 'Race'}${x.kind === 'season' && x.round ? ` ${x.round}` : ''}`;
+  return `<button type="button" class="resume-card ${kind}" data-go="resume"><span class="rc-k"><i></i>Your race is still on</span>
+    <b>${v.flag} ${esc(v.city)}</b><small>${esc(what)} · last raced on another device ${ago(away.at)}</small><em>Continue here ›</em></button>`;
+}
+async function takeRace() {
+  const want = away.rec || (moved.id && { id: moved.id });
+  try {
+    const r = await fetch(`/api/me/race/take?dev=${devId}${want ? `&id=${encodeURIComponent(want.id)}` : ''}`, { method: 'POST', credentials: 'same-origin' }).then((x) => (x.ok ? x.json() : null));
+    away.rec = null; moved.id = null;
+    if (r && r.rec && resumeRace({ ...r.rec, savedAt: Date.now() })) { live.save(true); toast('Carrying on your race on this device.'); return; }
+  } catch (e) { /* offline: fall through */ }
+  toast('That race has finished or can\'t be reached right now.'); if (G.attract) home(); else attract();
+}
+// another device took this race over: stop here and offer to take it back
+function racedElsewhere(id) {
+  moved.id = id; G.paused = true; live.clear();
+  const sh = show(`<h2>This race moved to another device</h2><p class="lede">You carried it on somewhere else, so it has stopped here. Your progress is safe.</p>
+    <div class="actions" style="flex-direction:column"><button class="btn wide" id="mvTake" type="button">Take it back here</button>
+    <button class="btn ghost wide" id="mvHome" type="button">Home</button></div>`);
+  $('#mvTake', sh).addEventListener('click', () => { hide(); takeRace(); });
+  $('#mvHome', sh).addEventListener('click', () => { moved.id = null; attract(); });
+}
+// coming back to a page that sat in the background: look again
+document.addEventListener('visibilitychange', () => { if (!document.hidden && G.attract) checkAway().then((x) => { if (x && !$('#screen').hidden) home(); }); });
 addEventListener('pagehide', () => live.save(true));
 document.addEventListener('visibilitychange', () => { if (document.hidden) live.save(true); });
 function resumeRace(saved) {
@@ -1638,6 +1692,7 @@ function home() {
     <aside class="lp" aria-label="Menu">
       <div class="lp-head"><p class="lp-brand">AGENT <em>GRAND PRIX</em></p><p class="lp-tag">racing team management</p>
         <button type="button" class="lp-hide" data-go="peek" aria-label="Hide the menu and watch the race">Watch ▾</button><span class="lp-grab" aria-hidden="true"></span></div>
+      ${resumeCard('lp')}
       ${awayCard()}
       ${cont}
       ${agentCard('in')}
@@ -1893,6 +1948,7 @@ function appHome() {
         <div class="ap-facts"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>${tempC(v)}</span><span>${esc(climate(v))}</span>${nx.note ? `<span>${esc(nx.note)}</span>` : ''}</div>
       </section>
       <div class="ap-sheet">
+        ${resumeCard()}
         ${awayCard()}
         <div class="ap-h"><h2>Drivers</h2><button type="button" class="ap-more" data-at="team">My team ›</button></div>
         <div class="ap-drv">${t.drivers.map(drv).join('')}</div>
@@ -1921,6 +1977,7 @@ function appRace() {
   const row = (go, ic, title, sub) => `<button type="button" class="ap-row${passLocked(go) ? ' locked' : ''}" data-go="${go}">${icon(ic)}<span><b>${title}</b><small>${sub}</small></span>${star(go) || '<em>›</em>'}</button>`;
   return `<header class="app-top"><h1 class="ap-title">Race</h1>${acChip()}</header>
     <main class="app-main"><div class="ap-pad">
+      ${resumeCard()}
       ${newcomer ? `<p class="ap-lede">New to the pit wall? Start with one of these.</p>
         <div class="ap-group">${row('academy', 'academy', 'Racing Academy', 'learn the pit wall in five short lessons')}${row('just', 'quick', 'Jump into a race', 'a short race at Sakhir with the coach beside you')}${row('practice', 'practice', 'Free practice', 'no points, no pressure')}</div>` : ''}
       <button type="button" class="ap-daily" data-go="daily"><img class="ap-dimg" src="assets/cars/hero/${esc(carModel() || 'falcon')}.webp" alt="" width="1200" height="675" decoding="async"><span class="ap-k">Today · Daily Grand Prix #${n}</span><b>${dv.flag} ${esc(dv.city)}</b>
@@ -2038,6 +2095,7 @@ function playMenu() {
       </div>
       <p class="small"><button type="button" class="link" data-go="build">Build my team first</button> · name your team and drivers, pick a car and colours</p>
       <h3 class="pm-sub">Every way to race</h3>` : ''}
+    ${resumeCard('lp')}
     <div class="pm-list">
       ${item('daily', '🗓', `Daily Challenge #${n}`, done ? `${dv.flag} ${esc(dv.city)} · you finished P${done.best}. Race it again for fun.` : `${dv.flag} ${esc(dv.city)} · the same race for everyone today. Always free.`)}
       ${item('quick', '🏁', 'New race', lr ? `Any of ${VENUES.length} circuits. Last time: ${lr.flag} ${esc(lr.city)}.` : `Pick any of ${VENUES.length} circuits.`)}
@@ -2725,6 +2783,7 @@ function homeClick(e) {
   const go = b.dataset.go, n = dayNumber(), back = b.closest('.pm') ? playMenu : home;   // sheets opened from Play return to Play
   if (account.ways.need && !signedIn() && (GATED.has(go) || go.startsWith('v:'))) return accountSheet(back, { gate: true, then: () => homeClick({ target: b }) });
   if (passLocked(go.startsWith('v:') ? 'quick' : go)) return passSheet(back, { want: go.startsWith('v:') ? 'quick' : go });
+  if (go === 'resume') return takeRace();
   if (go === 'play' || go === 'menu') return playMenu();
   if (go === 'home' || go === 'glance') return home();
   if (go === 'pass') return passSheet(back);
@@ -4086,6 +4145,7 @@ window.__agp = {
 // an account, when the service is running: a guest at first, so nothing is asked of a new player
 accountStart(S).then((fromServer) => {
   if (account.on) agentStatus();
+  checkAway().then((x) => { if (x && G.attract && !$('#screen').hidden) home(); });
   if (fromServer) { store.adopt(fromServer); if (G.attract && !$('#screen').hidden) home(); }
   else if (account.on && G.attract && !$('#screen').hidden) home();
   // back from Google: done, or one more step on the game's own screen

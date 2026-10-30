@@ -152,5 +152,33 @@ await t("a player's own WhatsApp agent: key checked, kept off the page, first ch
   assert.equal(JSON.parse(fs.readFileSync(path.join(DIR, 'agent-tokens.json'), 'utf8')).byId.p1, undefined);
   assert.equal(A.ownAgentBind('p1', 'p1|user:1'), false, 'removed: nothing to bind');
 });
+await t('a race follows the account to another device, one device at a time, and survives a restart', async () => {
+  const rec = { id: 'r1', kind: 'quick', venue: 'lagos', seed: 5, args: {}, cmds: [], n: 400 };
+  const laptop = 'lap0001', phone = 'pho0001';
+  assert.equal((await A.racePut('acc1', rec, 0, laptop)).taken, undefined);
+  let m = A.raceMine('acc1'); assert.equal(m.rec.id, 'r1'); assert.equal(m.dev, laptop);
+  assert.ok(fs.existsSync(path.join(DIR, 'races', 'acc1.json')), 'kept on disk');
+  assert.equal(A.raceTake('acc1', phone, 'other').rec, null, 'only the race that is on');
+  assert.equal(A.raceTake('acc1', phone, 'r1').rec.n, 400, 'the phone takes it over');
+  assert.equal(A.racePut('acc1', { ...rec, n: 500 }, 0, laptop).taken, true, 'the laptop is turned away');
+  assert.equal(A.raceMine('acc1').rec.n, 400, 'and its record is not kept');
+  A.racePut('acc1', { ...rec, n: 450 }, 0, phone);
+  assert.equal(A.raceEnd('acc1', laptop, 'r1'), false, 'the laptop leaving does not end the phone\'s race');
+  assert.equal(A.raceMine('acc1').rec.n, 450);
+  // a restart: memory is gone, the file brings it back
+  const f = JSON.parse(fs.readFileSync(path.join(DIR, 'races', 'acc1.json'), 'utf8'));
+  assert.equal(f.dev, phone);
+  A.racePut('acc1', { ...rec, n: 460, done: true }, 0, phone);
+  assert.equal(A.raceMine('acc1').rec, null, 'a finished race is not offered');
+  assert.equal(A.raceEnd('acc1', phone, 'r1'), true);
+  assert.ok(!fs.existsSync(path.join(DIR, 'races', 'acc1.json')), 'cleared from disk');
+  // over HTTP with the session
+  const put = await call(`/api/me/race?dev=${laptop}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(rec) });
+  assert.equal(put.status, 200);
+  const got = await call('/api/me/race'); assert.equal(got.body.rec.id, 'r1'); assert.equal(got.body.dev, laptop);
+  const tk = await call(`/api/me/race/take?dev=${phone}&id=r1`, { method: 'POST' }); assert.equal(tk.body.rec.id, 'r1');
+  const again = await call(`/api/me/race?dev=${laptop}`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify(rec) });
+  assert.equal(again.body.taken, true);
+});
 srv.close(); core.close(); fs.rmSync(DIR, { recursive: true, force: true });
 console.log(`accounts: ${ok} checks passed`);
