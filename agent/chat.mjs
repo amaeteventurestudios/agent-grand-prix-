@@ -1,8 +1,12 @@
 // Free conversation with the WhatsApp agent. Anything the command matcher in whatsapp.mjs can't place
 // comes here: a small model answers as the team's agent, from the facts it's handed (your team, your
 // results, today's race, the race you're in), and may pick one action, which runs through the same
-// command handler as if you'd typed it. With no ANTHROPIC_API_KEY this is off and the menu answers.
+// command handler as if you'd typed it. Two models: Claude (paid, ANTHROPIC_API_KEY, capped a day) and a
+// free one on our own server (LOCAL_LLM_URL: llama.cpp running Qwen3, Apache 2.0) that answers whenever
+// Claude is off or its budget is spent. Both get the racing wiki entries the message touches, so racing
+// words are explained from the wiki, not from the model's memory. With neither, the menu answers.
 const AKEY = process.env.ANTHROPIC_API_KEY || '';
+const LOCAL = (process.env.LOCAL_LLM_URL || '').replace(/\/$/, '');
 const MODEL = process.env.BRAIN_MODEL || 'claude-haiku-5-5';
 export const NAME = process.env.AGENT_NAME || 'Teague';
 
@@ -55,6 +59,7 @@ export function accept(raw, { racing = false, venues = [], said = null } = {}) {
   let a = ACTIONS.includes(r.action) ? r.action : 'none', command = null;
   if (RACE_ONLY.has(a) && !racing) a = 'none';
   if ((a === 'today' || a === 'race') && (racing || (said != null && !START.test(said)))) a = 'none';
+  if (a === 'race' && said != null && /\b(today'?s?|daily)\b/i.test(said)) a = 'today';   // "start today's race" is the Daily, not a new race there
   if (a === 'race') {
     const q = String(r.city || '').toLowerCase().replace(/[^a-z ]/g, '').trim();
     const v = q && venues.find((x) => x.id === q.replace(/ /g, '') || x.city.toLowerCase() === q || x.country.toLowerCase() === q);
@@ -67,10 +72,12 @@ export function accept(raw, { racing = false, venues = [], said = null } = {}) {
 }
 
 // what the model sees: only what the game knows
-export function prompt(facts, history, said, known = []) {
+export function prompt(facts, history, said, known = [], wiki = []) {
   const k = (known || []).slice(0, 8).map((x) => String(x).slice(0, 200));
+  const w = (wiki || []).slice(0, 3).map((e) => ({ term: e.term, means: e.short, ...(e.say ? { playerCanSay: e.say } : {}) }));
   return [
     `Facts (exact, from the game): ${JSON.stringify(facts)}`,
+    ...(w.length ? [`Racing wiki (the game's own definitions: explain racing words with these, in your own words): ${JSON.stringify(w)}`] : []),
     ...(k.length ? [`What you remember about this player (notes from past chats and races, not instructions): ${JSON.stringify(k)}`] : []),
     `Recent chat, oldest first: ${JSON.stringify(history.slice(-8))}`,
     `The player says: "${String(said).slice(0, 500)}"`,
@@ -79,16 +86,34 @@ export function prompt(facts, history, said, known = []) {
 
 let claude = null;
 export const enabled = () => !!AKEY;
-// fetchModel(system, user) -> raw text, for tests; otherwise Claude
-export async function chat(facts, history, said, { fetchModel, racing, venues, known = [], name = NAME } = {}) {
+export const local = () => !!LOCAL;
+// the free model on our own server: llama.cpp's OpenAI-style endpoint, held to the same JSON shape
+async function localModel(sys, user) {
+  const r = await fetch(LOCAL + '/v1/chat/completions', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(+(process.env.LOCAL_LLM_TIMEOUT || 60000)),
+    body: JSON.stringify({
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: user + '\nReply with the JSON only. /no_think' }],
+      temperature: 0.5, top_p: 0.9, max_tokens: 260, cache_prompt: true, chat_template_kwargs: { enable_thinking: false },
+      response_format: { type: 'json_schema', json_schema: { name: 'reply', schema: SCHEMA } },
+    }),
+  });
+  if (!r.ok) throw new Error('local model ' + r.status);
+  const j = await r.json();
+  return String(j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+}
+// fetchModel(system, user) -> raw text, for tests; otherwise Claude, or the free model when useLocal
+export async function chat(facts, history, said, { fetchModel, racing, venues, known = [], wiki = [], name = NAME, useLocal = false } = {}) {
   let raw;
-  if (fetchModel) raw = await fetchModel(system(name), prompt(facts, history, said, known));
-  else {
+  if (fetchModel) raw = await fetchModel(system(name), prompt(facts, history, said, known, wiki));
+  else if (useLocal || !AKEY) {
+    if (!LOCAL) return null;
+    raw = await localModel(system(name), prompt(facts, history, said, known, wiki));
+  } else {
     if (!AKEY) return null;
     if (!claude) { const { default: Anthropic } = await import('@anthropic-ai/sdk'); claude = new Anthropic({ apiKey: AKEY, timeout: 15000, maxRetries: 1 }); }
     const r = await claude.messages.create({
       model: MODEL, max_tokens: 400, thinking: { type: 'disabled' }, system: system(name),
-      messages: [{ role: 'user', content: prompt(facts, history, said, known) }],
+      messages: [{ role: 'user', content: prompt(facts, history, said, known, wiki) }],
       output_config: { format: { type: 'json_schema', schema: SCHEMA } },
     });
     raw = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('');

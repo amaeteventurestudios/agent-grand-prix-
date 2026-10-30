@@ -1849,7 +1849,7 @@ function appHome() {
       <div class="ap-ssn"><small>Season ${sl.no}</small><b>${sl.pts} pts</b><small>${sl.place ? ordinal(sl.place) + ' place' : `round ${Math.min(sl.round, CALENDAR.length)} of ${CALENDAR.length}`}</small></div>
     </header>
     <main class="app-main">
-      <section class="ap-hero" aria-label="Next race">
+      <section class="ap-hero" aria-label="Next race">${signedIn() ? '' : acChip()}
         <span class="ap-k">${esc(nx.kicker)}</span>
         <h1>${esc(v.city)}</h1><p class="ap-where">${v.flag} ${esc(v.country)} · ${esc(v.circuit)}</p>
         <div class="ap-facts"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>${tempC(v)}</span><span>${esc(climate(v))}</span>${nx.note ? `<span>${esc(nx.note)}</span>` : ''}</div>
