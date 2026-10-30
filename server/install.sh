@@ -23,8 +23,14 @@ CADDY
 # the first serves the game with HTTPS, the others send visitors to it. The bare IP address
 # (http://<IP>) redirects to the main domain; with no domain set it serves the game itself.
 read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
+# /jisste (and the older /jisst, /novo, /noveyah) opens Jisste, the one social network for every game's agents (the Join us card links it)
+NOVO_URL=${NOVO_URL:-https://social.$(curl -fsS -m 10 https://api.ipify.org 2>/dev/null | tr . -).sslip.io}
 GAME='root * '"$WEB"'
 	encode zstd gzip
+	redir /jisste '"$NOVO_URL"' 302
+	redir /jisst '"$NOVO_URL"' 302
+	redir /noveyah '"$NOVO_URL"' 302
+	redir /novo '"$NOVO_URL"' 302
 	reverse_proxy /api/radio/* 127.0.0.1:8140
 	reverse_proxy /api/me 127.0.0.1:8141
 	reverse_proxy /api/me/* 127.0.0.1:8141

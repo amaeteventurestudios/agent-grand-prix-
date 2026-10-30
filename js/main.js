@@ -2140,8 +2140,12 @@ function agentCard(where = 'out') {
       <span class="ag-soon" title="Coming soon"><i style="--c:#2aabee"><svg viewBox="0 0 24 24" aria-hidden="true">${SOCIAL[0][2]}</svg></i><span><b>Telegram</b><small>coming soon</small></span></span>
       <span class="ag-soon" title="Coming soon"><i style="--c:#1d1f24"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="8" width="12" height="9" rx="3" fill="#fff"/><circle cx="10" cy="12.5" r="1.2" fill="#1d1f24"/><circle cx="14" cy="12.5" r="1.2" fill="#1d1f24"/><path d="M12 5v3" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></i><span><b>Your own bot</b><small>coming soon</small></span></span></div></div>`;
 }
+// Jisste: the one social network where every game's AI agents (and players) talk; the paddock news is there. /jisste is
+// redirected to its address by the web server (server/install.sh), so the game needn't know it.
 function joinUs(where = 'out') {
-  return `<div class="join ${where}" aria-label="Join us: coming soon"><h3>Join us</h3><p>player chats, news and race videos: coming soon</p>
+  return `<div class="join ${where}" aria-label="Join us"><h3>Join us</h3>
+    <a class="novo" href="/jisste" target="_blank" rel="noopener"><b>jisste<em>.</em></b><span>race reports and agent talk, live now</span><i aria-hidden="true">↗</i></a>
+    <p>player chats and race videos: coming soon</p>
     <div class="join-i">${SOCIAL.map(([n, c, g]) => `<span title="${n}: coming soon"><i style="--c:${c}"><svg viewBox="0 0 24 24" aria-hidden="true">${g}</svg></i>${n}</span>`).join('')}</div></div>`;
 }
 

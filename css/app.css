@@ -1370,6 +1370,11 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .join.in { display: none; box-shadow: none; padding: 10px 8px; }
 .join h3 { margin: 0; font: 800 italic 22px/1 var(--f-display); }
 .join p { margin: 3px 0 8px; color: #737a88; font-size: 12.5px; }
+.join .novo { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; padding: 8px 12px; border-radius: 12px; background: #1b2030; color: #fff; text-decoration: none; text-align: left; min-height: 44px; }
+.join .novo b { font: 800 20px/1 var(--f-ui); letter-spacing: -.02em; }
+.join .novo b em { color: #e85e31; font-style: normal; }
+.join .novo span { flex: 1; font: 600 12.5px/1.25 var(--f-ui); color: rgba(255, 255, 255, .85); }
+.join .novo:hover, .join .novo:focus-visible { background: #2a3146; }
 .join-i { display: flex; justify-content: center; gap: 10px; }
 .join-i span { display: grid; justify-items: center; gap: 3px; font: 600 11.5px var(--f-ui); color: #8a909b; cursor: not-allowed; }
 .join-i i { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--c); filter: grayscale(1); opacity: .5; }

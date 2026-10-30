@@ -25,6 +25,7 @@ import { open as openSession } from './accounts.mjs';
 import { setupRace, dailyVenue, raceLaps, trackFor, dayNumber } from '../js/game.js';
 import { lockForRace } from '../js/dna.js';
 import { hashString } from '../js/rng.js';
+import { newsroom, novoOn } from './novo.mjs';
 
 const PORT = +(process.env.BOARD_PORT || 8142);
 const DIR = process.env.BOARD_DIR || '/var/lib/agp-board';
@@ -91,6 +92,13 @@ export function boards(day, me, len = 'short') {
   const mine = me && b.entries[me] ? { ...row(b.entries[me], (b.entries[me].agent ? agent : human).findIndex((x) => x.id === me)), you: true } : null;
   return { day, venue: { id: dailyVenue(day).id, city: dailyVenue(day).city, flag: dailyVenue(day).flag },
     human: human.slice(0, TOP).map(row), agent: agent.slice(0, TOP).map(row), you: mine, humans: human.length, agents: agent.length, len };
+}
+
+// a finished Daily for the newsroom (server/novo.mjs): the people's top three with their account ids, and the counts
+export function dailyFacts(day) {
+  const b = read(day), human = rank(b, false), v = dailyVenue(day);
+  return { day, venue: { city: v.city }, humans: human.length, agents: rank(b, true).length,
+    human: human.slice(0, 3).map((e, i) => ({ id: e.id, place: i + 1, team: e.team, codes: e.codes, best: e.best, pts: e.pts })) };
 }
 
 // ---------- the weekly league: the week's Daily results added up ----------
@@ -207,8 +215,12 @@ export function serve(port = PORT, today = () => Math.floor(Date.now() / 864e5))
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  serve(); console.log(`leaderboards on 127.0.0.1:${PORT}, saving to ${DIR}; weekly prizes ${ECONOMY && ECON_TOKEN && POT ? 'paid in Sora' : 'not connected'}`);
-  const pay = () => payFinishedWeeks().then((w) => w.length && console.log(`paid weeks ${w.join(', ')}`));
+  serve(); console.log(`leaderboards on 127.0.0.1:${PORT}, saving to ${DIR}; weekly prizes ${ECONOMY && ECON_TOKEN && POT ? 'paid in Sora' : 'not connected'}; news ${novoOn() ? 'posted to Novo' : 'off'}`);
+  // each hour: pay finished weeks, then tell Novo about finished Dailies and paid weeks
+  const paid = () => { try { return Object.keys(JSON.parse(fs.readFileSync(paidFile(), 'utf8'))).map(Number).filter((w) => w > weekOf(dayNumber()) - 3); } catch { return []; } };
+  const pay = () => payFinishedWeeks().then((w) => w.length && console.log(`paid weeks ${w.join(', ')}`)).catch(() => {})
+    .then(() => newsroom({ dir: DIR, today: dayNumber(), boards: dailyFacts, league: (w) => league(w, null), paidWeeks: paid() }))
+    .then((s) => s && s.length && console.log(`novo: ${s.join(', ')}`)).catch((e) => console.error('novo:', e.message));
   setTimeout(pay, 30_000); setInterval(pay, 3600_000);
   const marks = () => fetch(`${ACCOUNTS}/agent/passes`, { signal: AbortSignal.timeout(5000) }).then((r) => r.json())
     .then((j) => { VERIFIED.clear(); for (const p of j.passes || []) if (p.active) VERIFIED.add(p.id); }).catch(() => {});
