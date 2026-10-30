@@ -919,7 +919,8 @@ function radioPlans(R) {
 }
 const cap1 = (k) => k[0].toUpperCase() + k.slice(1);
 // free talk: what neither the matcher nor the interpreter could place goes to the driver's AI brain on
-// our server (Claude, checked against the race data there); with no answer in time, the rules brain
+// our server (Claude, or the free model there when Claude is off: it is slower, so we wait longer;
+// both checked against the race data); with no answer in time, the rules brain
 // answers. The driver never acts: a call in the reply comes back as an offer for you to accept.
 async function aiTalk(heard) {
   const R = G.race; if (!R) return;
@@ -931,7 +932,7 @@ async function aiTalk(heard) {
   const memory = b.mem.slice(0, 6).map((m) => `${m.from}: ${m.text || m.kind || (m.cmd && JSON.stringify(m.cmd)) || ''}`);
   const asked = R.t;
   try {
-    const res = await fetch('/api/radio/talk', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(3200),
+    const res = await fetch('/api/radio/talk', { method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(G.aiLocal ? 13000 : 3200),
       body: JSON.stringify({ driver: { name: c.name, tone: P.tone, dna }, facts: brainRead(R, c), memory, said: heard }) });
     const r = res.ok ? await res.json() : null;
     if (!r || !r.text || G.race !== R) throw new Error('no reply');
@@ -1036,8 +1037,8 @@ function strategist(c) {
   // the interpreter is on only when our server says so (it holds the key; the browser never does)
   // (asked again a little later if the first try is lost while the page is still busy loading)
   const health = (again) => fetch('/api/radio/health', { signal: AbortSignal.timeout(4000) }).then((r) => (r.ok ? r.json() : null))
-    .then((j) => { G.interp = !!(j && j.interpreter); G.aiBrain = !!(j && j.brain); G.aiVoice = !!(j && j.voice); })
-    .catch(() => { G.interp = G.aiBrain = G.aiVoice = false; if (again) setTimeout(() => health(false), 8000); });
+    .then((j) => { G.interp = !!(j && j.interpreter); G.aiBrain = !!(j && j.brain); G.aiLocal = !!(j && j.local); G.aiVoice = !!(j && j.voice); })
+    .catch(() => { G.interp = G.aiBrain = G.aiLocal = G.aiVoice = false; if (again) setTimeout(() => health(false), 8000); });
   health(true);
 }
 

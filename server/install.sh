@@ -198,7 +198,8 @@ WantedBy=multi-user.target
 UNIT
 
 # ---- a free AI model on this server (llama.cpp, MIT; Qwen3 1.7B, Apache 2.0): Teague chats with it when the
-# paid model is off or its daily budget is spent, so a chat costs nothing. Local only, two threads, one chat at a time.
+# paid model is off or its daily budget is spent, so a chat costs nothing; the drivers' radio chat uses it too.
+# Local only, two threads, two slots (Teague and the radio each keep their own prompt cached).
 LLM_DIR=/opt/agp-llm; LLAMA_TAG=b6000; LLM_MODEL=$LLM_DIR/qwen3-1.7b-q4_k_m.gguf
 # a failed build or download never stops the deploy: Teague just keeps answering with the menu
 build_llm() {
@@ -224,7 +225,7 @@ if [ -x "$LLM_DIR/$LLAMA_TAG/llama-server" ] && [ -s "$LLM_MODEL" ]; then
 Description=Agent Grand Prix free AI model (llama.cpp, Qwen3 1.7B)
 After=network-online.target
 [Service]
-ExecStart=$LLM_DIR/$LLAMA_TAG/llama-server -m $LLM_MODEL --host 127.0.0.1 --port 8150 -t 2 -c 8192 -np 1 --jinja
+ExecStart=$LLM_DIR/$LLAMA_TAG/llama-server -m $LLM_MODEL --host 127.0.0.1 --port 8160 -t 2 -c 8192 -np 2 --jinja
 Restart=always
 RestartSec=5
 DynamicUser=yes
@@ -233,7 +234,8 @@ MemoryMax=3G
 [Install]
 WantedBy=multi-user.target
 UNIT
-  sudo grep -q '^LOCAL_LLM_URL=' /etc/agent-grand-prix.env || echo 'LOCAL_LLM_URL=http://127.0.0.1:8150' | sudo tee -a /etc/agent-grand-prix.env >/dev/null
+  # port 8160: 8150 is the owner screen's (server/spacetime-install.sh)
+  sudo sed -i '/^LOCAL_LLM_URL=/d' /etc/agent-grand-prix.env; echo 'LOCAL_LLM_URL=http://127.0.0.1:8160' | sudo tee -a /etc/agent-grand-prix.env >/dev/null
 fi
 
 # ---- leaderboards (checks every submitted Daily by replaying it with the game's own engine) ----
@@ -320,6 +322,11 @@ sleep 1; curl -fsS http://127.0.0.1:8142/api/board/health && echo ' <- leaderboa
 sudo systemctl enable agp-live >/dev/null && sudo systemctl restart agp-live
 sleep 1; curl -fsS http://127.0.0.1:8143/api/live/health && echo ' <- live races' || echo 'Live race service not answering yet'
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
-for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS -m 3 http://127.0.0.1:8150/health >/dev/null 2>&1 && { echo 'Free AI model answers (Teague chats at no cost)'; break; }; sleep 3; done
+LLM_UP=0; for i in $(seq 1 20); do curl -fsS -m 3 http://127.0.0.1:8160/health 2>/dev/null | grep -q '"ok"' && { LLM_UP=1; break; }; sleep 3; done
+if [ "$LLM_UP" = 1 ]; then
+  # one short reply, timed: how long a driver's radio answer from the free model takes on this server
+  T0=$(date +%s.%N); curl -fsS -m 60 -o /dev/null -H 'content-type: application/json' -d '{"messages":[{"role":"user","content":"In one short sentence, as a racing driver: how are the tyres? /no_think"}],"max_tokens":40,"chat_template_kwargs":{"enable_thinking":false}}' http://127.0.0.1:8160/v1/chat/completions
+  echo "Free AI model answers (Teague and the drivers' radio chat at no cost); a short reply took $(awk -v a="$T0" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }') s"
+else echo "Free AI model not answering: $(systemctl is-active agp-llm 2>/dev/null)"; sudo journalctl -u agp-llm -n 5 --no-pager -o cat 2>/dev/null | cut -c1-160; fi
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
 curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio (interpreter = Jev, brain = drivers AI)' || echo 'Team radio interpreter not answering yet'
