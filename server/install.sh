@@ -197,6 +197,45 @@ StateDirectory=agp-memory
 WantedBy=multi-user.target
 UNIT
 
+# ---- a free AI model on this server (llama.cpp, MIT; Qwen3 1.7B, Apache 2.0): Teague chats with it when the
+# paid model is off or its daily budget is spent, so a chat costs nothing. Local only, two threads, one chat at a time.
+LLM_DIR=/opt/agp-llm; LLAMA_TAG=b6000; LLM_MODEL=$LLM_DIR/qwen3-1.7b-q4_k_m.gguf
+# a failed build or download never stops the deploy: Teague just keeps answering with the menu
+build_llm() {
+  [ -x "$LLM_DIR/$LLAMA_TAG/llama-server" ] && return 0
+  echo 'Building llama.cpp (first time only, a few minutes)'
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -q git cmake build-essential >/dev/null
+  local T; T=$(mktemp -d)
+  git clone -q --depth 1 --branch "$LLAMA_TAG" https://github.com/ggml-org/llama.cpp "$T/src" || git clone -q --depth 1 https://github.com/ggml-org/llama.cpp "$T/src"
+  cmake -S "$T/src" -B "$T/build" -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=ON -DLLAMA_CURL=OFF -DBUILD_SHARED_LIBS=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF -DLLAMA_BUILD_SERVER=ON >/dev/null
+  cmake --build "$T/build" --target llama-server -j "$(nproc)" >/dev/null && sudo install -D -m 755 "$T/build/bin/llama-server" "$LLM_DIR/$LLAMA_TAG/llama-server"
+  rm -rf "$T"
+  [ -x "$LLM_DIR/$LLAMA_TAG/llama-server" ]
+}
+get_model() {
+  [ -s "$LLM_MODEL" ] && return 0
+  sudo mkdir -p "$LLM_DIR" && sudo curl -fsSL -o "$LLM_MODEL.part" https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf && sudo mv "$LLM_MODEL.part" "$LLM_MODEL"
+}
+build_llm || echo 'Free AI model: llama.cpp did not build; Teague keeps the menu'
+get_model || echo 'Free AI model: download failed; Teague keeps the menu'
+if [ -x "$LLM_DIR/$LLAMA_TAG/llama-server" ] && [ -s "$LLM_MODEL" ]; then
+  sudo tee /etc/systemd/system/agp-llm.service >/dev/null <<UNIT
+[Unit]
+Description=Agent Grand Prix free AI model (llama.cpp, Qwen3 1.7B)
+After=network-online.target
+[Service]
+ExecStart=$LLM_DIR/$LLAMA_TAG/llama-server -m $LLM_MODEL --host 127.0.0.1 --port 8150 -t 2 -c 8192 -np 1 --jinja
+Restart=always
+RestartSec=5
+DynamicUser=yes
+Nice=10
+MemoryMax=3G
+[Install]
+WantedBy=multi-user.target
+UNIT
+  sudo grep -q '^LOCAL_LLM_URL=' /etc/agent-grand-prix.env || echo 'LOCAL_LLM_URL=http://127.0.0.1:8150' | sudo tee -a /etc/agent-grand-prix.env >/dev/null
+fi
+
 # ---- leaderboards (checks every submitted Daily by replaying it with the game's own engine) ----
 sudo tee /etc/systemd/system/agp-board.service >/dev/null <<UNIT
 [Unit]
@@ -264,6 +303,9 @@ sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddy
 sudo systemctl enable caddy >/dev/null
 sudo systemctl is-active --quiet caddy && sudo systemctl reload caddy || sudo systemctl restart caddy
 sudo systemctl enable agp-radio >/dev/null; sudo systemctl restart agp-radio
+if [ -f /etc/systemd/system/agp-llm.service ]; then
+  sudo systemctl enable agp-llm >/dev/null; sudo systemctl restart agp-llm
+fi
 if [ -f /etc/systemd/system/agent-grand-prix.service ]; then
   sudo systemctl enable agent-grand-prix >/dev/null; sudo systemctl restart agent-grand-prix
 fi
@@ -278,5 +320,6 @@ sleep 1; curl -fsS http://127.0.0.1:8142/api/board/health && echo ' <- leaderboa
 sudo systemctl enable agp-live >/dev/null && sudo systemctl restart agp-live
 sleep 1; curl -fsS http://127.0.0.1:8143/api/live/health && echo ' <- live races' || echo 'Live race service not answering yet'
 [ -f /etc/systemd/system/agent-grand-prix.service ] && sudo systemctl is-active agent-grand-prix || echo 'WhatsApp agent: waiting for its key'
+for i in 1 2 3 4 5 6 7 8 9 10; do curl -fsS -m 3 http://127.0.0.1:8150/health >/dev/null 2>&1 && { echo 'Free AI model answers (Teague chats at no cost)'; break; }; sleep 3; done
 curl -fsS -o /dev/null http://127.0.0.1/ && echo 'Website answers on the server'
 curl -fsS http://127.0.0.1:8140/api/radio/health && echo ' <- team radio (interpreter = Jev, brain = drivers AI)' || echo 'Team radio interpreter not answering yet'

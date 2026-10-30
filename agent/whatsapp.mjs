@@ -444,7 +444,7 @@ function handle(from, text, name, { noChat = false } = {}) {
   if (/^(wiki|glossary|terms|racing terms|words|dictionary)$/.test(t)) return send(from, wikiList());
   const w = Wiki.lookup(text);
   if (w) return send(from, L && ['gap', 'status', 'pace', 'p1'].includes(w.id) ? summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`) : Wiki.answer(w, { fmt: 'wa', site: SITE }));
-  if (!noChat && ((Chat.enabled() && CHAT.all > 0) || chatModel)) return converse(from, p, text);
+  if (!noChat && ((Chat.enabled() && CHAT.all > 0) || Chat.local() || chatModel)) return converse(from, p, text);
   if (L) return send(from, RACE_HELP);
   return send(from, welcome(p));
 }
@@ -454,8 +454,12 @@ let chatModel = null; // tests hand in a fake model
 export function setChatModel(f) { chatModel = f; }
 // The AI chat costs money, so it has a daily budget: CHAT_PLAYER_DAY free chats a player (CHAT_PASS_DAY
 // with the Anti-Bot Pass), CHAT_DAY_LIMIT for everyone together, and never more than 20 in 10 minutes.
-// Past that the agent answers with the menu; commands and races never use the AI and always work.
-const CHAT = { free: +(process.env.CHAT_PLAYER_DAY || 5), pass: +(process.env.CHAT_PASS_DAY || 30), all: +(process.env.CHAT_DAY_LIMIT || 0) };   // 0: the AI chat is off (the owner pays for it)
+// Past that the free model on our own server answers (LOCAL_PLAYER_DAY chats a player, LOCAL_DAY_LIMIT
+// for everyone: it costs nothing but shares two CPU cores), then the menu; commands and races never use the AI.
+const CHAT = { free: +(process.env.CHAT_PLAYER_DAY || 5), pass: +(process.env.CHAT_PASS_DAY || 30), all: +(process.env.CHAT_DAY_LIMIT || 0),   // 0: the paid AI chat is off (the owner pays for it)
+  localMine: +(process.env.LOCAL_PLAYER_DAY || 60), localAll: +(process.env.LOCAL_DAY_LIMIT || 2000) };
+const localHits = new Map(); // player -> free-model chats today
+let localDay = 0;
 const chatHits = new Map(); // player -> times today
 let chatDay = { d: '', n: 0 };
 const passCache = new Map(); // account id -> { on, at }
@@ -468,13 +472,17 @@ async function hasPass(p) {
 }
 async function chatLimited(from, p) {
   const now = Date.now(), d = new Date().toISOString().slice(0, 10);
-  if (chatDay.d !== d) { chatDay = { d, n: 0 }; chatHits.clear(); }
-  const h = chatHits.get(from) || [];
-  if (h.filter((x) => now - x < 6e5).length >= 20) return 'busy';
-  if (chatDay.n >= CHAT.all) return 'all';
-  if (h.length >= ((await hasPass(p)) ? CHAT.pass : CHAT.free)) return 'mine';
-  h.push(now); chatHits.set(from, h); chatDay.n++;
-  return null;
+  if (chatDay.d !== d) { chatDay = { d, n: 0 }; chatHits.clear(); localHits.clear(); localDay = 0; }
+  const h = chatHits.get(from) || [], l = localHits.get(from) || [];
+  if ([...h, ...l].filter((x) => now - x < 6e5).length >= 20) return 'busy';
+  // the paid model while its budget lasts, then the free one
+  const paid = (Chat.enabled() || !!chatModel) && chatDay.n < CHAT.all && h.length < ((await hasPass(p)) ? CHAT.pass : CHAT.free);
+  if (paid) { h.push(now); chatHits.set(from, h); chatDay.n++; return null; }
+  if (!Chat.local() || chatModel) return chatDay.n >= CHAT.all ? 'all' : 'mine';
+  if (localDay >= CHAT.localAll) return 'all';
+  if (l.length >= CHAT.localMine) return 'mine';
+  l.push(now); localHits.set(from, l); localDay++;
+  return 'local';
 }
 function facts(p, L) {
   const n = dayNumber(), v = dailyVenue(n);
@@ -498,14 +506,14 @@ function facts(p, L) {
   return f;
 }
 async function converse(from, p, text) {
-  const lim = await chatLimited(from, p);
-  if (lim) return send(from, lim === 'busy' ? "Let's take a breather, I need a few minutes. Commands still work: reply *help*."
+  const lim = await chatLimited(from, p), useLocal = lim === 'local';
+  if (lim && !useLocal) return send(from, lim === 'busy' ? "Let's take a breather, I need a few minutes. Commands still work: reply *help*."
     : `That's my chatting done for today${lim === 'mine' ? '' : ' (the whole paddock has been busy)'}. I still race and take every call: reply *today* to race, or *help* for the commands.`);
   const L = races.get(from);
   const hist = (p.chat ||= []);
   const key = await memUid(from, p), known = await recallFor(key, text);
   let r = null;
-  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES, known, name: nameOf(from) }); } catch (e) { log('chat failed', e.message); }
+  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES, known, wiki: Wiki.related(text), name: nameOf(from), useLocal }); } catch (e) { log('chat failed', e.message); }
   if (!r) return send(from, L ? RACE_HELP : welcome(p));
   hist.push({ player: text.slice(0, 300) }, { you: r.say.slice(0, 300) });
   p.chat = hist.slice(-12); save();

@@ -227,6 +227,20 @@ export function lookup(text) {
   return hit ? hit[1] : null;
 }
 
+// The wiki entries a chat message touches, for a chat model to answer from: every term said in it
+// (longest first), then entries sharing its longer words. Never more than n.
+const STOP = new Set(['about', 'after', 'again', 'should', 'would', 'could', 'there', 'their', 'which', 'where', 'think', 'thats', 'really', 'today', 'still', 'going', 'doing', 'being', 'right', 'other']);
+export function related(text, n = 3) {
+  const t = norm(String(text || '').slice(0, 500)), out = [];
+  for (const [w, e] of index()) if (w.trim().length > 2 && t.includes(w) && !out.includes(e)) out.push(e);
+  if (out.length < n) {
+    const words = new Set(t.trim().split(' ').filter((w) => w.length >= 5 && !STOP.has(w)).map((w) => sing(' ' + w + ' ').trim()));
+    const score = (e) => norm(e.term + ' ' + e.also.join(' ')).trim().split(' ').filter((w) => words.has(sing(' ' + w + ' ').trim())).length;
+    out.push(...WIKI.filter((e) => !out.includes(e)).map((e) => [score(e), e]).filter(([k]) => k > 0).sort((a, b) => b[0] - a[0]).map(([, e]) => e));
+  }
+  return out.slice(0, n);
+}
+
 // The answer as one short message. fmt 'wa' uses WhatsApp bold (*term*).
 export function answer(e, { fmt = 'text', site = '' } = {}) {
   const b = fmt === 'wa' ? (s) => `*${s}*` : (s) => s;
