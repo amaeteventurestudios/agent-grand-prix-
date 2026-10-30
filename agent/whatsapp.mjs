@@ -16,6 +16,7 @@ import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, raceLaps, trackFor } fr
 import { DT, fmtTime } from '../js/sim.js';
 import * as Chat from './chat.mjs';
 import * as PW from './pitwall.mjs';
+import * as Wiki from '../js/wiki.js';
 
 const TOKEN = process.env.WHATSAPP_AGENT_TOKEN;
 const API = (process.env.WA_API || 'https://api.whatsapp.com/agent/v1').replace(/\/$/, '');
@@ -33,13 +34,23 @@ function save() {
   renameSync(tmp, STATE_FILE);
 }
 
+// ---------- the agents: the house agent (WHATSAPP_AGENT_TOKEN) and players' own ----------
+// A player can make their own agent in WhatsApp (Settings > Agents > Create an agent), name it and paste
+// its API key into the game (server/accounts.mjs keeps it). This one program runs all of them. A chat
+// with a player's own agent is addressed "<account id>|<user id>", a chat with the house agent by the
+// bare user id, so everything else (players, races, linking) works the same for both.
+const AGENTS = new Map();   // key ('main' or an account id) -> { token, name, stop }
+export const agentOf = (addr) => { const i = String(addr).indexOf('|'); return i < 0 ? { key: 'main', to: addr } : { key: addr.slice(0, i), to: addr.slice(i + 1) }; };
+export const nameOf = (addr) => { const k = agentOf(addr).key; return k === 'main' ? Chat.NAME : (AGENTS.get(k) || {}).name || 'your agent'; };
+const tokenOf = (key) => (AGENTS.get(key) || {}).token;
+
 // ---------- WhatsApp Agent Platform client ----------
-async function call(method, path, body, timeoutMs = 40000) {
+async function call(method, path, body, timeoutMs = 40000, token = TOKEN) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const res = await fetch(API + path, {
       method, signal: ctl.signal,
-      headers: { Authorization: `Bearer ${TOKEN}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       body: body ? JSON.stringify(body) : undefined,
     });
     if (res.status === 204) return null;
@@ -49,26 +60,28 @@ async function call(method, path, body, timeoutMs = 40000) {
   } finally { clearTimeout(t); }
 }
 
-// Outbound queue: the platform allows 12 messages a minute per agent, so keep to 10.
+// Outbound queue: the platform allows 12 messages a minute per agent, so keep to 10 each.
 const queue = [];
-let sentAt = [];
+const sentAt = new Map();   // agent key -> send times in the last minute
 function send(to, text) { if (text) queue.push({ to, text: text.slice(0, 4096) }); }
 async function pump() {
   for (;;) {
-    sentAt = sentAt.filter((t) => Date.now() - t < 60000);
-    if (queue.length && sentAt.length < 10) {
-      const m = queue[0];
-      try {
-        await call('POST', '/messages', { messaging_product: 'whatsapp', to: m.to, type: 'text', text: { body: m.text, preview_url: true } });
-        queue.shift(); sentAt.push(Date.now());
+    const now = Date.now(), busy = (k) => (sentAt.get(k) || []).filter((t) => now - t < 60000).length >= 10;
+    const i = queue.findIndex((m) => !busy(agentOf(m.to).key));
+    if (i >= 0) {
+      const m = queue[i], { key, to } = agentOf(m.to), token = tokenOf(key);
+      if (!token) queue.splice(i, 1);   // that agent was removed
+      else try {
+        await call('POST', '/messages', { messaging_product: 'whatsapp', to, type: 'text', text: { body: m.text, preview_url: true } }, 40000, token);
+        queue.splice(i, 1); sentAt.set(key, [...(sentAt.get(key) || []).filter((t) => Date.now() - t < 60000), Date.now()]);
       } catch (e) {
-        log('send failed', e.message);
-        if (e.status === 429 || e.status >= 500) await sleep(5000); else queue.shift(); // a 400 will never succeed
+        log('send failed', key === 'main' ? 'main' : 'own', e.message);
+        if (e.status === 429 || e.status >= 500) await sleep(5000); else queue.splice(i, 1); // a 400 will never succeed
       }
     }
     // when the queue backs up during a race, merge waiting lines for the same person
     if (queue.length > 4) {
-      const a = queue[1], b = queue[2];
+      const a = queue[1], b = queue[2];   // (a and b have the same address, so the same agent)
       if (a && b && a.to === b.to && a.text.length + b.text.length < 3500) { a.text += '\n\n' + b.text; queue.splice(2, 1); }
     }
     await sleep(queue.length ? 300 : 1000);
@@ -187,7 +200,7 @@ function decision(L, asks) {
   const temp = tempTxt(L.venue.temp);
   const head = cars.length > 1 ? [...PW.carCard(L, cars[0], temp), '', ...PW.carCard(L, cars[1], temp).slice(0, 4)] : PW.carCard(L, lead, temp);
   L.calib = (p.calib ||= { right: 0, total: 0 });
-  return PW.cardText({ head, why, cars, q, lap, calib: p.calib });
+  return PW.cardText({ head, why, cars, q, lap, calib: p.calib, name: nameOf(L.to) });
 }
 // o: an option index, or { box } for a stop the card didn't offer
 function answer(L, id, o, how) {
@@ -272,7 +285,7 @@ function finish(L) {
       return `${x.dnf ? '❌' : x.pos <= 3 ? ['🥇', '🥈', '🥉'][x.pos - 1] : x.points ? '✅' : '▫️'} *${x.car.code}* ${x.dnf ? 'DNF' : 'P' + x.pos}${x.dnf ? '' : ` · from P${x.car.grid}${moved > 0 ? ` ▲${moved}` : moved < 0 ? ` ▼${-moved}` : ''}`}${x.penalty ? ' · +20s penalty' : ''}\n      ${PW.stintLine(st[x.id] || [{ c: x.car.tyre.c, lap: 1 }])} · ${x.stops} stop${x.stops === 1 ? '' : 's'}`;
     }),
     `🏆 *+${pts} point${pts === 1 ? '' : 's'}*`,
-    ...(cards.length ? ['', '*Pit wall*', `📋 ${cards.length} call${cards.length === 1 ? '' : 's'}: you made ${mine.length}, Teague made ${timed.length}${against.length ? ` · you overruled Teague ${against.length === 1 ? 'once' : against.length + ' times'}` : ''}`] : []),
+    ...(cards.length ? ['', '*Pit wall*', `📋 ${cards.length} call${cards.length === 1 ? '' : 's'}: you made ${mine.length}, ${nameOf(L.to)} made ${timed.length}${against.length ? ` · you overruled ${nameOf(L.to)} ${against.length === 1 ? 'once' : against.length + ' times'}` : ''}`] : []),
     ...(best && best.car.grid - best.pos >= 3 ? [`⭐ ${best.car.code} gained ${best.car.grid - best.pos} places`] : []),
     '',
     L.kind === 'daily' ? `Daily Grand Prix #${L.day} done.${SITE ? `\nRace it in 3D: ${SITE}` : ''}` : 'Reply *today* or *race <city>* for another.',
@@ -318,6 +331,10 @@ const HELP = [
   '• *memories* · what I remember about you',
   '• *forget me* · I forget everything I remember about you',
   '',
+  '📖 *Racing words*',
+  '• *what is an undercut?* · ask about any racing word',
+  '• *wiki* · every word I know',
+  '',
   '📻 *During a race*',
   '• *box softs* · pit (or mediums, hards, inters, wets)',
   '• *stay out* · cancel the stop',
@@ -337,12 +354,23 @@ const RACE_HELP = [
   '• *attack*, *defend*',
   '• *boost*',
   '• *status*, *stop*',
+  '• *what is …?* · any racing word',
 ].join('\n');
+
+function wikiList() {
+  return ['📖 *RACING WIKI*', '', 'Ask me about any racing word, e.g.', '• *what is an undercut?*', '• *what does dirty air mean?*', '• *define safety car*', '',
+    ...Wiki.CATS.map(([c, title]) => `${title}\n${Wiki.WIKI.filter((e) => e.cat === c).map((e) => e.term).join(' · ')}`).join('\n\n').split('\n'),
+    ...(SITE ? ['', `Every word with examples: ${SITE.replace(/\/$/, '')}/wiki`] : [])].join('\n');
+}
 
 function handle(from, text, name, { noChat = false } = {}) {
   const p = player(from, name);
   const t = text.trim().toLowerCase().replace(/[!.?]+$/, '');
   const L = races.get(from);
+  const own = agentOf(from).key;
+  if (own !== 'main' && !p.linked && !p.bindTried) return bindOwn(from, p, own);
+  const nm = own !== 'main' && p.uid === own && text.trim().match(/^(?:call yourself|your name is|i(?:'|’)?ll call you|rename yourself(?: to)?|new name:?)\s+(.{1,24})$/i);
+  if (nm) return renameOwn(from, own, nm[1]);
   const R = L && L.R;
   const car = L && (L.sel ? R.byId.get(L.sel) : R.byId.get('you-0'));
   const cmd = (c, id = car && car.id) => { R.command(id, c); if (R.byId.get(id).auto && !('auto' in c)) R.command(id, { auto: false }); };
@@ -412,7 +440,11 @@ function handle(from, text, name, { noChat = false } = {}) {
     return startRace(from, p, 'quick', v, len);
   }
   if (/^(hi+|hello|hey|hey there|hiya|yo|good (morning|afternoon|evening)|start|menu)$/.test(t)) return send(from, welcome(p));
-  if (!noChat && (Chat.enabled() || chatModel)) return converse(from, p, text);
+  // the racing wiki: "what is an undercut?", "define dirty air", "wiki" answer at once, with no AI
+  if (/^(wiki|glossary|terms|racing terms|words|dictionary)$/.test(t)) return send(from, wikiList());
+  const w = Wiki.lookup(text);
+  if (w) return send(from, L && ['gap', 'status', 'pace', 'p1'].includes(w.id) ? summary(L, `*Lap ${R.leaderLap()}/${R.laps}*`) : Wiki.answer(w, { fmt: 'wa', site: SITE }));
+  if (!noChat && ((Chat.enabled() && CHAT.all > 0) || chatModel)) return converse(from, p, text);
   if (L) return send(from, RACE_HELP);
   return send(from, welcome(p));
 }
@@ -420,11 +452,29 @@ function handle(from, text, name, { noChat = false } = {}) {
 // ---------- free conversation (agent/chat.mjs) ----------
 let chatModel = null; // tests hand in a fake model
 export function setChatModel(f) { chatModel = f; }
-const chatHits = new Map(); // player -> times: 20 a 10 minutes, 150 a day
-function chatLimited(from) {
-  const now = Date.now(), h = (chatHits.get(from) || []).filter((x) => now - x < 864e5);
-  h.push(now); chatHits.set(from, h);
-  return h.filter((x) => now - x < 6e5).length > 20 || h.length > 150;
+// The AI chat costs money, so it has a daily budget: CHAT_PLAYER_DAY free chats a player (CHAT_PASS_DAY
+// with the Anti-Bot Pass), CHAT_DAY_LIMIT for everyone together, and never more than 20 in 10 minutes.
+// Past that the agent answers with the menu; commands and races never use the AI and always work.
+const CHAT = { free: +(process.env.CHAT_PLAYER_DAY || 5), pass: +(process.env.CHAT_PASS_DAY || 30), all: +(process.env.CHAT_DAY_LIMIT || 0) };   // 0: the AI chat is off (the owner pays for it)
+const chatHits = new Map(); // player -> times today
+let chatDay = { d: '', n: 0 };
+const passCache = new Map(); // account id -> { on, at }
+async function hasPass(p) {
+  if (!p.uid) return false;
+  const c = passCache.get(p.uid);
+  if (c && Date.now() - c.at < 600000) return c.on;
+  let on = false; try { on = !!(await accountsApi('GET', '/agent/pass?id=' + encodeURIComponent(p.uid))).active; } catch { /* no server: no pass */ }
+  passCache.set(p.uid, { on, at: Date.now() }); return on;
+}
+async function chatLimited(from, p) {
+  const now = Date.now(), d = new Date().toISOString().slice(0, 10);
+  if (chatDay.d !== d) { chatDay = { d, n: 0 }; chatHits.clear(); }
+  const h = chatHits.get(from) || [];
+  if (h.filter((x) => now - x < 6e5).length >= 20) return 'busy';
+  if (chatDay.n >= CHAT.all) return 'all';
+  if (h.length >= ((await hasPass(p)) ? CHAT.pass : CHAT.free)) return 'mine';
+  h.push(now); chatHits.set(from, h); chatDay.n++;
+  return null;
 }
 function facts(p, L) {
   const n = dayNumber(), v = dailyVenue(n);
@@ -448,12 +498,14 @@ function facts(p, L) {
   return f;
 }
 async function converse(from, p, text) {
-  if (chatLimited(from)) return send(from, "Let's take a breather, I need a few minutes. Commands still work: reply *help*.");
+  const lim = await chatLimited(from, p);
+  if (lim) return send(from, lim === 'busy' ? "Let's take a breather, I need a few minutes. Commands still work: reply *help*."
+    : `That's my chatting done for today${lim === 'mine' ? '' : ' (the whole paddock has been busy)'}. I still race and take every call: reply *today* to race, or *help* for the commands.`);
   const L = races.get(from);
   const hist = (p.chat ||= []);
   const key = await memUid(from, p), known = await recallFor(key, text);
   let r = null;
-  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES, known }); } catch (e) { log('chat failed', e.message); }
+  try { r = await Chat.chat(facts(p, L), hist, text, { fetchModel: chatModel, racing: !!L, venues: VENUES, known, name: nameOf(from) }); } catch (e) { log('chat failed', e.message); }
   if (!r) return send(from, L ? RACE_HELP : welcome(p));
   hist.push({ player: text.slice(0, 300) }, { you: r.say.slice(0, 300) });
   p.chat = hist.slice(-12); save();
@@ -520,6 +572,40 @@ async function accountsHttp(method, route, body) {
 }
 let accountsApi = accountsHttp;
 export function setAccounts(f) { accountsApi = f; }   // tests hand in a fake server
+
+// a player's own agent: its first chat is its owner (the account that pasted the key). One try per
+// chat; a stranger who finds the agent can still race with it, unlinked.
+async function bindOwn(from, p, uid) {
+  p.bindTried = true;
+  let r = null;
+  try { r = await accountsApi('POST', '/agent/bind', { id: uid, phone: from }); } catch { r = null; }
+  if (r && r.ok) {
+    const was = memKey(from, p);
+    p.linked = true; p.uid = uid; p.muted = null;
+    if (r.team && r.team.name && Array.isArray(r.team.drivers)) p.team = r.team;
+    if (was !== uid) memoryApi('POST', '/memory/move', { from: was, into: uid }).catch(() => {});
+  } else p.bindTried = !!r;   // the server said no (someone else's chat); if it was unreachable, try again next message
+  save();
+  const me = nameOf(from);
+  return send(from, [
+    `👋 *Hi, I'm ${me}*, your race engineer for Agent Grand Prix.`,
+    '',
+    p.linked ? `🔗 I'm connected to *${(p.team && p.team.name) || 'your team'}*. I follow every race you start on the website and text you the big calls.` : "I'm someone else's agent, so I won't follow your races on the website. You can still race with me here: reply *today*.",
+    '',
+    '• Hand the team to your agents in the game and I\'ll text you the big calls, with my pick and a deadline.',
+    '• Or race right here: reply *today*.',
+    `• Want another name? Reply *call yourself <name>*.`,
+    '',
+    'Reply *help* for every command.',
+  ].join('\n'));
+}
+async function renameOwn(from, uid, raw) {
+  const nm = raw.replace(/[\u0000-\u001f<>*_~`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+  if (!nm) return send(from, 'What would you like to call me?');
+  const a = AGENTS.get(uid); if (a) a.name = nm;
+  accountsApi('POST', '/agent/name', { id: uid, name: nm }).catch(() => {});
+  return send(from, `Done. I'm *${nm}* from now on. (WhatsApp shows the name you gave me in Settings > Agents; change it there too if you like.)`);
+}
 
 async function linkAccount(from, p, code) {
   let r;
@@ -610,45 +696,69 @@ async function followAll() {
   } finally { following = false; }
 }
 
-// ---------- the poll loop ----------
-async function poll() {
-  for (;;) {
+// ---------- the poll loops: one per agent ----------
+async function poll(key) {
+  const a = AGENTS.get(key);
+  state.offsets ||= {};
+  const getOff = () => (key === 'main' ? state.offset : state.offsets[key]);
+  const setOff = (v) => { if (key === 'main') state.offset = v; else state.offsets[key] = v; };
+  while (!a.stop) {
     try {
       // no offset until WhatsApp hands us one (a quiet first poll returns none, and "null" is refused)
-      const q = state.offset == null ? '?limit=50&timeout=25' : `?offset=${state.offset}&limit=50&timeout=25`;
-      const up = await call('GET', '/updates' + q);
+      const off = getOff();
+      const q = off == null ? '?limit=50&timeout=25' : `?offset=${off}&limit=50&timeout=25`;
+      const up = await call('GET', '/updates' + q, null, 40000, a.token);
+      if (a.stop) break;
       if (!up) continue; // 204: nothing new
       const val = up.entry?.[0]?.changes?.[0]?.value || {};
       const names = Object.fromEntries((val.contacts || []).filter((c) => c.profile).map((c) => [c.wa_id, c.profile.name]));
       for (const msg of val.messages || []) {
         if (state.seen.includes(msg.id)) continue;
         state.seen.push(msg.id);
+        const addr = key === 'main' ? msg.from : `${key}|${msg.from}`;
         if (msg.type === 'text') {
-          const oops = (e) => { log('handle failed', e); send(msg.from, 'Sorry, something went wrong there. Try again?'); };
-          try { Promise.resolve(handle(msg.from, msg.text.body, names[msg.from])).catch(oops); } catch (e) { oops(e); }
+          const oops = (e) => { log('handle failed', e); send(addr, 'Sorry, something went wrong there. Try again?'); };
+          try { Promise.resolve(handle(addr, msg.text.body, names[msg.from])).catch(oops); } catch (e) { oops(e); }
         }
-        else if (msg.type !== 'reaction') send(msg.from, 'I only read text for now. Reply *help*.');
+        else if (msg.type !== 'reaction') send(addr, 'I only read text for now. Reply *help*.');
       }
-      if (up.next_offset != null) state.offset = up.next_offset;
+      if (up.next_offset != null) setOff(up.next_offset);
       save();
     } catch (e) {
-      if (e.status === 401 || e.code === 190 || e.code === 100) { log('The API key was rejected. Generate a new one in WhatsApp and update WHATSAPP_AGENT_TOKEN.'); await sleep(60000); }
+      if (e.status === 401 || e.code === 190 || e.code === 100) { log(key === 'main' ? 'The API key was rejected. Generate a new one in WhatsApp and update WHATSAPP_AGENT_TOKEN.' : 'A player\'s agent key was rejected.'); await sleep(key === 'main' ? 60000 : 300000); }
       else if (e.status === 409) await sleep(1000); // another poll replaced this one
-      else if (e.status === 400 && /offset/i.test(e.message)) { log('Offset refused, starting fresh.'); state.offset = null; save(); }
+      else if (e.status === 400 && /offset/i.test(e.message)) { log('Offset refused, starting fresh.'); setOff(null); save(); }
       else { log('poll failed', e.message); await sleep(e.status === 429 ? 10000 : 4000); }
     }
     await sleep(4100); // at most 15 polls a minute
   }
 }
+function runAgent(key, token, name) {
+  const a = AGENTS.get(key);
+  if (a && a.token === token) { a.name = name; return; }
+  if (a) a.stop = true;
+  if (key !== 'main' && state.offsets) delete state.offsets[key];   // a new key is a new agent: start at its head
+  AGENTS.set(key, { token, name, stop: false });
+  poll(key);
+}
+// players' own agents, from the game server; every 30 s, so a key pasted in the game is running soon after
+async function syncAgents() {
+  let r; try { r = await accountsApi('GET', '/agent/tokens'); } catch { return; }
+  const want = new Map((r.agents || []).filter((x) => x && x.id && x.token).map((x) => [x.id, x]));
+  for (const [key, a] of AGENTS) if (key !== 'main' && !want.has(key)) { a.stop = true; AGENTS.delete(key); }
+  for (const [id, x] of want) runAgent(id, x.token, x.name || 'your agent');
+}
 
 // ---------- go ----------
 export function main() {
-  if (!TOKEN) { console.error('Set WHATSAPP_AGENT_TOKEN to the agent API key from WhatsApp (Chat info > API key).'); process.exit(1); }
+  if (!TOKEN) log('No WHATSAPP_AGENT_TOKEN: running players\' own agents only.');
   log(`Agent Grand Prix agent running. ${CALENDAR.length}-round season, ${VENUES.length} circuits. Speed ${SPEED}x.`);
   let last = Date.now();
   setInterval(() => { const now = Date.now(); tickRaces(Math.min(5, (now - last) / 1000)); last = now; }, 250);
   setInterval(followAll, 2000);
-  pump(); poll();
+  pump();
+  if (TOKEN) runAgent('main', TOKEN, Chat.NAME);
+  syncAgents(); setInterval(syncAgents, 30000);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
-export { handle, races, queue, tickRaces, followAll };
+export { handle, races, queue, tickRaces, followAll, AGENTS, syncAgents };

@@ -134,5 +134,23 @@ await t('Google from the game: straight to Google, and Google\'s answer is passe
   const m = await call('/auth/novenique/callback?merge=MT&who=%40old&state=' + encodeURIComponent(st));
   assert.equal(m.loc, '/?signin=merge&who=%40old');
 });
+await t("a player's own WhatsApp agent: key checked, kept off the page, first chat binds it", async () => {
+  A.setWaCheck(async (tok) => tok === 'good-key');
+  assert.equal((await A.ownAgentSet('p1', 'bad-key', 'Ada')).ok, undefined, 'a key WhatsApp refuses is not kept');
+  assert.ok((await A.ownAgentSet('p1', 'with space', 'Ada')).error, 'junk is refused');
+  assert.ok((await A.ownAgentSet('p1', 'good-key', '')).error, 'a name is needed');
+  const r = await A.ownAgentSet('p1', 'good-key', '  *Ada*  <b>');
+  assert.equal(r.name, 'Ada b', 'the name is cleaned');
+  assert.equal(A.ownAgentBind('p1', 'p2|user:9'), false, 'only its own chats');
+  assert.equal(A.ownAgentBind('p1', 'p1|user:1'), true);
+  assert.equal(A.ownAgentBind('p1', 'p1|user:2'), false, 'a second person is not its owner');
+  assert.equal(A.ownAgentName('p1', 'Sparky'), true);
+  const f = JSON.parse(fs.readFileSync(path.join(DIR, 'agent-tokens.json'), 'utf8'));
+  assert.equal(f.byId.p1.name, 'Sparky'); assert.equal(f.byId.p1.token, 'good-key');
+  assert.equal(fs.statSync(path.join(DIR, 'agent-tokens.json')).mode & 0o077, 0, 'only the server can read the keys');
+  A.ownAgentOff('p1');
+  assert.equal(JSON.parse(fs.readFileSync(path.join(DIR, 'agent-tokens.json'), 'utf8')).byId.p1, undefined);
+  assert.equal(A.ownAgentBind('p1', 'p1|user:1'), false, 'removed: nothing to bind');
+});
 srv.close(); core.close(); fs.rmSync(DIR, { recursive: true, force: true });
 console.log(`accounts: ${ok} checks passed`);

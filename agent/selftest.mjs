@@ -8,6 +8,7 @@ console.log('race ok:', R.result[0].car.code, 'wins in', VENUES[0].city);
 
 // the chat: a greeting gets the welcome card, a command runs, and free talk goes to the model, whose
 // chosen action runs through the same commands (a fake model here; the real one needs the server's key)
+process.env.CHAT_DAY_LIMIT = '1000'; process.env.CHAT_PLAYER_DAY = '1000';
 process.env.STATE_FILE = (await import('node:os')).tmpdir() + '/agp-selftest-state.json';
 (await import('node:fs')).rmSync(process.env.STATE_FILE, { force: true });
 const W = await import('./whatsapp.mjs');
@@ -145,5 +146,39 @@ W.races.clear();
   W.setChatModel(null);
   age = 0; await W.followAll(); out = said(); must(W.races.has('t4') && /Following your race/.test(out), 'picked up again when the game is back', out);
   console.log('stale race ok');
+}
+
+// a player's own agent: their first message binds the chat to their account, the agent uses the name
+// they gave it, and "call yourself" renames it; a second person on the same agent stays unlinked
+{
+  const calls = [];
+  W.setAccounts(async (method, route, body) => {
+    calls.push([route, body]);
+    if (route === '/agent/tokens') return { agents: [{ id: 'acctZ', token: 'tok-z', name: 'Ada' }] };
+    if (route === '/agent/bind') return body.phone === 'acctZ|user:1' ? { ok: true, team: null } : { ok: false };
+    if (route.startsWith('/agent/race')) return { linked: true };
+    return {};
+  });
+  W.AGENTS.set('acctZ', { token: 'tok-z', name: 'Ada', stop: true });   // stop: no real polling in the test
+  await W.handle('acctZ|user:1', 'hello'); let o = said();
+  must(/Hi, I'm Ada/.test(o) && /connected to/.test(o), 'own agent greets with its name and links', o);
+  W.setChatModel(async (sys) => { must(/You are Ada,/.test(sys), 'own agent name in the chat model', sys); return JSON.stringify({ say: 'Hi!', action: 'none', city: null, tyre: null, car: null, team: null }); });
+  await W.handle('acctZ|user:1', 'how are you doing'); said();
+  await W.handle('acctZ|user:1', 'call yourself Sparky'); o = said();
+  must(/I'm \*Sparky\*/.test(o) && W.AGENTS.get('acctZ').name === 'Sparky' && calls.some(([r, b]) => r === '/agent/name' && b.name === 'Sparky'), 'rename', o);
+  await W.handle('acctZ|user:2', 'hi'); o = said();
+  must(/someone else's agent/.test(o), 'a stranger on the agent stays unlinked', o);
+  W.setChatModel(null);
+  console.log('own agents ok');
+}
+
+// the racing wiki answers instantly, with no AI model at all
+{
+  W.setChatModel(null);
+  await W.handle('w1', 'what is an undercut?'); let o = said();
+  must(/Undercut\*: Pit a lap before/.test(o), 'wiki answers a racing word', o);
+  await W.handle('w1', 'wiki'); o = said();
+  must(/RACING WIKI/.test(o) && /Slipstream/.test(o), 'wiki lists every word', o);
+  console.log('wiki ok');
 }
 process.exit(0);

@@ -115,6 +115,21 @@ const limited = (ip) => {
   if (hits.size > 5000) hits.clear();
   return h.length > 20;
 };
+// the AI costs money, so it has a daily budget (the interpreter too: INTERPRET_DAY_LIMIT for everyone): each player (account, or address for guests) gets
+// BRAIN_PLAYER_DAY chats with the drivers a day, everyone together BRAIN_DAY_LIMIT; past that the
+// game's own rules brain answers (the page falls back to it on any refusal)
+// Both default to 0: the owner pays for every AI call, so it stays off until a limit is set on the server.
+const DAY = { perPlayer: +(process.env.BRAIN_PLAYER_DAY || 15), all: +(process.env.BRAIN_DAY_LIMIT || 0), interpret: +(process.env.INTERPRET_DAY_LIMIT || 0) };
+let day = { d: '', n: 0, i: 0, by: new Map() };
+const brainOn = () => !!AKEY && DAY.all > 0, interpOn = () => !!KEY && DAY.interpret > 0;
+const overBudget = (who) => {
+  const d = new Date().toISOString().slice(0, 10);
+  if (day.d !== d) day = { d, n: 0, i: 0, by: new Map() };
+  if (who === null) { if (day.i >= DAY.interpret) return true; day.i++; return false; }
+  const k = day.by.get(who) || 0;
+  if (k >= DAY.perPlayer || day.n >= DAY.all) return true;
+  day.by.set(who, k + 1); day.n++; return false;
+};
 const vhits = new Map(); // the spoken replies: a sentence each, 40 a minute
 const vlimited = (ip) => { const now = Date.now(), h = (vhits.get(ip) || []).filter((x) => now - x < 60000); h.push(now); vhits.set(ip, h); if (vhits.size > 5000) vhits.clear(); return h.length > 40; };
 let voiceOn = false;
@@ -129,7 +144,7 @@ const clean = (s, n) => String(s ?? '').replace(/[^\p{L}\p{N} .,'?!-]/gu, '').sl
 
 export function serve(port = PORT) {
   return http.createServer((req, res) => {
-    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: !!KEY, brain: !!AKEY, voice: voiceOn });
+    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: interpOn(), brain: brainOn(), voice: voiceOn });
     if (req.url === '/api/radio/voice' && req.method === 'POST') {
       if (!voiceOn) return send(res, 503, { error: 'off' });
       const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',').pop().trim();
@@ -148,7 +163,7 @@ export function serve(port = PORT) {
     }
     const isTalk = req.url === '/api/radio/talk';
     if ((req.url !== '/api/radio/interpret' && !isTalk) || req.method !== 'POST') return send(res, 404, {});
-    if (!(isTalk ? AKEY : KEY)) return send(res, 503, { error: 'off' });
+    if (!(isTalk ? brainOn() : interpOn())) return send(res, 503, { error: 'off' });
     const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',').pop().trim();
     if (limited(ip)) return send(res, 429, { error: 'slow down' });
     let body = '';
@@ -156,6 +171,7 @@ export function serve(port = PORT) {
     req.on('end', async () => {
       try {
         const j = JSON.parse(body);
+        if (overBudget(isTalk ? signedIn(req) || ip : null)) return send(res, 429, { error: 'budget' });
         if (isTalk) { const r = await talk(j, { uid: signedIn(req) }); return send(res, r ? 200 : 422, r || { error: 'no usable reply' }); }
         const cars = (Array.isArray(j.cars) ? j.cars : []).filter((c) => c.id === 'you-0' || c.id === 'you-1').map((c) => ({ id: c.id, name: clean(c.name, 30), code: clean(c.code, 4) }));
         const text = clean(j.text, 200), sel = j.sel === 'you-1' ? 'you-1' : 'you-0';

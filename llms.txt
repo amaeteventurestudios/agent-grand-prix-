@@ -38,5 +38,7 @@
 
 ## Links
 
+- Racing wiki (every racing word and command, in a sentence): https://agentgrandprix.com/wiki
+
 - [Play Agent Grand Prix](https://agentgrandprix.com/)
 - [Sitemap](https://agentgrandprix.com/sitemap.xml)

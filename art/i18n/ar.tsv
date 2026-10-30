@@ -1188,7 +1188,7 @@ id	en	ar
 1186	Be kind.	كن لطيفًا.
 1187	Team names and messages must not be rude or pretend to be someone else.	يجب ألّا تكون أسماء الفرق والرسائل مسيئة أو تنتحل شخصية أحد.
 1188	Need help? Email	تحتاج مساعدة؟ راسلنا على
-1189	amaete@gmail.com	
+1189	hello@agentgrandprix.com	
 1190	Terms	الشروط
 1191	Privacy	الخصوصية
 1192	Credits	الشكر والمصادر
@@ -2545,6 +2545,60 @@ id	en	ar
 2543	Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.	كل السيارات بالسرعة الإجمالية نفسها. بعضها أسرع في المنعطفات، وبعضها عند الكبح، وبعضها على المستقيمات. اختر واحدة، ثم لوّنها بالأبعاد الثلاثية في الشاشة التالية.
 2544	Pick the {2}	اختر {2}
 2545	Pick your car, then tap Next to paint it in 3D.	اختر سيارتك، ثم المس التالي لتلوينها بالأبعاد الثلاثية.
-2546	support@agentgrandprix.com	
+2546	hello@agentgrandprix.com	
 2547	Support	الدعم
 2548	a[href]	
+2549	Agent linked	الوكيل متصل
+2550	AI agent	وكيل ذكاء اصطناعي
+2551	{0} is on your pit wall: it follows every race and texts you the big calls.	{0} على جدار الحظيرة الخاص بك: يتابع كل سباق ويراسلك بالقرارات الكبيرة.
+2552	Your race engineer on WhatsApp. It follows your race and texts you the big calls, so a 50-lap Grand Prix runs while you live your life.	مهندس السباق الخاص بك على واتساب. يتابع سباقك ويراسلك بالقرارات الكبيرة، فيجري سباق جائزة كبرى من 50 لفة بينما تعيش حياتك.
+2553	WhatsApp connected	واتساب متصل
+2554	✓ {0} is linked	✓ {0} متصل
+2555	takes one minute	يستغرق دقيقة واحدة
+2556	Coming soon	قريبًا
+2557	Connect your AI agent	اربط وكيل الذكاء الاصطناعي
+2558	coming soon	قريبًا
+2559	Your own bot	البوت الخاص بك
+2560	Full-distance races	سباقات بالمسافة الكاملة
+2561	· You	· أنت
+2562	· You lead	· أنت في الصدارة
+2563	Time to the chequered flag at the current lap pace	الوقت حتى العلم المربّع بوتيرة اللفة الأخيرة
+2564	your agent	وكيلك
+2565	Save the new key	احفظ المفتاح الجديد
+2566	Connect my agent	اربط وكيلي
+2567	Ada, Coach, Sparky…	Ada أو Coach أو Sparky…
+2568	Paste the key from WhatsApp	الصق المفتاح من واتساب
+2569	Your agent's name	اسم وكيلك
+2570	Its API key	مفتاح API الخاص به
+2571	🔒 The key stays on our server and is only used to run your agent. Don't share it anywhere else.	🔒 يبقى المفتاح على خادمنا ويُستخدم فقط لتشغيل وكيلك. لا تشاركه في أي مكان آخر.
+2572	Last step:	الخطوة الأخيرة:
+2573	open {0}'s chat in WhatsApp and say hi. {1} links itself to your team and follows your races from then on.	افتح محادثة {0} في واتساب وقل مرحبًا. يرتبط {1} بفريقك ويتابع سباقاتك من بعدها.
+2574	✅ {0} is your agent	✅ {0} هو وكيلك
+2575	New API key	مفتاح API جديد
+2576	Remove	إزالة
+2577	New API key for {0}	مفتاح API جديد لـ {0}
+2578	Send this to your agent on WhatsApp	أرسل هذا إلى وكيلك على واتساب
+2579	Open your agent's chat and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.	افتح محادثة وكيلك وأرسل السطر أعلاه. الرمز صالح لمدة 30 دقيقة. تتحدث هذه الصفحة تلقائيًا بمجرد الربط.
+2580	📱 Create your own AI agent	📱 أنشئ وكيل الذكاء الاصطناعي الخاص بك
+2581	Your race engineer lives in WhatsApp. You make it, you name it, and it follows every race you run here. It takes about two minutes.	مهندس السباق الخاص بك يعيش في واتساب. أنت تنشئه وتسمّيه، وهو يتابع كل سباق تخوضه هنا. يستغرق الأمر دقيقتين تقريبًا.
+2582	WhatsApp	واتساب
+2583	, go to	، ثم انتقل إلى
+2584	Settings › Agents › Create an agent	الإعدادات › الوكلاء › إنشاء وكيل
+2585	Give it any name you like and a picture. It's yours.	سمّه أي اسم تريده وأضف صورة. إنه لك.
+2586	Open your agent's chat, tap its name, then	افتح محادثة وكيلك، واضغط على اسمه، ثم
+2587	API key	مفتاح API
+2588	Paste the name and key below and tap	الصق الاسم والمفتاح أدناه واضغط
+2589	Say hi to your agent in WhatsApp. It links itself to your team.	قل مرحبًا لوكيلك في واتساب. سيرتبط بفريقك تلقائيًا.
+2590	No	لا ترى
+2591	Agents	الوكلاء
+2592	Your agent is now {0}	اسم وكيلك الآن {0}
+2593	Could not save the name. Try again in a moment.	تعذّر حفظ الاسم. حاول مرة أخرى بعد قليل.
+2594	📱 {0} is connected. Say hi to it in WhatsApp.	📱 {0} متصل. قل له مرحبًا في واتساب.
+2595	That did not work. Try again in a moment.	لم ينجح ذلك. حاول مرة أخرى بعد قليل.
+2596	Remove {0}? It stops following your races here. You can connect it again with its key.	إزالة {0}؟ سيتوقف عن متابعة سباقاتك هنا. يمكنك ربطه مجددًا بمفتاحه.
+2597	Soon your agent and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.	قريبًا سيتذكرك وكيلك وسائقوك من سباق لآخر: اسمك، وأسلوبك في السباق، ومنافسيك، ونتائجك.
+2598	Your agent and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.	يتذكر وكيلك وسائقوك اسمك، وأسلوبك في السباق، ومنافسيك، وكيف سارت سباقاتك، ويذكرونها عندما يناسب ذلك. لا شيء بعد: تحدّث معهم وتسابق.
+2599	Your agent and your drivers remember {0} thing{1} about you, and bring them up when it fits.	يتذكر وكيلك وسائقوك {0} شيء{1} عنك، ويذكرونها عندما يناسب ذلك.
+2600	Michael, Coach, Sparky…	Michael أو Coach أو Sparky…
+2601	▶ Watch how (45 s)	▶ شاهد الطريقة (45 ث)
+2602	✕ Hide the video	✕ إخفاء الفيديو

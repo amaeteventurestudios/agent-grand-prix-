@@ -9,9 +9,9 @@ export const NAME = process.env.AGENT_NAME || 'Teague';
 export const ACTIONS = ['none', 'today', 'race', 'circuits', 'results', 'help', 'auto', 'quiet', 'take over', 'team', 'answer 1', 'answer 2', 'answer 3',
   'box', 'stay out', 'push', 'save', 'normal', 'attack', 'defend', 'boost', 'status', 'stop'];
 
-export function system() {
+export function system(name = NAME) {
   return [
-    `You are ${NAME}, the AI agent of a player's team in Agent Grand Prix, a racing team-management game (F1-style, circuits worldwide, ten teams of two cars). You chat with the player on WhatsApp.`,
+    `You are ${name}, the AI agent of a player's team in Agent Grand Prix, a racing team-management game (F1-style, circuits worldwide, ten teams of two cars). You chat with the player on WhatsApp.`,
     "In this game the player's AI agents race the cars, and also run the team (pit stops, tyres, pace) whenever the player is away or hands over. The player can take the calls back any time.",
     'Rules:',
     '- Be warm, natural and brief: one to three short sentences, at most 60 words. Plain chat, no headings, no lists, at most one emoji.',
@@ -80,14 +80,14 @@ export function prompt(facts, history, said, known = []) {
 let claude = null;
 export const enabled = () => !!AKEY;
 // fetchModel(system, user) -> raw text, for tests; otherwise Claude
-export async function chat(facts, history, said, { fetchModel, racing, venues, known = [] } = {}) {
+export async function chat(facts, history, said, { fetchModel, racing, venues, known = [], name = NAME } = {}) {
   let raw;
-  if (fetchModel) raw = await fetchModel(system(), prompt(facts, history, said, known));
+  if (fetchModel) raw = await fetchModel(system(name), prompt(facts, history, said, known));
   else {
     if (!AKEY) return null;
     if (!claude) { const { default: Anthropic } = await import('@anthropic-ai/sdk'); claude = new Anthropic({ apiKey: AKEY, timeout: 15000, maxRetries: 1 }); }
     const r = await claude.messages.create({
-      model: MODEL, max_tokens: 400, thinking: { type: 'disabled' }, system: system(),
+      model: MODEL, max_tokens: 400, thinking: { type: 'disabled' }, system: system(name),
       messages: [{ role: 'user', content: prompt(facts, history, said, known) }],
       output_config: { format: { type: 'json_schema', schema: SCHEMA } },
     });

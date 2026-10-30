@@ -1188,7 +1188,7 @@ id	en	pt
 1186	Be kind.	Seja gentil.
 1187	Team names and messages must not be rude or pretend to be someone else.	Nomes de equipe e mensagens não podem ser ofensivos nem se passar por outra pessoa.
 1188	Need help? Email	Precisa de ajuda? Escreva para
-1189	amaete@gmail.com	
+1189	hello@agentgrandprix.com	
 1190	Terms	Termos
 1191	Privacy	Privacidade
 1192	Credits	Créditos
@@ -2545,6 +2545,60 @@ id	en	pt
 2543	Every car has the same overall pace. Some are quicker in the corners, some under braking, some on the straights. Pick one, then paint it in 3D on the next screen.	Todos os carros têm o mesmo ritmo geral. Uns são mais rápidos nas curvas, outros na frenagem, outros nas retas. Escolha um e pinte-o em 3D na próxima tela.
 2544	Pick the {2}	Escolher o {2}
 2545	Pick your car, then tap Next to paint it in 3D.	Escolha seu carro e toque em Próximo para pintá-lo em 3D.
-2546	support@agentgrandprix.com	
+2546	hello@agentgrandprix.com	
 2547	Support	Suporte
 2548	a[href]	
+2549	Agent linked	Agente conectado
+2550	AI agent	Agente de IA
+2551	{0} is on your pit wall: it follows every race and texts you the big calls.	{0} está no seu muro dos boxes: acompanha cada corrida e manda as grandes decisões por mensagem.
+2552	Your race engineer on WhatsApp. It follows your race and texts you the big calls, so a 50-lap Grand Prix runs while you live your life.	Seu engenheiro de corrida no WhatsApp. Ele acompanha sua corrida e manda as grandes decisões por mensagem, então um Grande Prêmio de 50 voltas rola enquanto você vive sua vida.
+2553	WhatsApp connected	WhatsApp conectado
+2554	✓ {0} is linked	✓ {0} está conectado
+2555	takes one minute	leva um minuto
+2556	Coming soon	Em breve
+2557	Connect your AI agent	Conecte seu agente de IA
+2558	coming soon	em breve
+2559	Your own bot	Seu próprio bot
+2560	Full-distance races	Corridas com distância completa
+2561	· You	· Você
+2562	· You lead	· Você lidera
+2563	Time to the chequered flag at the current lap pace	Tempo até a bandeira quadriculada no ritmo da última volta
+2564	your agent	seu agente
+2565	Save the new key	Salvar a nova chave
+2566	Connect my agent	Conectar meu agente
+2567	Ada, Coach, Sparky…	Ada, Coach, Sparky…
+2568	Paste the key from WhatsApp	Cole a chave do WhatsApp
+2569	Your agent's name	O nome do seu agente
+2570	Its API key	A chave de API dele
+2571	🔒 The key stays on our server and is only used to run your agent. Don't share it anywhere else.	🔒 A chave fica no nosso servidor e só serve para rodar seu agente. Não compartilhe em nenhum outro lugar.
+2572	Last step:	Último passo:
+2573	open {0}'s chat in WhatsApp and say hi. {1} links itself to your team and follows your races from then on.	abra a conversa com {0} no WhatsApp e diga oi. {1} se conecta à sua equipe e acompanha suas corridas a partir daí.
+2574	✅ {0} is your agent	✅ {0} é o seu agente
+2575	New API key	Nova chave de API
+2576	Remove	Remover
+2577	New API key for {0}	Nova chave de API para {0}
+2578	Send this to your agent on WhatsApp	Envie isto ao seu agente no WhatsApp
+2579	Open your agent's chat and send the line above. The code works for 30 minutes. This page updates by itself once it's linked.	Abra a conversa com seu agente e envie a linha acima. O código vale por 30 minutos. Esta página se atualiza sozinha quando estiver conectado.
+2580	📱 Create your own AI agent	📱 Crie seu próprio agente de IA
+2581	Your race engineer lives in WhatsApp. You make it, you name it, and it follows every race you run here. It takes about two minutes.	Seu engenheiro de corrida mora no WhatsApp. Você cria, você dá o nome, e ele acompanha cada corrida que você faz aqui. Leva uns dois minutos.
+2582	WhatsApp	WhatsApp
+2583	, go to	, vá em
+2584	Settings › Agents › Create an agent	Configurações › Agentes › Criar um agente
+2585	Give it any name you like and a picture. It's yours.	Dê a ele o nome que quiser e uma foto. Ele é seu.
+2586	Open your agent's chat, tap its name, then	Abra a conversa com seu agente, toque no nome dele e depois em
+2587	API key	Chave de API
+2588	Paste the name and key below and tap	Cole o nome e a chave abaixo e toque em
+2589	Say hi to your agent in WhatsApp. It links itself to your team.	Diga oi ao seu agente no WhatsApp. Ele se conecta sozinho à sua equipe.
+2590	No	Não aparece
+2591	Agents	Agentes
+2592	Your agent is now {0}	Seu agente agora se chama {0}
+2593	Could not save the name. Try again in a moment.	Não foi possível salvar o nome. Tente de novo em instantes.
+2594	📱 {0} is connected. Say hi to it in WhatsApp.	📱 {0} está conectado. Diga oi para ele no WhatsApp.
+2595	That did not work. Try again in a moment.	Não deu certo. Tente de novo em instantes.
+2596	Remove {0}? It stops following your races here. You can connect it again with its key.	Remover {0}? Ele deixa de acompanhar suas corridas aqui. Você pode conectá-lo de novo com a chave.
+2597	Soon your agent and your drivers will remember you from race to race: your name, how you like to race, your rivals and results.	Em breve seu agente e seus pilotos vão lembrar de você de uma corrida para outra: seu nome, como você gosta de correr, seus rivais e resultados.
+2598	Your agent and your drivers remember your name, how you like to race, your rivals and how your races went, and bring it up when it fits. Nothing yet: chat with them and race.	Seu agente e seus pilotos lembram do seu nome, de como você gosta de correr, dos seus rivais e de como foram suas corridas, e falam disso quando faz sentido. Nada ainda: converse com eles e corra.
+2599	Your agent and your drivers remember {0} thing{1} about you, and bring them up when it fits.	Seu agente e seus pilotos lembram de {0} coisa{1} sobre você, e falam disso quando faz sentido.
+2600	Michael, Coach, Sparky…	Michael, Coach, Sparky…
+2601	▶ Watch how (45 s)	▶ Veja como (45 s)
+2602	✕ Hide the video	✕ Esconder o vídeo

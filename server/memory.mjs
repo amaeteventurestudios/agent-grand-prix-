@@ -39,7 +39,7 @@ const MODEL = process.env.MEMORY_MODEL || process.env.BRAIN_MODEL || 'claude-hai
 const MODULES = process.env.MEMORY_MODULES || '/opt/agp-memory';
 export const LIMITS = {
   perDay: +(process.env.MEMORY_DAILY_CAP || 8),       // model reads per player a day
-  allDay: +(process.env.MEMORY_DAY_LIMIT || 1500),    // model reads for everyone a day
+  allDay: +(process.env.MEMORY_DAY_LIMIT || 0),          // model reads for everyone a day
   facts: 40,          // race results per player a day
   keep: 400,          // memories per player; the oldest race results go first
   turns: 12,          // a chat is read once this many lines wait...
