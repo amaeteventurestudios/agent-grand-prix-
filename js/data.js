@@ -130,7 +130,7 @@ export const CALENDAR = [
 const EXTRA = [
   { id: 'lagos', city: 'Lagos', country: 'Nigeria', flag: '🇳🇬', region: 'West Africa',
     circuit: 'Lagoon City Circuit', biome: 'tropic', time: 'dusk', water: 'lagoon', trees: 'tropical', treeDensity: .7,
-    city01: 1, hills: 'none', landmark: 'lagos', street: true, temp: 31, rain: .45, storm: .8, wear: 1.1,
+    city01: 1, hills: 'none', landmark: 'lagos', kit: true, street: true, temp: 31, rain: .45, storm: .8, wear: 1.1,
     note: 'Golden hour on the lagoon: a white cable-stayed bridge, the causeway traffic and the island towers across the water.' },
   { id: 'dakar', city: 'Dakar', country: 'Senegal', flag: '🇸🇳', region: 'West Africa',
     circuit: 'Corniche Circuit', biome: 'sahel', time: 'day', water: 'coast', trees: 'sahel', treeDensity: .45,

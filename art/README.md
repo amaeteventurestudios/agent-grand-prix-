@@ -44,3 +44,14 @@ blender -b --factory-startup -P art/people/people.py
 blender -b --factory-startup -P art/people/driver.py
 npx gltfpack@0.22.0 -i assets/people/driver.glb -o assets/people/driver.glb -cc -kn -km -vp 14 -vn 8 -vc 8
 ```
+
+## Buildings
+
+`buildings/buildings.py` builds the city kit used for Lagos (venues with `kit: true` in `js/data.js`): nine buildings at their real size in metres (glass tower on a podium, 1970s office slab with concrete fins, round tower, stepped tower with terrace gardens, slim apartment tower, block of flats, low office on a colonnade, shophouse with an awning, house with a tin roof), each in two levels of detail (LOD 1 drops the balconies, fins, tanks and masts). Windows are not modelled: the facade shader in `js/kit.js` draws them, so each corner colour carries the wall's style and whether it takes the building's paint (see the comment at the top of the script). Cycles bakes ambient occlusion for all of them into one shared 1024 px map that travels inside the GLB.
+
+```
+blender -b --factory-startup -P art/buildings/buildings.py [-- --render /tmp/kit.png]
+npx gltfpack@0.22.0 -i assets/buildings/city.glb -o assets/buildings/city.glb -cc -kn -ke -km -vp 14 -vn 8 -vc 8
+```
+
+`-ke` keeps each building's numbers (height, footprint, floor height, window width) as node extras, which `cityKit()` in `js/kit.js` reads. The whole kit is about 260 KB, most of it the shading map, and only loads at venues that use it.

@@ -9,7 +9,7 @@ import { COMPOUNDS } from './data.js';
 import { Paddock } from './paddock.js';
 import { Fleet, loadCar, loadGLB } from './cars.js';
 import { Stands, sweep } from './env.js';
-import { towerShapes, facadeMaterial, streetLamps } from './kit.js';
+import { towerShapes, facadeMaterial, streetLamps, cityKit } from './kit.js';
 import { treeGeo, mountainGeo, Boats, Clouds, rocks } from './nature.js';
 import { lagos, dakar, nairobi, capeTown, tokyo, iceland, singapore, shanghai, miami, lasVegas } from './landmarks.js';
 
@@ -634,7 +634,8 @@ export class World {
     // city blocks: a low town wrapped round the circuit, a skyline of towers beyond it. Six tower
     // shapes from the buildings kit, one draw call each; windows, floors, reflections and night
     // lights come from the facade shader, so every size keeps real-sized windows.
-    const nB = Math.round((this.lite ? 220 : 520) * (V.city01 || 0));
+    const nB = V.kit ? 0 : Math.round((this.lite ? 220 : 520) * (V.city01 || 0));
+    if (V.kit && V.city01) this.buildKitCity(free);
     if (nB > 0) {
       const shapes = towerShapes(this.lite), kinds = Object.keys(shapes);
       const lists = Object.fromEntries(kinds.map((k) => [k, []]));
@@ -692,7 +693,7 @@ export class World {
       }
       const mat = facadeMaterial(this.pal, {
         glass: desert ? '#7a6248' : '#2f6fa8', glass2: desert ? '#4f7b86' : '#3f8f8a',
-        lit: 0.5, key: 'city', instanced: true, neon: ['#ff3fa8', '#33e0ff'],
+        lit: 0.5, key: 'city', instanced: true, neon: ['#ff3fa8', '#33e0ff'], sun: [this.sunDir, this.pal.sun],
       });
       for (const kind of kinds) {
         const L = lists[kind]; if (!L.length) continue;
@@ -740,6 +741,91 @@ export class World {
     this.buildMountains(r);
     this.buildLandmark(r);
     this.buildNature(r);
+  }
+
+  // The city from the modelled kit (venues with kit: true, js/kit.js cityKit): a waterfront of
+  // houses, shophouses and flats, offices and towers behind it, every building at its real size and
+  // never overlapping another. The kit loads with the race, so the city is placed and drawn when it
+  // arrives, from its own random numbers (the rest of the scenery doesn't change with it). Buildings
+  // near the track get the detailed level (balconies, fins, tanks, masts), the rest the plain one.
+  buildKitCity(free) {
+    const V = this.venue, [cx, cz] = this.T.centroid, across = this.farBank !== undefined;
+    const r = rng(hashString(V.id + '-city'));
+    const a0 = this.waterDir ? Math.atan2(this.waterDir[1], this.waterDir[0]) : r() * Math.PI * 2;
+    this.cityAngle = across ? a0 : (V.water !== 'none' ? a0 + Math.PI : a0);
+    const towerWalls = ['#f2f3f5', '#d9dde3', '#e8e2d6', '#c9ced6', '#eef0f2', '#bfc6cf'];
+    const townWalls = ['#ffffff', '#f3ece0', '#f6e3b8', '#e9c9b4', '#cfe3e8', '#e6efd9', '#f4d6d0', '#fff6e8', '#d8e1ef', '#efd9a8'];
+    const n = Math.round((this.lite ? 150 : 300) * V.city01);
+    const place = (kit) => {
+      const D = kit.designs, spots = [];
+      let guard = 0;
+      while (spots.length < n && guard++ < n * 80) {
+        let x, z, hgt, clear = 60;
+        if (across) { // the far bank: a low waterfront, the towers behind it
+          const back = r.range(0, 540), a = a0 + r.range(-1, 1) * 0.9, dd = this.farBank + 30 + back;
+          x = cx + Math.cos(a) * dd; z = cz + Math.sin(a) * dd;
+          hgt = back < 110 ? r.range(6, 44) : (r.range(18, 46) + Math.pow(r(), 2.2) * 170 * V.city01 * clamp(back / 300, 0.4, 1.3)) * 1.25;
+        } else { // a low town round the circuit, a skyline beyond it
+          const town = spots.length < n * 0.5;
+          const a = this.cityAngle + (town ? r.range(-2.4, 2.4) : r.range(-0.8, 0.8));
+          const dd = town ? this.roadR(a) + (r() < 0.3 ? -1 : 1) * r.range(16, 30) + (r() < 0.4 ? r.range(0, 140) : 0) : this.radius + r.range(160, 640);
+          x = cx + Math.cos(a) * dd; z = cz + Math.sin(a) * dd;
+          hgt = town ? r.range(6, 20) : r.range(18, 46) + Math.pow(r(), 2.2) * 170 * V.city01 * clamp(this.dist(x, z) / 400, 0.4, 1.3);
+          clear = town ? 40 : 70;
+        }
+        if (!free(x, z, clear)) continue;
+        // the designs this height suits (each may be stretched a little up or down), else the nearest
+        let fit = D.filter((d) => hgt >= d.h * d.s[0] && hgt <= d.h * d.s[1]);
+        if (!fit.length) fit = [D.reduce((b, d) => Math.abs(Math.log(hgt / d.h)) < Math.abs(Math.log(hgt / b.h)) ? d : b)];
+        const d = fit[Math.floor(r() * fit.length)];
+        const sxz = r.range(0.9, 1.1), sy = clamp(hgt / d.h, d.s[0], d.s[1]), rad = Math.hypot(d.w, d.d) * 0.5 * sxz * 0.85;
+        if (spots.some((o) => (o.x - x) ** 2 + (o.z - z) ** 2 < (o.rad + rad + 5) ** 2)) continue;
+        // low buildings face the track, towers turn any quarter
+        const face = Math.atan2(cx - x, cz - z);
+        const rot = d.size === 'tall' ? Math.round(r() * 4) * Math.PI / 2 + r.range(-0.3, 0.3) : face + r.range(-0.25, 0.25);
+        const paint = (d.size === 'tall' ? towerWalls : townWalls)[Math.floor(r() * (d.size === 'tall' ? towerWalls.length : townWalls.length))];
+        spots.push({ x, z, d, sxz, sy, rad, rot, paint, tint: r() * 0.9, near: this.dist(x, z) });
+      }
+      // the nearest share gets the detailed level (fewer on phones)
+      const ds = spots.map((o) => o.near).sort((a, b) => a - b), cut = ds[Math.floor(ds.length * (this.lite ? 0.25 : 0.45))];
+      for (const o of spots) o.lod = o.near <= cut ? 0 : 1;
+      return spots;
+    };
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), pv = new THREE.Vector3(), sv = new THREE.Vector3(), cc = new THREE.Color();
+    const draw = (kit) => {
+      const spots = place(kit);
+      const mat = facadeMaterial(this.pal, { glass: '#2f6fa8', glass2: '#3f8f8a', lit: 0.22, key: 'kit', instanced: true, kit, sun: [this.sunDir, this.pal.sun] });
+      const out = [];
+      for (const d of kit.designs) for (const lod of [0, 1]) {
+        const L = spots.filter((o) => o.d === d && o.lod === lod); if (!L.length) continue;
+        const g = d.lod[lod].clone(), ifac = new Float32Array(L.length * 4);
+        const im = new THREE.InstancedMesh(g, mat, L.length);
+        L.forEach((o, i) => {
+          const y = this.height(o.x, o.z) - 0.4;
+          q.setFromAxisAngle(up, o.rot); m4.compose(pv.set(o.x, y, o.z), q, sv.set(o.sxz, o.sy, o.sxz));
+          im.setMatrixAt(i, m4); im.setColorAt(i, cc.set(o.paint));
+          ifac.set([d.ww, d.fh * o.sy, 1 + o.tint, y + d.y0 * o.sy], i * 4);
+        });
+        g.setAttribute('ifac', new THREE.InstancedBufferAttribute(ifac, 4));
+        im.castShadow = lod === 0 && !this.lite;
+        this.scene.add(im); out.push(im);
+      }
+      this.kitCity = { list: spots, spots: spots.length, meshes: out.length, tris: out.reduce((t, m) => t + m.count * (m.geometry.index ? m.geometry.index.count : m.geometry.attributes.position.count) / 3, 0) };
+    };
+    // if the kit can't load, the same spread of plain towers from the old kit
+    const plain = () => {
+      const D = [{ h: 150, w: 30, d: 30, s: [0.6, 1.6], size: 'tall', ww: 3, fh: 3.8, y0: 0 }, { h: 40, w: 30, d: 16, s: [0.4, 1.4], size: 'mid', ww: 3.2, fh: 3.2, y0: 0 }];
+      const spots = place({ designs: D }), g = towerShapes(this.lite).slab.clone(), ifac = new Float32Array(spots.length * 4);
+      const im = new THREE.InstancedMesh(g, facadeMaterial(this.pal, { glass: '#2f6fa8', glass2: '#3f8f8a', lit: 0.5, key: 'city', instanced: true }), spots.length);
+      spots.forEach((o, i) => {
+        const y = this.height(o.x, o.z) - 1;
+        q.setFromAxisAngle(up, o.rot); m4.compose(pv.set(o.x, y, o.z), q, sv.set(o.d.w * o.sxz, o.d.h * o.sy, o.d.d * o.sxz));
+        im.setMatrixAt(i, m4); im.setColorAt(i, cc.set(o.paint)); ifac.set([o.d.ww, o.d.fh, (o.d.size === 'tall' ? 1 : 2) + o.tint, y], i * 4);
+      });
+      g.setAttribute('ifac', new THREE.InstancedBufferAttribute(ifac, 4));
+      this.scene.add(im);
+    };
+    this.cityReady = cityKit().then(draw, (e) => { console.warn('city kit', e); plain(); });
   }
 
   // boats on the water, rocks and surf along the shore, clouds in the sky
