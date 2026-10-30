@@ -1162,8 +1162,11 @@ export class World {
       o.lastLat = lat;
       sampleTrack(T, d, lat, tmp);
       const g = o.group;
-      g.visible = !(c.dnf && c.cleared); // marshals have taken it away
+      g.visible = !(c.dnf && c.cleared) && !this.hideCars?.has(c.id); // marshals have taken it away
       g.position.set(tmp.x, c.stopT > 0 ? 0.11 : 0.02, tmp.z);   // up on the jacks during a stop
+      // after the flag the podium celebration drives the top three itself (js/ceremony.js)
+      const pose = this.carPose?.get(c.id);
+      if (pose) { g.position.set(pose.x, 0.02, pose.z); g.rotation.y = pose.ry; o.body.rotation.set(0, 0, 0); o.body.position.y = 0; o.tag.visible = false; continue; }
       const dl = (c.lat - c.prevLat) / 0.05;
       let yaw = c.dnf ? stopYaw : Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
       if (c.pit && !c.dnf) {
@@ -1237,7 +1240,7 @@ export class World {
       const lists = this.fleetLists ||= new Map();
       for (const k of this.fleets.keys()) { if (!lists.has(k)) lists.set(k, []); lists.get(k).length = 0; }
       const add = (team, item) => (lists.get(this.modelFor(team.id)) || lists.get(this.carModel))?.push(item);
-      for (const c of race.cars) { const o = this.carObjs.get(c.id); if (o) add(c.team, { id: c.id, group: o.group, c1: c.team.c1, c2: c.team.c2, glow: c.team.glow, finish: c.team.finish, selected: c.id === selectedId }); }
+      for (const c of race.cars) { const o = this.carObjs.get(c.id); if (o) add(c.team, { id: c.id, group: o.group, c1: c.team.c1, c2: c.team.c2, glow: c.team.glow, finish: c.team.finish, selected: c.id === selectedId, empty: !!this.emptyCars?.has(c.id) }); }
       for (const s of this.paddock?.spares || []) add(s.team, { id: 'spare-' + s.team.id, group: s.mesh, c1: s.team.c1, c2: s.team.c2, glow: s.team.glow, finish: s.team.finish, static: true });
       for (const [k, f] of this.fleets) f.update(lists.get(k), camera, dt * speed);
     }

@@ -330,9 +330,12 @@ export class Paddock {
     if (F) for (const im of Object.values(F)) im.count = 0;
     this.c ||= new THREE.Color();
     this.crew.forEach((m, i) => {
-      const [phase, a0] = state.get(m.team.id);
+      // the podium celebration (js/ceremony.js) can take a crew over: where to stand, where to look, how to cheer
+      const fx = this.fest && this.fest(m, this.t);
+      const [phase, a0] = fx ? ['fest', 0] : state.get(m.team.id);
       const md = this.moods.get(m.team.id), mood = md && this.t < md.until ? md.kind : null;
-      const [ta, tl] = this.slot(phase, m.j, a0);
+      const [ta, tl] = fx ? [fx.a, fx.l] : this.slot(phase, m.j, a0);
+      if (fx && fx.snap) { m.a = ta; m.l = tl; }
       const da = ta - m.a, dl = tl - m.l, dist = Math.hypot(da, dl);
       const mv = Math.min(dist, dt * speed * 7);
       if (dist > 0.01) { m.a += da / dist * mv; m.l += dl / dist * mv; }
@@ -342,6 +345,7 @@ export class Paddock {
       const hd = Math.atan2(tmp.tz, tmp.tx);
       let face, pose = 'stand', jump = 0;
       if (moving) face = Math.atan2(sd * dl, da);
+      else if (fx) { face = Math.atan2(sd * (fx.fl - m.l), fx.fa - m.a) + Math.sin(this.t * 2.3 + m.j * 2.1) * 0.35; pose = fx.pose; jump = fx.jump; }
       else if (phase === 'idle') face = -Math.PI / 2 * sd;
       else if (phase === 'watch') {
         face = Math.atan2(sd * (SCR[1] - m.l), SCR[0] - m.a);

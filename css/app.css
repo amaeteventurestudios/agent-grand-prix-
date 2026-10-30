@@ -1601,3 +1601,36 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 
 @keyframes agpNudge { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .lp-mhint i, .lp-tab i { animation: none; } }
+
+/* ---------- after the flag: the podium celebration (js/ceremony.js) ---------- */
+.app.cere-on .stage > :not(canvas):not(.cere):not(.toast) { display: none !important; }
+.app.cere-on .toast { display: none; }
+.cere { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.cere-top { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cere-k { font: 800 italic 15px/1 var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: #fff; background: rgba(8, 12, 24, .62); padding: 7px 11px; border-radius: 6px; }
+.cere-skip { pointer-events: auto; font: 700 15px var(--f-ui); color: #0a0f1c; background: #c6ff3d; border: 0; border-radius: 999px; padding: 10px 16px; min-height: 44px; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, .25); }
+.cere-skip:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
+.cere-cap { position: absolute; left: 16px; bottom: max(20px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: auto 1fr; column-gap: 12px; align-items: center; max-width: min(88%, 460px);
+  background: rgba(8, 12, 24, .8); color: #fff; padding: 10px 16px 10px 12px; border-radius: 10px; border-left: 6px solid var(--tc, #c6ff3d); }
+.cere-cap small { grid-row: span 2; font: 800 italic 34px/1 var(--f-display); color: var(--tc, #c6ff3d); filter: brightness(1.3); }
+.cere-cap b { font: 800 22px/1.1 var(--f-display); letter-spacing: .02em; text-transform: uppercase; }
+.cere-cap span { font: 600 14px/1.2 var(--f-ui); color: #c9d2e3; }
+.cere-cap span:empty { display: none; }
+.cere-cap.in { animation: cereIn .45s cubic-bezier(.2, .8, .2, 1); }
+@keyframes cereIn { from { transform: translateX(-24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* your car is out: the reason, big, in the middle of the race view */
+.retire { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 7; width: min(92%, 400px); text-align: center;
+  background: var(--panel); color: var(--ink); border-radius: 14px; border-top: 6px solid var(--bad); padding: 18px 20px 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); animation: retireIn .3s ease-out; }
+@keyframes retireIn { from { transform: translate(-50%, -44%); opacity: 0; } }
+.retire small { display: block; font: 700 13px var(--f-ui); letter-spacing: .12em; text-transform: uppercase; color: var(--bad); }
+.retire b { display: block; font: 800 italic 36px/1.05 var(--f-display); margin: 6px 0 8px; }
+.retire p { margin: 6px 0; font: 500 15px/1.4 var(--f-body); }
+.retire .who { font: 700 16px var(--f-ui); display: flex; gap: 8px; align-items: center; justify-content: center; }
+.retire .who i { width: 6px; height: 18px; border-radius: 2px; }
+.retire .rule { color: var(--mute); font-size: 14px; }
+.retire .next { font-weight: 600; }
+.retire .btn { margin-top: 8px; min-width: 120px; min-height: 44px; }
+.retire.out { opacity: 0; transition: opacity .3s; }
+@media (max-width: 560px) { .retire b { font-size: 30px; } .retire p { font-size: 14px; } .cere-cap small { font-size: 28px; } .cere-cap b { font-size: 19px; } }
+@media (max-height: 559px) and (orientation: landscape) { .app.cere-on .tabs { visibility: hidden; } .cere-cap { bottom: 12px; } }

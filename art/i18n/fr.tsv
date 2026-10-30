@@ -2602,3 +2602,25 @@ id	en	fr
 2600	Michael, Coach, Sparky…	Michael, Coach, Sparky…
 2601	▶ Watch how (45 s)	▶ Voir comment faire (45 s)
 2602	✕ Hide the video	✕ Masquer la vidéo
+2957	Podium celebration	Célébration sur le podium
+2958	Skip to results ›	Passer aux résultats ›
+2963	Cool-down	Tour de décélération
+2964	Back to the pits	Retour aux stands
+2965	{0} Grand Prix	Grand Prix de {0}
+2966	Rosewater	Eau de rose
+2967	Champagne	Champagne
+2968	On the podium	Sur le podium
+2970	The engine let go and the car rolled to a stop.	Le moteur a lâché et la voiture s'est arrêtée.
+2971	ERS failure	Panne de l'ERS
+2972	The battery that drives the hybrid boost died and the car lost its power.	La batterie qui alimente le boost hybride s'est vidée et la voiture a perdu sa puissance.
+2973	The gearbox broke, so the car could no longer drive.	La boîte de vitesses a cassé : la voiture ne pouvait plus rouler.
+2974	The hydraulics that work the gears and steering failed.	L'hydraulique qui commande les vitesses et la direction a lâché.
+2975	The car ran dry before the flag.	La voiture est tombée en panne d'essence avant le drapeau.
+2976	Crashed out	Abandon sur accident
+2977	A car that hits the wall is out for the rest of the race. Pushing hard, worn tyres, a wet track and wheel-to-wheel fights make a crash more likely.	Une voiture qui touche le mur est hors course jusqu'à la fin. Attaquer fort, des pneus usés, une piste mouillée et les duels roue contre roue rendent un accident plus probable.
+2978	Breakdowns are rare (about one race in 40 for each car) and pushing hard makes them a little more likely. It is nobody's fault.	Les pannes sont rares (environ une course sur 40 pour chaque voiture) et attaquer fort les rend un peu plus probables. Ce n'est la faute de personne.
+2979	{0} is still racing for you.	{0} est toujours en course pour vous.
+2980	Both your cars are out. The race runs on to the flag.	Vos deux voitures ont abandonné. La course continue jusqu'au drapeau.
+2981	Out of the race · lap {0}	Hors course · tour {0}
+2982	A retired car scores no points.	Une voiture qui abandonne ne marque aucun point.
+2983	retired ({0})	a abandonné ({0})

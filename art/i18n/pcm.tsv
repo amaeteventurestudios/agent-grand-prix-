@@ -2565,3 +2565,25 @@ id	en	pcm
 2563	Time to the chequered flag at the current lap pace	Time reach the chequered flag for the pace of the last lap
 2601	▶ Watch how (45 s)	▶ Watch how e dey work (45 s)
 2602	✕ Hide the video	✕ Hide the video
+2957	Podium celebration	Celebration for podium
+2958	Skip to results ›	Skip go results ›
+2963	Cool-down	Cool-down lap
+2964	Back to the pits	Dem dey go back pit
+2965	{0} Grand Prix	{0} Grand Prix
+2966	Rosewater	Rose water
+2967	Champagne	Champagne
+2968	On the podium	For podium
+2970	The engine let go and the car rolled to a stop.	Engine don quench, motor roll stop.
+2971	ERS failure	ERS don spoil
+2972	The battery that drives the hybrid boost died and the car lost its power.	The battery wey dey push the hybrid boost don die, so the motor no get power again.
+2973	The gearbox broke, so the car could no longer drive.	Gearbox don break, so the motor no fit move again.
+2974	The hydraulics that work the gears and steering failed.	The hydraulics wey dey control gear and steering don fail.
+2975	The car ran dry before the flag.	Fuel finish before the flag.
+2976	Crashed out	E crash comot
+2977	A car that hits the wall is out for the rest of the race. Pushing hard, worn tyres, a wet track and wheel-to-wheel fights make a crash more likely.	Any motor wey jam wall don comot for the race finish. To push too hard, tyre wey don wear, wet track and wheel-to-wheel fight dey make crash more likely.
+2978	Breakdowns are rare (about one race in 40 for each car) and pushing hard makes them a little more likely. It is nobody's fault.	Breakdown no dey happen often (like one race inside 40 for each motor), and to push hard dey make am small more likely. Nobody fault am.
+2979	{0} is still racing for you.	{0} still dey race for you.
+2980	Both your cars are out. The race runs on to the flag.	Your two motor don comot. The race go continue reach the flag.
+2981	Out of the race · lap {0}	E don comot for race · lap {0}
+2982	A retired car scores no points.	Motor wey comot no dey get point.
+2983	retired ({0})	don comot ({0})
