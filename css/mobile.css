@@ -245,6 +245,22 @@ html.mob .screen:not(.appsc):not(.showroom):not(.dna) .wiz-foot .btn { flex: 1; 
 html.mob .screen:not(.appsc):not(.showroom):not(.dna) .wiz-foot { flex-wrap: wrap; gap: 8px; }
 html.mob .screen:not(.appsc):not(.showroom):not(.dna) .wiz-foot .btn:first-child:nth-last-child(n+3) { flex-basis: 100%; }
 
+/* the showroom on a phone: the same dark cobalt as the app, the car lit on a deep blue stage */
+html.mob .screen.showroom {
+  --bg: var(--a-bg); --panel: var(--a-bg2); --panel2: var(--a-card); --ink: var(--a-ink); --mute: var(--a-mute); --line: var(--a-line);
+  --accent: var(--a-blue2); --accent-ink: #fff; --hud: rgba(10, 20, 40, .88); --hud-ink: var(--a-ink); color-scheme: dark;
+  background: var(--a-bg); color: var(--a-ink);
+}
+html.mob .screen.showroom .sheet { background: var(--a-bg); color: var(--a-ink); }
+html.mob .screen.showroom .sr-stage, html.mob .screen.showroom .sr-stage.night { background: radial-gradient(120% 90% at 50% 38%, #1d3263, #0a1428 58%, #050913) !important; }
+html.mob .screen.showroom .sr-x, html.mob .screen.showroom .sr-cut { -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); border-color: rgba(140, 175, 255, .2); }
+html.mob .screen.showroom .sr-tabs button.on { box-shadow: 0 1px 6px rgba(0, 0, 0, .4); }
+html.mob .screen.showroom .btn { border-radius: 12px; }
+html.mob .screen.showroom .btn:not(.ghost) { background: linear-gradient(100deg, #1559f0, #2f7bff); color: #fff; border-color: transparent; }
+html.mob .screen.showroom .btn.ghost { background: transparent; color: var(--a-ink); border-color: rgba(160, 190, 255, .28); }
+html.mob .screen.showroom .chip { background: var(--a-card); color: var(--a-ink); border-color: var(--a-line); }
+html.mob .screen.showroom input, html.mob .screen.showroom select { color: var(--a-ink); }
+
 /* ---------- the race on a phone ---------- */
 .mob-only, .tabs .ti, .eng-pane { display: none; }
 html.mob #app {

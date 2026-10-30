@@ -72,7 +72,25 @@ export async function interpret(text, cars, sel, { key = KEY, fetchImpl = fetch 
 }
 
 // ---- the drivers' AI brain (server/talk.mjs): Claude answers in character, checked before use ----
+// When Claude is off or its daily budget is spent, the free model on our own server (LOCAL_LLM_URL:
+// llama.cpp running Qwen3, the same one Teague uses) answers instead. It is slower (a few seconds on
+// the server's CPU), so the page waits longer for it; its replies go through the same checks.
 const AKEY = process.env.ANTHROPIC_API_KEY || '';
+const LOCAL = (process.env.LOCAL_LLM_URL || '').replace(/\/$/, '');
+const LOCAL_MS = +(process.env.LOCAL_RADIO_TIMEOUT || 11000);
+async function localModel(sys, msg, schema) {
+  const r = await fetch(LOCAL + '/v1/chat/completions', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, signal: AbortSignal.timeout(LOCAL_MS),
+    body: JSON.stringify({
+      messages: [{ role: 'system', content: sys }, { role: 'user', content: msg + '\nReply with the JSON only. /no_think' }],
+      temperature: 0.6, top_p: 0.9, max_tokens: 120, cache_prompt: true, chat_template_kwargs: { enable_thinking: false },
+      response_format: { type: 'json_schema', json_schema: { name: 'reply', schema } },
+    }),
+  });
+  if (!r.ok) throw new Error('local model ' + r.status);
+  const j = await r.json();
+  return String(j.choices?.[0]?.message?.content || '').replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+}
 const BRAIN = process.env.BRAIN_MODEL || 'claude-haiku-5-5';
 let claude = null;
 // the team's long-term memory (server/memory.mjs): a signed-in boss is remembered across races. Recall is local and
@@ -83,8 +101,8 @@ export async function recall(uid, q) {
   if (!uid) return [];
   try { return ((await memo('/memory/recall', { uid, q, k: 5 }, 400)) || {}).items?.map((x) => x.text) || []; } catch { return []; }
 }
-export async function talk(j, { fetchModel, uid = null, known = null } = {}) {
-  const { system, user, SCHEMA, accept } = await import('./talk.mjs');
+export async function talk(j, { fetchModel, uid = null, known = null, useLocal = false } = {}) {
+  const { system, user, systemLocal, userLocal, SCHEMA, accept } = await import('./talk.mjs');
   const facts = j.facts && typeof j.facts === 'object' ? j.facts : null;
   if (!facts || (facts.id !== 'you-0' && facts.id !== 'you-1')) return null;
   const driver = { name: clean(j.driver?.name, 30) || 'Driver', tone: ['f', 'c', 'e'].includes(j.driver?.tone) ? j.driver.tone : 'e', dna: clean(j.driver?.dna, 120) };
@@ -92,7 +110,8 @@ export async function talk(j, { fetchModel, uid = null, known = null } = {}) {
   const t0 = Date.now();
   known ??= await recall(uid, clean(j.said, 300));
   let raw;
-  if (fetchModel) raw = await fetchModel(system(driver), user(facts, memory, clean(j.said, 300), known));
+  if (fetchModel) raw = useLocal ? await fetchModel(systemLocal(driver), userLocal(facts, memory, clean(j.said, 300))) : await fetchModel(system(driver), user(facts, memory, clean(j.said, 300), known));
+  else if (useLocal) raw = await localModel(systemLocal(driver), userLocal(facts, memory, clean(j.said, 300)), SCHEMA);
   else {
     if (!claude) { const { default: Anthropic } = await import('@anthropic-ai/sdk'); claude = new Anthropic({ apiKey: AKEY, timeout: 2600, maxRetries: 0 }); }
     const r = await claude.messages.create({
@@ -102,7 +121,7 @@ export async function talk(j, { fetchModel, uid = null, known = null } = {}) {
     });
     raw = r.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
   }
-  const ok = accept(raw, facts);
+  const ok = accept(raw, facts, { strict: useLocal });
   if (ok && uid) memo('/memory/talk', { uid, source: 'driver', turns: [{ role: 'user', content: `(to driver ${driver.name}) ${clean(j.said, 300)}` }, { role: 'assistant', content: ok.text }] }, 3000).catch(() => {});
   return ok ? { ...ok, ms: Date.now() - t0 } : null;
 }
@@ -119,16 +138,22 @@ const limited = (ip) => {
 // BRAIN_PLAYER_DAY chats with the drivers a day, everyone together BRAIN_DAY_LIMIT; past that the
 // game's own rules brain answers (the page falls back to it on any refusal)
 // Both default to 0: the owner pays for every AI call, so it stays off until a limit is set on the server.
-const DAY = { perPlayer: +(process.env.BRAIN_PLAYER_DAY || 15), all: +(process.env.BRAIN_DAY_LIMIT || 0), interpret: +(process.env.INTERPRET_DAY_LIMIT || 0) };
-let day = { d: '', n: 0, i: 0, by: new Map() };
-const brainOn = () => !!AKEY && DAY.all > 0, interpOn = () => !!KEY && DAY.interpret > 0;
+// The free model costs nothing but CPU, so it has its own, larger caps (LOCAL_RADIO_PLAYER_DAY, LOCAL_RADIO_DAY_LIMIT).
+const DAY = { perPlayer: +(process.env.BRAIN_PLAYER_DAY || 15), all: +(process.env.BRAIN_DAY_LIMIT || 0), interpret: +(process.env.INTERPRET_DAY_LIMIT || 0),
+  localMine: +(process.env.LOCAL_RADIO_PLAYER_DAY || 60), localAll: +(process.env.LOCAL_RADIO_DAY_LIMIT || 3000) };
+let day = { d: '', n: 0, i: 0, l: 0, by: new Map(), lby: new Map() };
+const paidOn = () => !!AKEY && DAY.all > 0, localOn = () => !!LOCAL && DAY.localAll > 0;
+const brainOn = () => paidOn() || localOn(), interpOn = () => !!KEY && DAY.interpret > 0;
+// true when over every budget; otherwise 'paid' or 'local', the model this chat goes to
 const overBudget = (who) => {
   const d = new Date().toISOString().slice(0, 10);
-  if (day.d !== d) day = { d, n: 0, i: 0, by: new Map() };
+  if (day.d !== d) day = { d, n: 0, i: 0, l: 0, by: new Map(), lby: new Map() };
   if (who === null) { if (day.i >= DAY.interpret) return true; day.i++; return false; }
   const k = day.by.get(who) || 0;
-  if (k >= DAY.perPlayer || day.n >= DAY.all) return true;
-  day.by.set(who, k + 1); day.n++; return false;
+  if (paidOn() && k < DAY.perPlayer && day.n < DAY.all) { day.by.set(who, k + 1); day.n++; return 'paid'; }
+  const l = day.lby.get(who) || 0;
+  if (localOn() && l < DAY.localMine && day.l < DAY.localAll) { day.lby.set(who, l + 1); day.l++; return 'local'; }
+  return true;
 };
 const vhits = new Map(); // the spoken replies: a sentence each, 40 a minute
 const vlimited = (ip) => { const now = Date.now(), h = (vhits.get(ip) || []).filter((x) => now - x < 60000); h.push(now); vhits.set(ip, h); if (vhits.size > 5000) vhits.clear(); return h.length > 40; };
@@ -144,7 +169,7 @@ const clean = (s, n) => String(s ?? '').replace(/[^\p{L}\p{N} .,'?!-]/gu, '').sl
 
 export function serve(port = PORT) {
   return http.createServer((req, res) => {
-    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: interpOn(), brain: brainOn(), voice: voiceOn });
+    if (req.url === '/api/radio/health') return send(res, 200, { interpreter: interpOn(), brain: brainOn(), local: localOn(), voice: voiceOn });
     if (req.url === '/api/radio/voice' && req.method === 'POST') {
       if (!voiceOn) return send(res, 503, { error: 'off' });
       const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress).split(',').pop().trim();
@@ -171,8 +196,9 @@ export function serve(port = PORT) {
     req.on('end', async () => {
       try {
         const j = JSON.parse(body);
-        if (overBudget(isTalk ? signedIn(req) || ip : null)) return send(res, 429, { error: 'budget' });
-        if (isTalk) { const r = await talk(j, { uid: signedIn(req) }); return send(res, r ? 200 : 422, r || { error: 'no usable reply' }); }
+        const which = overBudget(isTalk ? signedIn(req) || ip : null);
+        if (which === true) return send(res, 429, { error: 'budget' });
+        if (isTalk) { const r = await talk(j, { uid: signedIn(req), useLocal: which === 'local' }); return send(res, r ? 200 : 422, r || { error: 'no usable reply' }); }
         const cars = (Array.isArray(j.cars) ? j.cars : []).filter((c) => c.id === 'you-0' || c.id === 'you-1').map((c) => ({ id: c.id, name: clean(c.name, 30), code: clean(c.code, 4) }));
         const text = clean(j.text, 200), sel = j.sel === 'you-1' ? 'you-1' : 'you-0';
         if (!text.trim() || cars.length !== 2) return send(res, 400, {});
@@ -185,7 +211,7 @@ export function serve(port = PORT) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   serve();
   // the drivers' spoken replies switch on once the voice model has loaded (a one-time download)
-  if (AKEY) import('./voice.mjs').then((v) => v.warm()).then(() => { voiceOn = true; console.log('driver voices ready'); })
+  if (AKEY || LOCAL) import('./voice.mjs').then((v) => v.warm()).then(() => { voiceOn = true; console.log('driver voices ready'); })
     .catch((e) => console.log('driver voices off:', String(e.message || e).slice(0, 120)));
-  console.log(`team radio on 127.0.0.1:${PORT}, interpreter ${KEY ? 'on' : 'off (no TYPESAFE_API_KEY)'}, driver brain ${AKEY ? 'on' : 'off (no ANTHROPIC_API_KEY)'}`);
+  console.log(`team radio on 127.0.0.1:${PORT}, interpreter ${KEY ? 'on' : 'off (no TYPESAFE_API_KEY)'}, driver brain ${paidOn() ? 'on' : 'off (no ANTHROPIC_API_KEY or no BRAIN_DAY_LIMIT)'}, free model ${localOn() ? 'on' : 'off (no LOCAL_LLM_URL)'}`);
 }
