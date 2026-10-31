@@ -1250,7 +1250,7 @@ function driverCards(R) {
     const state = c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? `Boxing · ${COMPOUNDS[c.pitReq].name}s` : c.auto ? 'Autonomous' : { push: 'Pushing', save: 'Saving tyres', normal: '' }[c.pace] + (c.battle !== 'neutral' ? (c.pace === 'normal' ? '' : ' · ') + (c.battle === 'attack' ? 'Attack' : 'Defend') : '');
     const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 28 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
     if (b._pk !== c.team.c1 + c.name) { b._pk = c.team.c1 + c.name; b._ps = portraitSVG(c, c.team, { size: 28, bg: false }); }
-    const html = `${b._ps}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}${c.dnf ? '' : `<i class="tb ${tyreLevel(life / 100)}" style="--l:${life}%"></i>`}`;
+    const html = `${b._ps}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%<em> tyres</em></span>${state ? `<small>${esc(state)}</small>` : ''}${c.dnf ? '' : `<i class="tb ${tyreLevel(life / 100)}" style="--l:${life}%"></i>`}`;
     if (b.className !== cls) b.className = cls;
     if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
   });
@@ -1295,6 +1295,8 @@ function sectorTicker(R) {
   const id = G.mineSel || 'you-0', st = sec.cars.get(id), c = R.byId.get(id);
   if (!st || !c || c.dnf) { el.hidden = true; return; }
   const fl = sec.flash && performance.now() - sec.flash.at < 4000 ? sec.flash.text : '';
+  // nothing timed yet this lap (the first lap, out of the pits): no strip of dashes
+  if (!fl && !st.cur.some(Boolean)) { el.hidden = true; return; }
   const html = `<b>${esc(c.code)}</b>${st.cur.map((x, i) => `<span class="${x ? x.cls : ''}"><small>S${i + 1}</small>${x ? x.t.toFixed(1) : '–'}</span>`).join('')}${fl ? `<em>${esc(fl)}</em>` : ''}`;
   if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
   el.hidden = false;
@@ -1311,7 +1313,8 @@ const RAIL = [
 const ORDER_NEXT = { free: 'hold', hold: 'free' };
 function rails(R) {
   const el = $('#rails');
-  const show = !G.attract && !R.done && (phoneUp() ? app.dataset.sheet === 'peek' : matchMedia(LAND).matches);
+  // (phones held upright keep the track clear: these calls live in the Strategy tab there)
+  const show = !G.attract && !R.done && !phoneUp() && matchMedia(LAND).matches;
   if (el.hidden === show) el.hidden = !show;
   if (!show) return;
   if (el.children.length !== 2) el.innerHTML = ['you-0', 'you-1'].map((id) => `<div class="rail" data-id="${id}"></div>`).join('');

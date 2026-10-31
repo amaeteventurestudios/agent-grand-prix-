@@ -345,3 +345,5 @@ html.mob .hud .chip.icon { width: 32px; min-width: 32px; padding: 0; justify-con
 html.mob .hud .chip.fin > span[aria-hidden], html.mob .hud .chip.fin .fl { display: none; }
 @media (max-width: 400px) { html.mob .hud .chip.wx .sim { display: none; } html.mob .hud .chip { padding: 4px 6px; font-size: 12.5px; } }
 html.mob .vol-pop { top: calc(max(8px, var(--a-safe-t)) + 40px); right: max(8px, var(--a-safe-r)); }
+/* upright phones: the race buttons sit down by the tab bar, so this follows them */
+@media (orientation: portrait) { html.mob #stage > .chip.agents { bottom: 80px; } }
