@@ -67,6 +67,7 @@ html.dk .dk-legend i { display: inline-block; width: 9px; height: 9px; border-ra
 html.dk .dk-legend .me { background: #e10600; box-shadow: 0 0 0 2px var(--k-lime); }
 html.dk .dk-legend .lead { background: #888; box-shadow: 0 0 0 2px #ffd400; }
 html.dk .dk-legend .pit { width: 14px; height: 0; border-radius: 0; border-top: 2px dashed var(--k-cyan); vertical-align: 3px; }
+html.dk .dk-legend .sp { width: 14px; height: 3px; border-radius: 2px; vertical-align: 2px; } html.dk .dk-legend .sp.f { background: #3ddc5a; } html.dk .dk-legend .sp.b { background: #ffb020; } html.dk .dk-legend .sp.s { background: #ff4d5e; }
 html.dk .dk-legend .out { background: none; border-radius: 0; position: relative; }
 html.dk .dk-legend .out::before { content: '✕'; position: absolute; left: -1px; top: -5px; color: #ff4d5e; font: 700 12px system-ui; }
 html.dk .dk-mfacts { margin: 6px 0 0; font: 600 13px var(--f-ui); color: var(--k-ink); }

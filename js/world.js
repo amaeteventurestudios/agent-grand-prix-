@@ -1075,11 +1075,14 @@ export class World {
       const body = new THREE.Mesh(this.carGeo(c.team), this.carMat);
       body.castShadow = true;
       const rl = new THREE.Mesh(this.rainGeo, this.rainLightMat); rl.position.set(-2.55 * CAR_SCALE, 0.62 * CAR_SCALE, 0);
-      g.add(body, rl);
+      // BOOST: two light trails off the back of the car while it deploys the battery
+      const trail = new THREE.Group(); trail.visible = false;
+      for (const rx of [0, Math.PI / 2]) { const m = new THREE.Mesh(this.trailGeo(), this.trailMat()); m.rotation.x = rx; trail.add(m); }
+      g.add(body, rl, trail);
       const tag = this.makeTag(c);
       this.scene.add(tag);
       this.carGroup.add(g);
-      this.carObjs.set(c.id, { group: g, body, tag, rl, car: c });
+      this.carObjs.set(c.id, { group: g, body, tag, rl, trail, car: c });
     }
     this.setTeams([...new Map(cars.map((c) => [c.team.id, c.team])).values()]);
     this.teamCar = new Map(cars.filter((c) => c.team.car).map((c) => [c.team.id, c.team.car]));
@@ -1247,6 +1250,23 @@ export class World {
     this.weatherKey = [rain, wet];
   }
 
+  // the boost trail: a streak that fades from the car backwards, drawn additive so it glows
+  trailGeo() {
+    if (!this._trailGeo) { const geo = new THREE.PlaneGeometry(9 * CAR_SCALE, 0.9 * CAR_SCALE); geo.translate(-2.6 * CAR_SCALE - 4.5 * CAR_SCALE, 0.6 * CAR_SCALE, 0); this._trailGeo = geo; }
+    return this._trailGeo;
+  }
+  trailMat() {
+    if (!this._trailMat) {
+      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 16; const x = cv.getContext('2d');
+      const gr = x.createLinearGradient(128, 0, 0, 0); gr.addColorStop(0, 'rgba(200,255,90,1)'); gr.addColorStop(0.25, 'rgba(110,247,255,.75)'); gr.addColorStop(1, 'rgba(110,247,255,0)');
+      x.fillStyle = gr; x.fillRect(0, 0, 128, 16);
+      const v = x.createLinearGradient(0, 0, 0, 16); v.addColorStop(0, 'rgba(0,0,0,1)'); v.addColorStop(0.5, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,1)');
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = v; x.fillRect(0, 0, 128, 16);
+      this._trailMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    }
+    return this._trailMat;
+  }
+
   // place cars: alpha blends between the last two simulation steps
   update(race, alpha, dt, camera, selectedId, mineIds, showTags, { speed = 1, focus = null, showRing = true } = {}) {
     const T = this.T;
@@ -1260,6 +1280,9 @@ export class World {
     const tags = [];
     for (const c of race.cars) {
       const o = this.carObjs.get(c.id); if (!o) continue;
+      const boosting = c.ersMode === 'deploy' && c.ers > 0.01 && !c.pit && !c.dnf && !race.done && c.v > 30;
+      if (o.trail.visible !== boosting) o.trail.visible = boosting;
+      if (boosting) o.trail.scale.x = 0.75 + 0.25 * Math.sin(performance.now() / 45 + c.i);
       let d = c.prevDist + (c.dist - c.prevDist) * alpha, lat = c.prevLat + (c.lat - c.prevLat) * alpha, stopYaw = 0;
       // a stopped car: the engine leaves its last step's positions behind (and a crash puts it in the
       // wall in one step), so blending between them would rock it back and forth for good. Slide it

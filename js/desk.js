@@ -49,7 +49,7 @@ export function createDesk(api) {
       <section class="dk-only dk-map" aria-label="Circuit map">
         <div class="dk-mhead"><b class="dk-mname"></b><button type="button" class="dk-icon dk-expand" aria-label="Bigger map" title="Bigger map"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 8V3h5M17 12v5h-5M3 3l5.5 5.5M17 17l-5.5-5.5"/></svg></button></div>
         <div class="dk-mwrap"><canvas class="dk-mc" aria-hidden="true"></canvas><span class="dk-flagbar" hidden></span></div>
-        <ul class="dk-legend"><li><i class="me"></i>Your cars</li><li><i class="lead"></i>Leader</li><li><i class="pit"></i>Pit lane</li><li><i class="out"></i>Stopped car</li></ul>
+        <ul class="dk-legend"><li><i class="me"></i>Your cars</li><li><i class="lead"></i>Leader</li><li><i class="pit"></i>Pit lane</li><li><i class="out"></i>Stopped car</li><li><i class="sp f"></i>Flat out</li><li><i class="sp b"></i>Braking</li><li><i class="sp s"></i>Slow corner</li></ul>
         <p class="dk-mfacts"></p>
       </section>`);
     $('.dk-full', tower).addEventListener('click', () => { d.full = !d.full; tower.classList.toggle('dk-all', d.full); $('.dk-full', tower).textContent = d.full ? 'Top five and your cars' : 'Full standings'; $('.dk-full', tower).setAttribute('aria-expanded', String(d.full)); });
@@ -417,6 +417,8 @@ export function createDesk(api) {
     return (x, z) => (rot ? [w / 2 + (z - cz) * k, h / 2 - (x - cx) * k] : [w / 2 + (x - cx) * k, h / 2 + (z - cz) * k]);
   }
   const tmp = {};
+  const clampN = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lum = (hex) => { const n = parseInt(hex.slice(1, 7), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
   function lane(T, P, s0, s1, lat) {
     const out = [];
     for (let s = s0; s <= s1; s += 6) { sampleTrack(T, s, lat * Math.min(1, Math.min(s - s0, s1 - s) / 40 + 0.15), tmp); out.push([tmp.x, tmp.z]); }
@@ -431,9 +433,27 @@ export function createDesk(api) {
     const pl = lane(T, P, P.inS, P.outS, P.lat);
     const sw = w > 400 ? 1.6 : 1;
     path(pl); g.strokeStyle = 'rgba(86, 214, 255, .75)'; g.lineWidth = 3 * sw; g.setLineDash([5, 4]); g.stroke(); g.setLineDash([]);
+    // the pit building along the pit lane, on the far side from the track
+    { const s0 = P.box[0] - 6, s1 = P.box[P.box.length - 1] + 10, out = P.lat + P.side * 9; g.beginPath();
+      for (let s = s0; s <= s1; s += 4) { sampleTrack(T, s, out, tmp); const [a, b] = f(tmp.x, tmp.z); s === s0 ? g.moveTo(a, b) : g.lineTo(a, b); }
+      g.strokeStyle = 'rgba(160, 178, 214, .5)'; g.lineWidth = 5 * sw; g.lineCap = 'butt'; g.stroke(); g.lineCap = 'round'; }
     path(loop, true); g.strokeStyle = '#0a1226'; g.lineWidth = 11 * sw; g.stroke();
     g.strokeStyle = '#3a4a6e'; g.lineWidth = 7 * sw; g.stroke();
-    g.strokeStyle = 'rgba(238, 243, 255, .9)'; g.lineWidth = 1.2; g.stroke();
+    // the racing line coloured by the speed the track allows: green flat out, amber braking, red the slow corners
+    const vcol = (v) => { const q = v / T.vmax; return q > 0.74 ? '#3ddc5a' : q > 0.46 ? '#ffb020' : '#ff4d5e'; };
+    g.lineWidth = (w > 400 ? 2.6 : 1.8);
+    for (let i = 0; i < T.N; i += 6) {
+      const j = Math.min(i + 7, T.N), [a, b] = f(T.x[i], T.z[i]), [c2, d2] = f(T.x[j % T.N], T.z[j % T.N]);
+      g.strokeStyle = vcol(T.v[i]); g.beginPath(); g.moveTo(a, b); g.lineTo(c2, d2); g.stroke();
+    }
+    // red and white kerbs on the outside of every slow corner
+    for (const ai of T.apex) {
+      const side = Math.sign(T.k[ai]) > 0 ? -1 : 1;
+      for (let s = -14, n = 0; s <= 14; s += 4, n++) {
+        sampleTrack(T, ai + s, side * (T.half + 1), tmp); const [a, b] = f(tmp.x, tmp.z);
+        g.fillStyle = n % 2 ? '#ffffff' : '#e10600'; g.fillRect(a - 1.2 * sw, b - 1.2 * sw, 2.4 * sw, 2.4 * sw);
+      }
+    }
     // start / finish: a chequered bar across the track at the line
     sampleTrack(T, 0, 0, tmp);
     const [sx, sz] = f(tmp.x, tmp.z), [ex, ez] = f(tmp.x + tmp.tx * 10, tmp.z + tmp.tz * 10), a = Math.atan2(ez - sz, ex - sx);
@@ -455,6 +475,20 @@ export function createDesk(api) {
       g.beginPath(); g.arc(px, py, 2.5 * sw, 0, 7); g.fill();
     };
     g.textAlign = 'left';
+    // turn numbers, just inside each corner
+    g.font = `700 ${w > 400 ? 11 : 9}px "Barlow Semi Condensed", system-ui, sans-serif`; g.textAlign = 'center';
+    const put = [];
+    T.apex.forEach((ai, n) => {
+      sampleTrack(T, ai, 0, tmp); const [px, py] = f(tmp.x, tmp.z);
+      let dx = mx - px, dy = my - py; const l = Math.hypot(dx, dy) || 1, off = w > 400 ? 15 : 11;
+      const x = clampN(px + dx / l * off, 8, w - 8), y = clampN(py + dy / l * off, 8, h - 8), rr = w > 400 ? 8 : 6.5;
+      // two corners close together share one badge: the second is left out rather than drawn on top
+      if (put.some(([a, b]) => Math.hypot(a - x, b - y) < rr * 2.1)) return; put.push([x, y]);
+      g.fillStyle = 'rgba(8, 17, 42, .85)'; g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill();
+      g.strokeStyle = 'rgba(238, 243, 255, .35)'; g.lineWidth = 1; g.stroke();
+      g.fillStyle = 'rgba(238, 243, 255, .85)'; g.fillText(String(n + 1), x, y + (w > 400 ? 4 : 3));
+    });
+    g.textAlign = 'left'; g.font = `700 ${w > 400 ? 13 : 10}px "Barlow Semi Condensed", system-ui, sans-serif`;
     tag('PIT IN', P.inS, '#56d6ff', -12); tag('PIT OUT', P.outS, '#56d6ff', 12); tag('START / FINISH', 0, '#eef3ff');
     return { bg, f };
   }
@@ -470,8 +504,10 @@ export function createDesk(api) {
     for (const c of R.cars) {
       if (my.includes(c.id) || c === lead || c.finished && !c.dnf && R.done) continue;
       if (c.dnf) { if (c.cleared) continue; const [x, y] = at(c); g.strokeStyle = '#ff4d5e'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(x - 4, y - 4); g.lineTo(x + 4, y + 4); g.moveTo(x + 4, y - 4); g.lineTo(x - 4, y + 4); g.stroke(); continue; }
-      const [x, y] = at(c); g.fillStyle = c.team.c1; g.strokeStyle = 'rgba(10,18,38,.9)'; g.lineWidth = 1.2; g.beginPath(); g.arc(x, y, big ? 4.5 : 3.2, 0, 7); g.fill(); g.stroke();
-      if (big) { g.fillStyle = 'rgba(238,243,255,.7)'; g.font = '600 10px system-ui'; g.textAlign = 'left'; g.fillText(c.code, x + 6, y - 5); }
+      // every car a team-coloured dot with its position in it
+      const [x, y] = at(c), rr = big ? 7 : 5.5; g.fillStyle = c.team.c1; g.strokeStyle = 'rgba(10,18,38,.95)'; g.lineWidth = 1.4; g.beginPath(); g.arc(x, y, rr, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = lum(c.team.c1) > 0.6 ? '#0a1226' : '#ffffff'; g.font = `700 ${big ? 9 : 7.5}px system-ui`; g.textAlign = 'center'; g.fillText(String(c.pos), x, y + (big ? 3.2 : 2.7));
+      if (big) { g.fillStyle = 'rgba(238,243,255,.7)'; g.font = '600 10px system-ui'; g.textAlign = 'left'; g.fillText(c.code, x + rr + 2, y - 5); }
     }
     // a car's tag sits up and to the right of its dot, or to the left near the right edge
     const label = (c, x, y, txt, col) => {
