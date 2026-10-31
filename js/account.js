@@ -5,8 +5,8 @@
 const API = '/api/me';
 const TIMEOUT = 4000;
 
-async function ask(route, opts) {
-  const c = new AbortController(), t = setTimeout(() => c.abort(), TIMEOUT);
+async function ask(route, opts, wait = TIMEOUT) {
+  const c = new AbortController(), t = setTimeout(() => c.abort(), wait);
   try { const r = await fetch(API + route, { credentials: 'same-origin', signal: c.signal, ...opts }); return r.ok ? await r.json() : null; }
   catch { return null; } finally { clearTimeout(t); }
 }
@@ -17,8 +17,14 @@ export const account = { on: false, me: null, signin: false, ways: { google: fal
 // Called once at startup. Answers with the server's save when it is further along than this
 // device's, so a new phone picks up where you left off; otherwise this device's save is sent up.
 export async function start(local) {
-  const h = await ask('/health'); if (!h || !(h.accounts || h.sessions)) return null;
-  const r = await ask(''); if (!r) return null;
+  // a phone still building the 3D scene can take a while to answer, so give it time and try again
+  let h = null, r = null;
+  for (let i = 0; i < 3 && !r; i++) {
+    if (i) await new Promise((ok) => setTimeout(ok, 2500));
+    h = await ask('/health', undefined, 10000); if (h && !(h.accounts || h.sessions)) return null;
+    if (h) r = await ask('', undefined, 10000);
+  }
+  if (!r) return null;
   account.on = true; account.me = r.me; account.signin = !!h.accounts;
   if (account.signin) { const w = await ask('/signin/ways'); if (w) account.ways = w; }
   await refreshPass();

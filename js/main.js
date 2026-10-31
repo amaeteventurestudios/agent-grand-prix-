@@ -273,7 +273,7 @@ function frame(now) {
   cheerBurst *= Math.exp(-dt * 0.5);
   if (G.qs && world) { qualiFrame(dt); return; }
   const R = G.race;
-  if (wa.linked) agentSync(R);
+  if (wa.linked || (account.on && signedIn())) agentSync(R);   // your race follows you to your other devices, and to your agent
   if (R && R.started && !R.done && G.room && !G.attract) liveCatchUp();
   else if (R && R.started && !G.paused && !R.done) {
     // reduced motion: the race behind the home page holds still, a picture rather than a film
@@ -3931,6 +3931,11 @@ function startRace(picks, auto, saved = null) {
   }
   if (saved && saved.live) lightsSequence(true);   // a live race's lights are the room's clock
   else if (saved) { live.replay(G.race, saved); G.evIdx = G.race.events.length; lightsSequence(true); addRadio({ from: 'engineer', text: `We're back. Lap ${G.race.leaderLap()} of ${G.race.laps}.` }); toast('Race resumed where you left it'); }
+  // signed out, a race lives on this device only: say so once, so nobody expects it on their phone or WhatsApp
+  if (account.on && !signedIn() && !G.lesson && G.kind !== 'academy' && G.kind !== 'live' && !G.signedOutSaid) {
+    G.signedOutSaid = true;
+    addRadio({ from: 'info', text: "You're not signed in, so this race stays on this device: your phone and your WhatsApp agent can't follow it. Sign in (top right) to take your races anywhere." });
+  }
   tick();
   // a lesson starts the lights itself, once the engineer has said hello
   if (G.lesson) lessonStart();

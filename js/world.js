@@ -1320,6 +1320,15 @@ export class World {
         lat = o.slat;
       } else { o.slat = lat; o.svl = 0; }
       o.lastLat = lat;
+      // the same along the track: when the engine nudges a car back off the one in front, the nudge is
+      // eased in over a moment instead of drawn as a jolt in one step
+      const nu = (c.prevNudge || 0) + ((c.nudge || 0) - (c.prevNudge || 0)) * alpha;
+      if (run && o.snu !== undefined) {
+        const w = 5, h = Math.min(0.05, dt * Math.max(1, speed));
+        o.snv += (w * w * (nu - o.snu) - 2 * w * o.snv) * h;
+        o.snu = clamp(o.snu + o.snv * h, nu - 1.5, nu + 1.5);   // in a jam it trails by no more than this
+        d += nu - o.snu;
+      } else { o.snu = nu; o.snv = 0; }
       sampleTrack(T, d, lat, tmp);
       const g = o.group;
       g.visible = !(c.dnf && c.cleared) && !this.hideCars?.has(c.id); // marshals have taken it away
