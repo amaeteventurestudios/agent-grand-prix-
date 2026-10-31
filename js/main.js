@@ -29,7 +29,8 @@ import { careerState, recordRace, rankOf, lessonFor, learned, strengths, nextLes
 import { fetchBoard, fetchWeek, submitDaily, boardHTML, leagueHTML } from './board.js';
 import { liveOn, joinLive, readRoom, sendCall, listen as listenRoom, stop as stopListening, stepAt, secondsToStart, applyDue } from './live.js';
 import { portraitSVG, helmetSVG, helmetOf, faceOf, HELMET_PATTERNS, VISORS, SKINS, HAIRS, HAIR_COLOURS, BEARDS, EYES } from './portrait.js';
-import { strengthBars } from './carspec.js';
+import { strengthBars, SETUPS, setupById } from './carspec.js';
+import { rndState, earnRnd, rndFor, levelOf, nextCost, buyLevel, setupLap, bestSetup } from './rnd.js';
 import * as store from './store.js';
 import { parseCall, radioSupported, listen, wakeSplit, setRadioLang } from './teamradio.js';
 import { lookup as wikiLookup } from './wiki.js';
@@ -2491,6 +2492,7 @@ function agentCatchUp() {
         S.daily.streak = S.daily.last === n - 1 ? S.daily.streak + 1 : 1; S.daily.last = Math.max(S.daily.last || 0, n);
         S.agent.reports = [{ n, at: Date.now(), report: out.report, places: out.places, pts: out.pts }, ...S.agent.reports.filter((x) => x.n !== n)].slice(0, 7);
         S.agent.unseen = [...new Set([...(S.agent.unseen || []), n])];
+        earnRnd(S, out.places.map((pl) => ({ pos: pl || 20, dnf: !pl, laps: raceLaps(trackFor(v), 'short') })));
         store.save();
         sendToBoard(n, out.rec, true);          // your agent's race stands on the agents' board
       }
@@ -3413,7 +3415,7 @@ let briefWorker = null;
 function briefRun(o, key) {
   try { briefWorker?.terminate(); } catch { /* gone */ }
   briefWorker = null;
-  const args = { venueId: o.venue.id, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, ...(G.quali ? { quali: G.quali } : {}) };
+  const args = { venueId: o.venue.id, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, ...setupArg(), ...(G.quali ? { quali: G.quali } : {}) };
   const done = (r) => {
     if (P.briefKey !== key) return;
     if (r.done) { P.projDone = true; recommend(); } else { P.proj = r.out; P.projI = r.i; P.projN = r.n; }
@@ -3558,6 +3560,49 @@ function tyreGuide(v) {
     <p>In a dry race each car must use two different dry tyres (Soft, Medium or Hard), so every car stops at least once.</p></div>`;
 }
 
+// ---------- car setups (js/carspec.js SETUPS, js/rnd.js) ----------
+// The Daily, live races and lessons run every car on Balanced, so those stay fair; elsewhere your
+// cars run the setup you pick (or your engineer's pick for the circuit) and rivals their own.
+const setupsOn = () => !!G.venue && !['daily', 'dailyfull', 'live', 'academy'].includes(G.kind) && !G.lesson;
+function mySetup() {
+  const pick = S.settings.setup;
+  if (pick && pick.id) return { id: pick.id, level: levelOf(S, pick.id) };
+  return bestSetup(trackFor(G.venue), carModel() || 'falcon', rndState(S).open);
+}
+function setupArg() {
+  if (!setupsOn()) return {};
+  const s = mySetup();
+  return { setups: { 'you-0': s, 'you-1': s } };
+}
+function setupHTML() {
+  if (!setupsOn()) return '<div class="sub">Car setup</div><p class="note">Standard setup: every car runs Balanced in this race, so it stays fair.</p>';
+  const T = trackFor(G.venue), car = carModel() || 'falcon', R = rndState(S), base = setupLap(T, car, null);
+  const pick = S.settings.setup && S.settings.setup.id ? S.settings.setup.id : 'auto', eng = bestSetup(T, car, R.open);
+  const laps = G.laps || 10, gain = (st) => { const x = (setupLap(T, car, st) - base) * laps; return Math.abs(x) < 0.05 ? 'No change here' : `${x < 0 ? '−' : '+'}${Math.abs(x).toFixed(1)} s over ${laps} laps`; };
+  const lv = (id) => (id === 'balanced' ? '' : ` · L${levelOf(S, id)}`);
+  const btn = (id, name, note, st) => `<button type="button" data-setup="${id}" class="${pick === id ? 'on' : ''}"><b>${name}</b><span>${note}</span><span class="sd${(setupLap(T, car, st) - base) * laps < -0.05 ? ' good' : ''}">${gain(st)}</span></button>`;
+  const ups = SETUPS.filter((x) => x.id !== 'balanced').map((x) => {
+    const c = nextCost(S, x.id);
+    return c == null ? `<span class="up-top">${x.name}: top level</span>` : `<button type="button" data-up="${x.id}" ${R.pts < c ? 'disabled' : ''}>${x.name} L${levelOf(S, x.id) + 1} · ${c} R&D</button>`;
+  }).join('');
+  return `<div class="sub">Car setup <span class="rnd-pts">🔧 ${R.pts} R&D</span></div>
+    <div class="vpick setups">${btn('auto', 'Engineer’s pick', setupById(eng.id).name + (eng.id === 'balanced' ? '' : ' · L' + eng.level), eng)}${SETUPS.map((x) => btn(x.id, x.name + lv(x.id), x.note, { id: x.id, level: levelOf(S, x.id) })).join('')}</div>
+    <div class="rnd-up"><span class="up-top">Upgrade with R&D:</span>${ups}</div>
+    <p class="note">Races earn R&D, your agent’s races too. A setup only moves time from one part of the lap to another: it helps on circuits that suit it and costs time on the rest.</p>`;
+}
+function wireSetups(sh, o) {
+  $$('[data-setup]', sh).forEach((b) => b.addEventListener('click', () => {
+    S.settings.setup = b.dataset.setup === 'auto' ? null : { id: b.dataset.setup }; store.save();
+    P.qres = null; P.qskip = false; G.quali = null;   // a new setup needs a new qualifying lap
+    const y = $('#sheet').scrollTop; pre(o, 'quali'); $('#sheet').scrollTop = y;
+  }));
+  $$('[data-up]', sh).forEach((b) => b.addEventListener('click', () => {
+    if (!buyLevel(S, b.dataset.up)) return;
+    store.save(); toast(`🔧 ${setupById(b.dataset.up).name} is now level ${levelOf(S, b.dataset.up)}`);
+    const y = $('#sheet').scrollTop; pre(o, 'quali'); $('#sheet').scrollTop = y;
+  }));
+}
+
 // race setup, one screen at a time: circuit (Quick race only), car, tyres, then race settings
 let P = null;
 function pre(o, step = o.venue ? 'car' : 'circuit') {
@@ -3605,8 +3650,10 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   if (step === 'quali') {
     const res = P.qres;
     const sh = show(`${head('<p class="lede">Qualifying sets where you start: one flying lap each, and the fastest lap starts at the front.</p>')}
+      ${setupHTML()}
       ${res ? `<div class="sub">Your grid${P.qskip ? ' (qualifying skipped)' : ''}</div>${qualiTable(res, true)}` : `<div class="qintro"><div><b>🏁 Do it yourself</b><span>Your calls: tyre, timing, push. Best shot at pole</span></div><div><b>🤖 Your agents</b><span>They qualify for you. A well-trained team does well</span></div><div><b>⏭️ Skip</b><span>No lap set. You start P12 to P20</span></div></div>`}
       </div><div class="actions wiz-foot">${res ? `<button class="btn" data-wiz="next" type="button">Next: race briefing</button><button class="btn ghost" id="qWatch" type="button">${P.qskip ? 'Qualify after all' : 'Run it again'}</button>` : '<button class="btn" id="qWatch" type="button">Qualify myself</button><button class="btn ghost" id="qAgents" type="button">Let my agents qualify</button><button class="btn ghost" id="qSkip" type="button">Skip</button>'}<button class="btn ghost" data-wiz="back" type="button">Back</button></div>`, 'wizp');
+    wireSetups(sh, o);
     if (res) $('[data-wiz="next"]', sh).addEventListener('click', () => go(1));
     $('[data-wiz="back"]', sh).addEventListener('click', back);
     $('#qWatch', sh).addEventListener('click', () => qualiWatch(o, () => pre(o, 'quali')));
@@ -3618,11 +3665,11 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   }
   if (step === 'tyres') {
     // the pre-race briefing: Plan A and Plan B per driver, priced by the real engine in the background
-    const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, quali: G.quali });
+    const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, quali: G.quali, ...setupArg() });
     const T = probe.track, W = probe.weather, wetStart = W.wet0 > 0.17;
     const grid = (id) => probe.grid.findIndex((e) => e.id === id) + 1;
     const rainTxt = wetStart ? 'Wet track at the start' : W.showers.length ? `${Math.round(clamp(o.venue.rain + 0.25, 0.3, 0.9) * 100)}% chance of rain` : o.venue.rain > 0.2 ? `${Math.round(o.venue.rain * 60)}% chance of rain` : 'Dry';
-    const key = [o.seed, G.laps, carModel(), JSON.stringify(raceDNA(S, dnaOn) && Object.values(raceDNA(S, dnaOn)).map((p) => p.hash)), JSON.stringify(G.quali || {})].join('|');
+    const key = [o.seed, G.laps, carModel(), JSON.stringify(raceDNA(S, dnaOn) && Object.values(raceDNA(S, dnaOn)).map((p) => p.hash)), JSON.stringify(G.quali || {}), JSON.stringify(setupArg())].join('|');
     if (P.briefKey !== key) {
       P.briefKey = key; P.proj = null; P.projDone = false; P.touched = false;
       P.plans = briefPlans({ laps: probe.laps, wear: o.venue.wear || 1, wet0: W.wet0, showers: W.showers.length });
@@ -3738,7 +3785,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
 
 // ---------- qualifying (js/quali.js) ----------
 function qualiSession(o, choices) {
-  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps });
+  const probe = setupRace({ venue: o.venue, seed: o.seed, team: team(), dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps, ...setupArg() });
   return new QualiSession({ entries: probe.entries, venue: o.venue, seed: o.seed, track: probe.track, weather: probe.weather, choices, mine: ['you-0', 'you-1'] });
 }
 // the session's result becomes the grid: its calls go on the race's record so a leaderboard rebuilds it
@@ -3853,7 +3900,7 @@ function startRace(picks, auto, saved = null) {
   app.classList.remove('attract');
   loadVenue(G.venue);
   // everything the race is built from is kept, so a refresh can build the same race again
-  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...(G.quali && !G.lesson ? { quali: G.quali } : {}), ...(G.stops && !G.lesson ? { stops: G.stops } : {}), ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
+  const args = saved ? saved.args : { team: team(), startCompounds: picks, auto, dna: raceDNA(S, dnaOn), car: carModel() || 'falcon', laps: G.laps || undefined, ...setupArg(), ...(G.quali && !G.lesson ? { quali: G.quali } : {}), ...(G.stops && !G.lesson ? { stops: G.stops } : {}), ...(G.stage ? { stage: G.stage } : {}), ...(G.lesson && G.lesson.def.race.dna ? { dna: { car1: fromPreset('car1', G.lesson.def.race.dna.car1), car2: fromPreset('car2', G.lesson.def.race.dna.car2) } } : {}) };
   // a briefing plan belongs to the race it was made for: used once, then gone
   G.stops = null; G.quali = null; try { briefWorker?.terminate(); } catch { /* gone */ } briefWorker = null;
   const setup = setupRace({ venue: G.venue, seed: G.seed, ...args });
@@ -4193,8 +4240,9 @@ function results() {
     G.xp = { car1: recordRace(S, 'car1', carMetrics(R, 'you-0'), G.venue.id), car2: recordRace(S, 'car2', carMetrics(R, 'you-1'), G.venue.id) };
     const c = careerState(S);
     G.xpRank = { car1: rankOf(c.car1.xp), car2: rankOf(c.car2.xp) };
-    G.xpUp = ['car1', 'car2'].filter((k) => rankOf(c[k].xp - G.xp[k].total).i < G.xpRank[k].i);
-  }
+    G.xpUp = ['car1', 'car2'].filter((k) => rankOf(c[k].xp - G.xp[k].total).i < G.xpRank[k].i);  }
+  // R&D for setups (js/rnd.js): every race but practice and lessons
+  G.rnd = G.kind !== 'academy' && G.kind !== 'practice' ? earnRnd(S, [carMetrics(R, 'you-0'), carMetrics(R, 'you-1')]) : 0;
   G.props = strategistAfterRace(R);
   if (G.props.length) say(['d_notes']);
   store.save();
@@ -4233,7 +4281,8 @@ function results() {
 function xpHTML() {
   if (!G.xp) return '';
   const t = team(), c = careerState(S);
-  return `<div class="xp">${['car1', 'car2'].map((slot, k) => {
+  const rd = G.rnd ? `<p class="rnd-line">🔧 +${G.rnd} R&D for car setups · ${rndState(S).pts} to spend</p>` : '';
+  return rd + `<div class="xp">${['car1', 'car2'].map((slot, k) => {
     const d = t.drivers[k], g = G.xp[slot], r = G.xpRank[slot], up = G.xpUp.includes(slot);
     const span = r.next ? Math.max(1, r.next.at - r.at) : 1, done = r.next ? Math.min(1, (c[slot].xp - r.at) / span) : 1;
     return `<button class="xp-row${up ? ' up' : ''}" data-r="dp:${slot}" type="button">${portraitSVG(d, t, { size: 34, bg: false })}
@@ -4390,6 +4439,7 @@ window.__agp = {
   get talk() { return talk; },
   voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
   car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
+  get rnd() { return rndState(S); },
   info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr }),
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,
 };

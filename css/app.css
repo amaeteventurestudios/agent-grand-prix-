@@ -1737,3 +1737,14 @@ html.dk .fcast li { background: var(--k-card2, rgba(255,255,255,.06)); }
 html.dk .sec-tick { left: 16px; bottom: 74px; }
 @media (orientation: portrait) and (max-width: 1199px) { .sec-tick { left: 50%; transform: translateX(-50%); bottom: 176px; } }
 @media (max-height: 559px) and (orientation: landscape) { .sec-tick { display: none !important; } }
+/* car setups and R&D on the qualifying step (js/main.js setupHTML) */
+.vpick.setups button { padding: 8px 6px; text-align: center; }
+.vpick.setups .sd { font: 600 11px var(--f-ui); color: var(--mute); }
+.vpick.setups .sd.good { color: #16a34a; }
+.rnd-pts { float: right; font: 700 12px var(--f-ui); color: var(--ink); text-transform: none; letter-spacing: 0; }
+.rnd-up { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 0 8px; }
+.rnd-up button { border: 1px dashed var(--line); background: none; color: var(--ink); border-radius: 8px; padding: 6px 10px; font: 600 12px var(--f-ui); cursor: pointer; }
+.rnd-up button:disabled { opacity: .45; cursor: default; }
+.rnd-up .up-top { font: 600 12px var(--f-ui); color: var(--mute); padding: 6px 4px; }
+.rnd-line { margin: 0 0 8px; font: 600 13px var(--f-ui); }
+@media (max-width: 560px) { .vpick.setups { grid-template-columns: repeat(2, minmax(0, 1fr)); } .vpick.setups button:first-child { grid-column: 1 / -1; } }

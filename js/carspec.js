@@ -1,5 +1,6 @@
 // The ten cars of the series: names, default liveries and their strengths. No Three.js here, so
 // the race engine and Node tests can read it.
+import { driverPlan } from './track.js';
 //
 // Each car trades one strength against another: corners (cornering grip), braking (braking power
 // and the speed it carries into a corner) and straights (top speed and pull). The three always add
@@ -29,10 +30,47 @@ const at = (k, t) => (t >= 0 ? 1 + t * (STEP[k][0] - 1) : 1 + -t * (STEP[k][1] -
 
 // what the engine needs from a car: multipliers on cornering grip, braking, corner entry and top
 // speed (js/track.js driverPlan). No car, or an unknown one, is neutral.
-export function carMods(id) {
+export function carMods(id, setup = null, T = null) {
   const c = carById(id);
   if (!c) return null;
-  return { lateral: at('lateral', c.corners), brake: at('brake', c.braking), entry: at('entry', c.braking), top: at('top', c.straights) };
+  const m = { lateral: at('lateral', c.corners), brake: at('brake', c.braking), entry: at('entry', c.braking), top: at('top', c.straights) };
+  if (setup && T) m.pace = 1 + setupGain(T, setup);
+  return m;
+}
+
+// ---------- setups, earned with R&D ----------
+// A setup moves strength from one part of the lap to another, and its three tilts add up to zero
+// like a car's own strengths, so no setup is faster everywhere: it is faster on circuits that suit
+// it. Racing earns R&D points (js/rnd.js), and R&D opens stronger versions of each package. Level 1
+// is free; each level leans the car further. The Daily runs every car on Balanced, so it stays fair.
+export const SETUPS = [
+  { id: 'balanced', name: 'Balanced', note: 'The car as it comes', corners: 0, braking: 0, straights: 0 },
+  { id: 'lowdrag', name: 'Low drag', note: 'Faster on the straights, less grip in corners', corners: -1, braking: 0, straights: 1 },
+  { id: 'downforce', name: 'High downforce', note: 'More grip in corners, slower on the straights', corners: 1, braking: 0, straights: -1 },
+  { id: 'braking', name: 'Late braking', note: 'Stops harder into corners, slower on the straights', corners: 0, braking: 1, straights: -1 },
+];
+export const SETUP_LEVELS = [2, 4, 6];        // how far each level leans the car
+export const SETUP_COST = [0, 200, 500];            // R&D points to open each level
+export const setupById = (id) => SETUPS.find((s) => s.id === id) || SETUPS[0];
+// what one step of each strength is worth on this circuit (share of lap time). Averaged over the
+// calendar the three are equal (that is how STEP was solved), so a tilt that adds up to zero gains
+// on some circuits and loses on others, and nothing over a season.
+function feel(T) {
+  if (T.feel) return T.feel;
+  const lap = (m) => driverPlan(T, null, m).lapTime, base = lap(null);
+  const one = (lateral, brake, entry, top) => 1 - lap({ lateral, brake, entry, top }) / base;
+  T.feel = { corners: one(at('lateral', 1), 1, 1, 1), braking: one(1, at('brake', 1), at('entry', 1), 1), straights: one(1, 1, 1, at('top', 1)) };
+  return T.feel;
+}
+// a setup's share of lap time on a circuit: + is quicker
+export function setupGain(T, setup) {
+  const t = setupTilt(setup), f = feel(T);
+  return t.corners * f.corners + t.braking * f.braking + t.straights * f.straights;
+}
+export function setupTilt(setup) {
+  if (!setup || !setup.id || setup.id === 'balanced') return { corners: 0, braking: 0, straights: 0 };
+  const s = setupById(setup.id), k = SETUP_LEVELS[Math.max(0, Math.min(2, (setup.level || 1) - 1))];
+  return { corners: s.corners * k, braking: s.braking * k, straights: s.straights * k };
 }
 
 // which car each team races: yours is the one you pick; the nine other teams take the rest of the
