@@ -869,9 +869,9 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
   .boxfab { right: 8px; }
   .talkfab { left: 50%; right: auto; transform: translateX(-50%); }
   .talkfab b { font-size: 22px; }
-  .talk-said { right: auto; left: 50%; transform: translateX(-50%); bottom: 86px; max-width: calc(100% - 24px); }
-  .ack { right: auto; left: 50%; transform: translateX(-50%); bottom: 86px; }
-  .suggest, .coach:not(.lesson) { position: absolute; left: 8px; right: 8px; top: auto; bottom: 86px; width: auto; transform: none; }
+  .talk-said { right: auto; left: 50%; transform: translateX(-50%); bottom: 126px; max-width: calc(100% - 24px); z-index: 9; }
+  .ack { right: auto; left: 50%; transform: translateX(-50%); bottom: 126px; }
+  .suggest, .coach:not(.lesson) { position: absolute; left: 8px; right: 8px; top: auto; bottom: 126px; width: auto; transform: none; }
   .coach.pill { right: auto; }
   .chips4 { display: none !important; }
   /* flag, pit steps and messages sit under your two cars */
