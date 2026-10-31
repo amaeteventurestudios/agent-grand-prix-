@@ -2624,3 +2624,380 @@ id	en	fr
 2981	Out of the race · lap {0}	Hors course · tour {0}
 2982	A retired car scores no points.	Une voiture qui abandonne ne marque aucun point.
 2983	retired ({0})	a abandonné ({0})
+2603	Wiki	
+2604	Manage my team	
+2605	You are the team principal	
+2606	Two AI drivers. One AI race engineer. Your championship.	
+2607	Season {0} · {1} place · {2} pts	
+2608	Season {0} · round 1 of {1}	
+2609	Even in everything	
+2610	{1}: career and Driver DNA	
+2611	Driver 0{3}{4}	
+2612	Advisory	
+2613	Your AI agents make the calls.	
+2614	Telegram: coming soon	
+2615	Your own bot: coming soon	
+2616	Configure drivers	
+2617	AI race engineer	
+2618	Your second-in-command	
+2619	📊 Strategy & analysis	
+2620	⚙️ Runs the team when you hand it over	
+2621	💬 WhatsApp updates	
+2622	Delegation:	
+2623	📖 Send it	
+2624	in a race, or ask about any racing word (“what is an undercut?”). Every word is in the	
+2625	racing wiki	
+2626	Racing words.	
+2627	Not sure what an undercut is? The	
+2628	has every term and command. On the radio, ask “what does dirty air mean?”	
+2629	New to the words?	
+2630	The	
+2631	explains every term and command in a sentence.	
+2632	📻 Commands you can give	
+2633	🛞 Tyres	
+2634	🧠 Strategy	
+2635	🏎️ Racecraft	
+2636	⚡ Battery and speed	
+2637	🚩 Race control and flags	
+2638	🏁 The race weekend	
+2639	🎮 Agent Grand Prix	
+2640	Box	
+2641	box box	
+2642	pit stop	
+2643	come in	
+2644	Come into the pit lane this lap for fresh tyres. A normal stop costs about a quarter of a lap.	
+2645	box, box softs, box mediums, box hards, box inters, box wets	
+2646	no box	
+2647	cancel box	
+2648	stay out	
+2649	Cancel a pit stop you asked for and keep running on the tyres you have.	
+2650	push push	
+2651	flat out	
+2652	quali mode	
+2653	Drive at full pace. Faster laps, but the tyres wear quicker and get hot.	
+2654	tyre saving	
+2655	lift and coast	
+2656	Drive a little slower to make the tyres last longer. Good on a long stint.	
+2657	normal pace	
+2658	Back to the usual race pace: not pushing, not saving.	
+2659	go for it	
+2660	send it	
+2661	Go for the pass on the car ahead. Passes come more often, but so does contact.	
+2662	shut the door	
+2663	close the door	
+2664	Protect your place from the car behind. Harder to pass, a little slower.	
+2665	Neither attack nor defend: race clean and keep out of trouble.	
+2666	overtake mode	
+2667	full power	
+2668	Use the battery for 12 seconds of extra speed. Best within a second of the car ahead, or to defend.	
+2669	Recharge the battery as you drive, so you have power ready for a fight.	
+2670	let him through	
+2671	let her through	
+2672	let them through	
+2673	A team order: your two cars running nose to tail trade places, so the faster one can chase.	
+2674	swap (on the radio or the team buttons)	
+2675	Hold position	
+2676	no fighting	
+2677	A team order: your two cars stop racing each other and keep the order they are in.	
+2678	hold position	
+2679	Status	
+2680	Ask for a quick report: places, gaps, tyres and battery.	
+2681	Hand the team to your agents	
+2682	hand over	
+2683	take over	
+2684	take it back	
+2685	Your AI agents race and make the calls while you are away. They ask you before big calls, unless you say quiet. Say take over to make every call yourself again.	
+2686	auto, quiet, take over	
+2687	Compound	
+2688	tyre compound	
+2689	tire compound	
+2690	Soft tyres	
+2691	red tyres	
+2692	The fastest dry tyre (red). Great grip, short life. Good for gaining places early or for a final sprint.	
+2693	Medium tyres	
+2694	yellow tyres	
+2695	The middle dry tyre (yellow). A balance of speed and life, and the safe choice to start.	
+2696	Hard tyres	
+2697	white tyres	
+2698	The slowest dry tyre (white) but the longest lasting. Good for a long stint to the flag.	
+2699	Intermediate tyres	
+2700	Wet tyres	
+2701	full wets	
+2702	Tyres for heavy rain (blue). Deep grooves push the water away. Very slow on a drying track.	
+2703	Slicks	
+2704	slick tyres	
+2705	dry tyres	
+2706	The smooth dry tyres: soft, medium and hard. No grooves, so the most rubber on the road.	
+2707	tire wear	
+2708	tyre deg	
+2709	Tyres lose grip as they wear. The game shows how much life is left. Under about 25% the grip falls away fast.	
+2710	The cliff	
+2711	tyre cliff	
+2712	falling off a cliff	
+2713	The point where a worn tyre suddenly loses grip and lap times drop sharply. Box before you reach it.	
+2714	Tyre temperature	
+2715	tyre temp	
+2716	tyre temps	
+2717	warm tyres	
+2718	cold tyres	
+2719	warm up	
+2720	Puncture	
+2721	flat tyre	
+2722	flat tire	
+2723	A tyre losing its air. It can happen when a tyre is almost worn out, and it can end your race.	
+2724	Two-compound rule	
+2725	two compound rule	
+2726	two compounds	
+2727	mandatory stop	
+2728	compound rule	
+2729	In a dry race each car must use two different dry tyres, which means at least one stop. Skip it and you get a 20-second penalty.	
+2730	race strategy	
+2731	race plan	
+2732	Your plan for the race: which tyres, how many stops and when, and when to push or save.	
+2733	Stint	
+2734	The laps a car runs on one set of tyres, between the start, its stops and the flag.	
+2735	One-stop	
+2736	one stop	
+2737	one stopper	
+2738	two stop	
+2739	two stopper	
+2740	Undercut	
+2741	the undercut	
+2742	Pit a lap before the car ahead. Fresh tyres are about a second a lap faster, so you can come out in front when they stop.	
+2743	Overcut	
+2744	the overcut	
+2745	Stay out longer than the car ahead and pit later, using clear track to set fast laps while they warm up new tyres.	
+2746	pit stop window	
+2747	The range of laps when stopping makes the most sense for your tyres and the cars around you.	
+2748	Cheap stop	
+2749	free stop	
+2750	cheap pit stop	
+2751	A stop under the safety car costs about half the usual time, because everyone else is driving slowly.	
+2752	Split strategy	
+2753	split the cars	
+2754	splitting strategy	
+2755	Put your two cars on different tyres or stop on different laps, so if luck goes against one, the other gains.	
+2756	race pace	
+2757	lap time	
+2758	lap times	
+2759	How fast a car is lapping. The game shows each car's last lap and the time to the chequered flag.	
+2760	Gap	
+2761	gap to leader	
+2762	Track position	
+2763	Being physically ahead on the road. On narrow circuits it is worth more than fresher tyres, because passing is hard.	
+2764	Overtake	
+2765	a pass	
+2766	Passing the car ahead on track. Easiest on a straight, with the slipstream, fresher tyres or a boost.	
+2767	Slipstream	
+2768	Right behind another car on a straight there is less air to push through, so you go faster and can line up a pass.	
+2769	Dirty air	
+2770	turbulent air	
+2771	The messy air behind a car. In corners it takes grip away from the car following and heats its tyres.	
+2772	Overtaking aid	
+2773	open wing	
+2774	Within about 30 metres of the car ahead on a straight, the car following gets a small extra push of speed (like DRS in real racing).	
+2775	Racing line	
+2776	the line	
+2777	The fastest path around a corner: wide on the way in, close to the inside at the apex, wide on the way out.	
+2778	Apex	
+2779	The point where a car is closest to the inside of a corner.	
+2780	Contact	
+2781	Two cars touching. It can damage a car or end its race. Attack makes it more likely.	
+2782	Lapped car	
+2783	A car a whole lap behind the leader. It lets faster cars through.	
+2784	team order	
+2785	Instructions to your two drivers about each other: swap places, hold position, or race freely.	
+2786	Pit exit	
+2787	pit exit fight	
+2788	Where cars rejoin after a stop. Cold tyres make you easy to pass there, so defend and boost for the first lap.	
+2789	energy recovery	
+2790	The car's battery. It charges from braking (harvest) and gives extra power when you deploy it or boost.	
+2791	battery mode	
+2792	balanced mode	
+2793	standard battery	
+2794	The everyday battery mode: it charges and spends about the same.	
+2795	Top speed	
+2796	speed trap	
+2797	straight line speed	
+2798	How fast a car goes at the end of a long straight. Boost, the slipstream and the overtaking aid all add to it.	
+2799	Safety car	
+2800	safety car period	
+2801	After a crash, a road car leads the field at low speed while the track is cleared. No passing, and pit stops are cheap.	
+2802	Virtual safety car	
+2803	virtual safety	
+2804	Every car must slow to a set speed without a real safety car on track. Gaps stay roughly the same and stops are cheaper.	
+2805	Yellow flag	
+2806	yellows flag	
+2807	double yellow	
+2808	Danger ahead: slow down and no passing in that part of the track.	
+2809	Red flag	
+2810	red flag	
+2811	The race is stopped and every car returns slowly to the pit lane.	
+2812	Blue flag	
+2813	blue flags	
+2814	Shown to a lapped car: a faster car is about to lap you, let it through.	
+2815	checkered flag	
+2816	the flag	
+2817	The black and white flag at the finish. The race timer shows how long until the leader and your car take it.	
+2818	Penalty	
+2819	time penalty	
+2820	Seconds added to a car's race time for breaking a rule, such as skipping the two-compound rule.	
+2821	did not finish	
+2822	Did not finish: the car is out of the race, after a crash, a failure or a puncture.	
+2823	The officials who run the race: they call the flags, the safety car and the penalties.	
+2824	Grand Prix	
+2825	grand prix	
+2826	A race weekend at one circuit, named after its city or country.	
+2827	The timed session before the race. The fastest lap starts at the front of the grid.	
+2828	Pole position	
+2829	p1 on the grid	
+2830	First place on the starting grid, earned with the fastest qualifying lap.	
+2831	Grid	
+2832	starting grid	
+2833	the grid	
+2834	The starting order, two by two, set by qualifying.	
+2835	Fastest lap	
+2836	The quickest single lap anyone sets in the race.	
+2837	P is for position: P1 is first. The top three stand on the podium.	
+2838	Points	
+2839	championship points	
+2840	Scored for finishing near the front. The Season adds them up over 25 rounds.	
+2841	race length	
+2842	full race	
+2843	short race	
+2844	long race	
+2845	Races come in short, medium, long and full distance. Full distance runs a real Grand Prix length.	
+2846	ai agents	
+2847	my agent	
+2848	Your AI agents race your cars and run the team when you hand it to them. You can also make your own agent in WhatsApp and race by message.	
+2849	Team principal	
+2850	team boss	
+2851	That's you: the boss of the team, making the strategy calls for both cars.	
+2852	Race engineer	
+2853	Your voice on the radio: race updates, a plan before the start, and advice when you ask for it.	
+2854	voice radio	
+2855	Hold the mic button (or say “Radio” in hands-free mode) and talk to your drivers by name: “Nova, box for mediums”.	
+2856	Each driver's style and personality: how hard they push, how they look after tyres, how they fight.	
+2857	Daily Grand Prix	
+2858	daily gp	
+2859	One race a day, the same circuit, grid and weather for everyone, with a share card for your result.	
+2860	Season	
+2861	season mode	
+2862	A 25-round championship from Abu Dhabi to Abuja.	
+2863	Five short guided lessons on a real race, taught by your engineer.	
+2864	Sora	
+2865	The game's own currency, for prizes. It has no cash value.	
+2866	the pass	
+2867	pass card	
+2868	The pass that shows you are a real person. It unlocks full-distance races and more.	
+2869	👉 Say {0}.	
+2870	More: {0}/wiki#{1}	
+2871	💻 Best on a computer	
+2872	Two AI drivers race for you. You make the calls.	
+2873	on WhatsApp, takes one minute	
+2874	· active	
+2875	· ${0}/mo	
+2876	📲 Get the app	
+2877	Two AI drivers. One AI race engineer.	
+2878	slide up for the menu	
+2879	slide down to watch	
+2880	Slide up for Play	
+2881	home nbhome{0}{1}	
+2882	meta[name="theme-color"]	
+2883	Race	
+2884	More	
+2885	Hot	
+2886	Warm	
+2887	Mild	
+2888	Cool	
+2889	rain likely	
+2890	showers possible	
+2891	Your engineer	
+2892	round {0} of {1}	
+2893	WhatsApp linked	
+2894	WhatsApp not linked	
+2895	I'll have a plan for {0} on the grid.	
+2896	Next race	
+2897	Season {2}	
+2898	My team ›	
+2899	Next race · Daily Grand Prix #{0}	
+2900	Enter race	
+2901	free for everyone	
+2902	Next race · Round {0} of {1}	
+2903	you finished P{0}	
+2904	learn the pit wall in five short lessons	
+2905	Jump into a race	
+2906	a short race at Sakhir with the coach beside you	
+2907	You finished P{0}. Race it again for fun.	
+2908	The same race for everyone today. Always free.	
+2909	{0} {1}, same set-up	
+2910	sit back and watch the field	
+2911	Championship standings	
+2912	Today · Daily Grand Prix #{3}	
+2913	Driver 0{2}{3}	
+2914	XP	
+2915	Career	
+2916	Simple car	
+2917	name, drivers, colours and numbers	
+2918	Last race report	
+2919	Your car	
+2920	Garage ›	
+2921	Place	
+2922	Starts	
+2923	{0} follows your races and texts you the big calls	
+2924	When your agents run the team, check-in questions come to you on WhatsApp, with a safe default if you don’t answer.	
+2925	Once linked, check-in questions during races your agents run come to you on WhatsApp.	
+2926	your agent races them at {0}:00 if you haven't	
+2927	Debrief · {0} {1}	
+2928	Full race report	
+2929	Debrief	
+2930	After your first race your engineer's review of it shows here: what happened to both cars, and how your calls worked.	
+2931	{1} {2} · Daily #{3}	
+2932	{4} · +{5} pts	
+2933	Races your agent ran	
+2934	Who makes the calls in your next race	
+2935	Reads the race, advises on the radio, and runs the team when you hand it over.	
+2936	Voice	
+2937	Delegation	
+2938	You make the calls. Your engineer advises.	
+2939	Your agents make every call. Take it back any time.	
+2940	This is the start for your next race. In a race, Hand to agents and Take it back switch it any time.	
+2941	Your AI agent	
+2942	the pit wall in two minutes	
+2943	How to win	
+2944	tyres, stops, the battery and rain	
+2945	sound, the engineer, the coach and language	
+2946	fair play, and how to reach us	
+2947	Racing wiki	
+2948	every racing word, explained	
+2949	Agent Grand Prix v1.0	
+2950	Take control	
+2951	Take back	
+2952	Agents racing · {0}	
+2953	Agents racing: your engineer makes every call	
+2954	Advisory: you make the calls	
+2955	WhatsApp: {0} is linked to your account	
+2956	WhatsApp: not linked. Connect it from the Engineer tab at home.	
+2959	800 italic 112px "Barlow Condensed", "Arial Narrow", sans-serif	
+2960	AGENT GRAND PRIX	
+2961	700 54px "Barlow Semi Condensed", "Arial Narrow", sans-serif	
+2962	{0} GRAND PRIX	
+2969	--tc	
+2984	agp.dev	
+2985	Daily, full distance	Daily, distance complète
+2986	Championship round	Manche du championnat
+2987	Your race is still on	Votre course continue
+2988	{3} · last raced on another device {4}	{3} · dernière course sur un autre appareil {4}
+2989	Continue here ›	Continuer ici ›
+2990	Carrying on your race on this device.	Votre course continue sur cet appareil.
+2991	That race has finished or can't be reached right now.	Cette course est terminée ou injoignable pour le moment.
+2992	This race moved to another device	Cette course est passée sur un autre appareil
+2993	You carried it on somewhere else, so it has stopped here. Your progress is safe.	Vous l'avez reprise ailleurs, elle s'arrête donc ici. Votre progression est sauvegardée.
+2994	Take it back here	La reprendre ici
+2995	Today · Daily Grand Prix #{4}	Aujourd'hui · Daily Grand Prix n°{4}
+2996	Music	Musique
+2997	The theme on the menus, the grid and the podium	Le thème sur les menus, la grille et le podium
+2998	race reports and agent talk, live now	Comptes rendus de course et échanges d'agents, en direct
+2999	player chats and race videos: coming soon	Discussions entre joueurs et vidéos de course : bientôt
+3000	-city	
+3001	city kit	
