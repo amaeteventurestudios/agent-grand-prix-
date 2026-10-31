@@ -264,7 +264,7 @@ export class Race {
     // speeds
     const active = this.cars.filter((c) => !c.dnf);
     for (const car of active) {
-      car.prevDist = car.dist; car.prevLat = car.lat;
+      car.prevDist = car.dist; car.prevLat = car.lat; car.prevNudge = car.nudge || 0; car.v0 = car.v;
       const s = ((car.dist % L) + L) % L, i = Math.floor(s);
       if (this.t < car.react) { continue; }
       let grip = tyreGrip(car.tyre.c, car.tyre.wear, w) * (this.venue.grip || 1);
@@ -397,7 +397,7 @@ export class Race {
           }
         }
         // until it has pulled out alongside, a car stays a car length behind
-        const clear = car.pass && car.pass.id === ahead.id && Math.abs(car.lat - ahead.lat) >= CAR_W * 0.92;
+        const clear = car.pass && car.pass.id === ahead.id && Math.abs(car.lat - ahead.lat) >= CAR_W;
         // (a car that is passing this one, alongside, is not one to queue behind)
         const beside = ahead.pass && ahead.pass.id === car.id && dS < CAR_L;
         if (!clear && !beside && (!lapped || dS < 9)) car._vt = Math.min(car._vt, Math.max(ahead.v * 0.85, ahead.v + (dS - (car.battle === 'attack' ? 8.5 : 10)) * 0.7));
@@ -412,8 +412,8 @@ export class Race {
       }
       if (line && dL > CAR_L * 0.5 && car.v > line.v && !(line.pass && line.pass.id === car.id && dL < CAR_L)) {
         const room = Math.max(0, dL - CAR_L - 1.5);
-        car._vt = Math.min(car._vt, line.v + Math.sqrt(2 * 30 * room));
-      }
+        car._vt = Math.min(car._vt, car._cap = Math.max(0, line.v - 46 * DT) + Math.sqrt(2 * 30 * room));   // it may be braking hard this step too
+      } else car._cap = Infinity;
     }
 
     // team orders: the car letting its teammate by eases off until the other is past (or the window closes)
@@ -440,11 +440,13 @@ export class Race {
         continue;
       }
       // a boosted move, once it has pulled out of the other car's line, simply goes past
-      if (car.pass.boost && car.boostT > 0 && Math.abs(car.lat - o.lat) >= CAR_W * 0.7) car._vt = Math.max(car._vt, o.v * 1.05 + 2.5);
-      if (Math.abs(car.lat - o.lat) >= CAR_W * 0.92) {
+      if (car.pass.boost && car.boostT > 0 && Math.abs(car.lat - o.lat) >= CAR_W) car._vt = Math.max(car._vt, o.v * 1.05 + 2.5);
+      if (Math.abs(car.lat - o.lat) >= CAR_W) {
         const str = T.straight[Math.floor(((car.dist % L) + L) % L)];
         car._vt *= 1 + (str ? 0.03 : 0.015) + (car.battle === 'attack' ? 0.01 : 0) + (car.ersMode === 'deploy' && car.ers > 0 ? 0.03 : 0);
       }
+      // the run never takes it through a car further up its new line (braked for above)
+      car._vt = Math.min(car._vt, car._cap ?? Infinity);
     }
 
     // integrate
@@ -972,9 +974,10 @@ export class Race {
       if (A.pit || B.pit) {
         // in or next to the pit lane nobody is pushed sideways: the one behind waits
         const [back, front] = d < 0 ? [A, B] : [B, A];
-        if (Math.abs(d) < CAR_L) { back.dist -= Math.min(0.15, CAR_L - Math.abs(d)); back.v = Math.min(back.v, front.v * 0.6); }
-      } else if (Math.abs(d) < CAR_L * 0.6) {
-        // alongside: ease apart sideways, the passing car doing most of the moving
+        if (Math.abs(d) < CAR_L) { const n = Math.min(0.15, CAR_L - Math.abs(d)); back.dist -= n; back.nudge = (back.nudge || 0) + n; back.v = Math.min(back.v, front.v * 0.6); }
+      } else if (Math.abs(d) < CAR_L * 0.6 || (CAR_W - Math.abs(dl)) * 3 < CAR_L - Math.abs(d)) {
+        // alongside, or only touching at an angle: ease apart sideways, the passing car doing most of the
+        // moving (sideways the drawn cars glide through a spring, where a shove backwards reads as a jolt)
         const push = Math.min(0.14, (CAR_W - Math.abs(dl)) * 0.5) * (dl >= 0 ? 1 : -1);
         const wa = A.pass && A.pass.id === B.id ? 0.8 : B.pass && B.pass.id === A.id ? 0.2 : 0.5;
         A.lat = clamp(A.lat + push * wa * 2, -room, room);
@@ -983,7 +986,9 @@ export class Race {
         // nose to tail: the one behind lifts
         const [back, front] = d < 0 ? [A, B] : [B, A];
         const gap = Math.abs(d);
-        back.dist -= Math.min(0.8, CAR_L - gap); back.v = Math.min(back.v, front.v);
+        const n = Math.min(0.8, CAR_L - gap);
+        // it lifts as hard as a car can brake, no harder; the nudge is kept so the drawing can smooth it
+        back.dist -= n; back.nudge = (back.nudge || 0) + n; back.v = Math.max(Math.min(back.v, front.v), Math.min(back.v, (back.v0 ?? back.v) - 46 * DT));
       }
     }
   }

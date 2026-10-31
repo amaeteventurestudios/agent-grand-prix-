@@ -101,6 +101,15 @@ function player(id, name) {
   return p;
 }
 
+// no race on the web reaches me: say why it might be, and how to race here instead
+function noWebRace(p) {
+  return [p.linked ? "I can't see a race running on your account right now." : "I'm not linked to your game yet, so I can't see your races.",
+    '',
+    p.linked ? 'If you are racing on agentgrandprix.com, check that you are signed in there (top right shows your team badge, not *Sign in*). A race run signed out stays on that device and I can\'t follow it.'
+      : 'Link me from the game: menu › My agent › Connect WhatsApp.',
+    '',
+    'To race here in the chat instead, reply *today* for the Daily or *race* and a city, e.g. *race lagos*.'].join('\n');
+}
 function startRace(to, p, kind, venue, length) {
   const n = dayNumber();
   const v = venue || dailyVenue(n);
@@ -406,7 +415,7 @@ function handle(from, text, name, { noChat = false } = {}) {
   if ((m = t.match(/^link\s+([a-z0-9]{6})$/))) return linkAccount(from, p, m[1]);
   if (/^unlink$/.test(t)) { accountsApi('POST', '/agent/unlink', { phone: from }).catch(() => {}); p.linked = false; p.uid = null; if (L && L.mirror) races.delete(from); save(); return send(from, '🔌 Unlinked. I won\'t follow your races on the web any more. Connect again any time from the game: menu › My agent.'); }
   if (L && L.mirror && /^(stop|quit|abandon)$/.test(t)) { p.muted = L.mirror.key; races.delete(from); save(); return send(from, `OK, I'll stop following this one. The race carries on in the game.`); }
-  if (L && /^(stop|quit|abandon)$/.test(t)) { races.delete(from); return send(from, 'Race stopped. Reply *today* or *race* for another.'); }
+  if (L && /^(stop|quit|abandon)$/.test(t)) { races.delete(from); return send(from, 'Race stopped. Reply *today* or *race* and a city for another.'); }
   if (/^(auto|autonomous|hand over|handover)$/.test(t)) { p.auto = true; p.ask = true; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: true }); } return send(from, '🤖 Your agents have the race. I\'ll only message you when there\'s a big call, with my pick and a deadline. Reply *quiet* to let them decide everything, or *take over* to make every call yourself.'); }
   if (/^(quiet|full auto|don'?t ask)$/.test(t)) { p.auto = true; p.ask = false; save(); if (L) for (const id of L.mine) { R.command(id, { auto: true }); R.command(id, { ask: false }); L.ask = {}; } return send(from, '🤫 Your agents make every call, no questions. You\'ll get a short update every 5 laps.'); }
   if (/^(take over|manual|principal)$/.test(t)) { p.auto = false; save(); if (L) { for (const id of L.mine) R.command(id, { auto: false }); L.ask = {}; } return send(from, '🎧 You have the calls. Your engineer will advise.'); }
@@ -426,9 +435,14 @@ function handle(from, text, name, { noChat = false } = {}) {
     return send(from, [`🗺️ *${VENUES.length} CIRCUITS*`, '', ...Object.entries(g).map(([r, c]) => `*${r}*\n${c.join(' · ')}`).join('\n\n').split('\n'), '', '👉 Reply *race* and a city, e.g. *race lagos*'].join('\n'));
   }
   if (/^(help|commands|menu|\?)$/.test(t)) return send(from, L ? RACE_HELP : HELP);
-  if (/^(today|daily|race today)$/.test(t) || (/^(race|go|start)$/.test(t))) {
+  if (/^(today|daily|race today|start today|start the daily)$/.test(t)) {
     if (L) return send(from, 'You are already racing. Reply *stop* to end it.');
     return startRace(from, p, 'daily');
+  }
+  // a bare "race" or "go" never starts a new race: the player is usually asking about the one they're in
+  if (/^(race|go|my race)$/.test(t)) {
+    if (L) return send(from, L.mirror ? `You're racing in ${L.venue.flag} *${L.venue.city}*. Reply *status* for where your cars are.` : 'You are already racing. Reply *status* for where your cars are, or *stop* to end it.');
+    return send(from, noWebRace(p));
   }
   if ((m = t.match(/^race\s+(.+)$/))) {
     if (L) return send(from, 'You are already racing. Reply *stop* to end it.');

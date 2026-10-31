@@ -63,6 +63,10 @@ const PW = await import('./pitwall.mjs');
 const q = { pick: 0, opts: [{ box: 'H' }, { box: null }, { box: 'M' }] };
 for (const [w, k] of [['yes', 0], ['do it', 0], ['no', 1], ['stay out', 1], ['mediums', 2], ['hards', 0]]) must(PW.wordsToOption(w, q) === k, 'words: ' + w, String(PW.wordsToOption(w, q)));
 
+// a bare "race" never starts one: it explains where the player's race is (or isn't)
+said(); await W.handle('t9', 'race'); out = said();
+must(!W.races.has('t9') && /can't see|not linked/.test(out), 'bare race starts nothing', out);
+
 // Team Principal mode: the engineer never speaks unasked
 W.handle('t3', 'take over'); W.handle('t3', 'race singapore'); said();
 const L3 = W.races.get('t3'); L3.R.start();
