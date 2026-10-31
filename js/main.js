@@ -7,7 +7,7 @@ import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
 import { DT, LIFE, tyreLife, fmtLap, fmtTime } from './sim.js';
 import { QualiSession, Q_LEN, fmtQ } from './quali.js';
-import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
+import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps, useLayout, layoutInUse } from './game.js';
 import { World } from './world.js';
 import { Ceremony } from './ceremony.js';
 import { MODELS, loadGLB } from './cars.js';
@@ -82,7 +82,7 @@ const mine = () => (G.attract ? [] : ['you-0', 'you-1']);
 
 function loadVenue(venue) {
   stopCere();
-  if (world && world.venue.id === venue.id) return;
+  if (world && world.venue.id === venue.id && world.T === trackFor(venue)) return;
   if (world) world.dispose();
   world = new World(renderer, venue, trackFor(venue), { lite, car: carModel() });
   cams.setWorld(world);
@@ -91,6 +91,7 @@ function loadVenue(venue) {
 
 // ---------- the live race behind the home screen ----------
 function attract() {
+  useLayout();
   stopCere();
   G.attract = true; G.ended = false; sound.stop(); live.clear(); G.room = null; stopListening(); G.lesson = null; lessonCard(null);
   const n = dayNumber(), venue = dailyVenue(n);
@@ -121,7 +122,7 @@ const LIVE_KEY = 'agp.live.v1';
 const live = {
   rec: null,
   track(R, args, saved) {
-    const rec = this.rec = { id: (saved && saved.id) || Math.random().toString(36).slice(2, 12), kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
+    const rec = this.rec = { id: (saved && saved.id) || Math.random().toString(36).slice(2, 12), layout: layoutInUse(), kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
     const step = R.step.bind(R), command = R.command.bind(R);
     R.step = () => { step(); rec.n++; };
     R.command = (id, c, from) => { if (!this.replaying) rec.cmds.push(from ? [rec.n, id, c, from] : [rec.n, id, c]); return command(id, c, from); };
@@ -256,6 +257,8 @@ function resumeRace(saved) {
   // a live race is rejoined from its room, which holds every call; the browser's own copy isn't needed
   if (saved.kind === 'live') { readRoom(saved.args.room).then((r) => { if (r && r.you >= 0 && !r.error) liveStart(r); else { live.clear(); attract(); } }); return true; }
   Object.assign(G, { kind: saved.kind, venue: v, seed: saved.seed, round: saved.round, day: saved.day, laps: saved.laps });
+  // a race saved before the new circuits (no layout in it) finishes on the old one
+  useLayout(saved.layout || 1);
   startRace(saved.args.startCompounds, saved.args.auto, saved);
   return true;
 }
@@ -3710,6 +3713,7 @@ function qualiUI(force) {
 
 function startRace(picks, auto, saved = null) {
   hide();
+  if (!saved) useLayout();
   if (!reduce) loadGLB('people/driver').catch(() => {});   // the podium celebration's drivers, ready for the flag
   if (!(saved && saved.live)) { G.room = null; stopListening(); }
   // a Racing Academy lesson rides on this race when startLesson() asked for one

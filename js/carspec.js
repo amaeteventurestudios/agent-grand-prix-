@@ -21,9 +21,9 @@ export const carById = (id) => CARS.find((c) => c.id === id) || null;
 
 // one step of each strength, up and down (solved against the calendar, see tools/test/cars.test.mjs)
 const STEP = {
-  lateral: [1.0176, 0.9829],
-  brake: [1.25, 0.8], entry: [1.0278, 0.992],
-  top: [1.0078, 0.9924],
+  lateral: [1.0147, 0.9855],
+  brake: [1.16, 0.857], entry: [1.0178, 0.9943],
+  top: [1.00995, 0.99025],
 };
 const at = (k, t) => (t >= 0 ? 1 + t * (STEP[k][0] - 1) : 1 + -t * (STEP[k][1] - 1));
 

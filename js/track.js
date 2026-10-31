@@ -3,6 +3,7 @@
 // pinch too tight or lack a main straight for the pits are thrown away and retried.
 // No Three.js here, so Node can generate and test tracks.
 import { rng, clamp } from './rng.js';
+import { pieceLayout, styleFor } from './layout.js';
 
 const A_LAT = 33;      // cornering grip, m/s² (about 3.4 g)
 const BRAKE = 40;      // braking, m/s²
@@ -40,7 +41,9 @@ function resample(pts, step) {
 
 const wrapA = (a) => { while (a > Math.PI) a -= 2 * Math.PI; while (a < -Math.PI) a += 2 * Math.PI; return a; };
 
-function attempt(r, opt) {
+// layout 1: a seeded ring of points, one per direction round a centre (kept so a race saved on the
+// old layouts still replays on them)
+function ring(r, opt) {
   const n = r.int(8, 12), R = opt.size;
   const sx = r.range(1, 1.45), sz = r.range(0.75, 1);
   const ctrl = [];
@@ -61,9 +64,15 @@ function attempt(r, opt) {
     const p0 = ctrl[(i - 1 + n) % n], p1 = ctrl[i], p2 = ctrl[(i + 1) % n], p3 = ctrl[(i + 2) % n];
     for (let s = 0; s < 40; s++) dense.push(catmull(p0, p1, p2, p3, s / 40));
   }
+  return dense;
+}
+
+function attempt(r, opt) {
+  const dense = opt.version === 1 ? ring(r, opt) : pieceLayout(r, opt, opt.style);
+  if (!dense) return null;
   let pts = resample(dense, 1);
-  // A few smoothing passes take out kinks the spline leaves behind.
-  for (let pass = 0; pass < 6; pass++) {
+  // A few smoothing passes take out kinks: the spline's on layout 1, the joins between pieces on layout 2.
+  for (let pass = 0; pass < (opt.version === 1 ? 6 : 3); pass++) {
     const N = pts.length, q = new Array(N);
     for (let i = 0; i < N; i++) {
       const a = pts[(i - 3 + N) % N], b = pts[i], c = pts[(i + 3) % N];
@@ -124,17 +133,20 @@ function attempt(r, opt) {
   return { pts, k, head, straightStart: bestStart, straightLen: best };
 }
 
-export function generateTrack(seed, venue = {}) {
+export function generateTrack(seed, venue = {}, version = 2) {
   const street = !!venue.street;
-  const opt = {
-    size: 300, minLen: 1900, maxLen: 3300, minRadius: street ? 16 : 20,
+  const opt = version === 1 ? {
+    version, size: 300, minLen: 1900, maxLen: 3300, minRadius: street ? 16 : 20,
     clear: street ? 42 : 52, minStraight: 330,
+  } : {
+    version, style: styleFor(venue, rng(seed ^ 0x5eed)), minLen: 2900, maxLen: 4600, minRadius: street ? 16 : 18,
+    clear: street ? 42 : 50, minStraight: 330,
   };
   let raw = null, tries = 0, s = seed;
-  while (!raw && tries < 400) {
+  while (!raw && tries < (version === 1 ? 400 : 3000)) {
     raw = attempt(rng(s), opt);
     tries++; s = (s * 1664525 + 1013904223) >>> 0;
-    if (tries === 200) { opt.minStraight = 280; opt.minRadius -= 3; }
+    if (tries === 200 && version === 1) { opt.minStraight = 280; opt.minRadius -= 3; }
   }
   if (!raw) throw new Error('no track');
   const { pts, straightStart, straightLen } = raw;
@@ -206,7 +218,7 @@ export function generateTrack(seed, venue = {}) {
 
   return {
     seed, N, L: N, x, z, tx, tz, k, v, ideal, straight, lapTime, width, half, vmax, apex, turnAt,
-    centroid: [cx, cz], bounds: { minX, maxX, minZ, maxZ }, pit, tries, street,
+    centroid: [cx, cz], bounds: { minX, maxX, minZ, maxZ }, pit, tries, street, version, style: opt.style,
   };
 }
 
