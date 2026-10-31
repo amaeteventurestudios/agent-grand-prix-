@@ -29,10 +29,31 @@ const at = (k, t) => (t >= 0 ? 1 + t * (STEP[k][0] - 1) : 1 + -t * (STEP[k][1] -
 
 // what the engine needs from a car: multipliers on cornering grip, braking, corner entry and top
 // speed (js/track.js driverPlan). No car, or an unknown one, is neutral.
-export function carMods(id) {
+export function carMods(id, setup = null) {
   const c = carById(id);
   if (!c) return null;
-  return { lateral: at('lateral', c.corners), brake: at('brake', c.braking), entry: at('entry', c.braking), top: at('top', c.straights) };
+  const t = setupTilt(setup);
+  return { lateral: at('lateral', c.corners + t.corners), brake: at('brake', c.braking + t.braking), entry: at('entry', c.braking + t.braking), top: at('top', c.straights + t.straights) };
+}
+
+// ---------- setups, earned with R&D ----------
+// A setup moves strength from one part of the lap to another, and its three tilts add up to zero
+// like a car's own strengths, so no setup is faster everywhere: it is faster on circuits that suit
+// it. Racing earns R&D points (js/rnd.js), and R&D opens stronger versions of each package. Level 1
+// is free; each level leans the car further. The Daily runs every car on Balanced, so it stays fair.
+export const SETUPS = [
+  { id: 'balanced', name: 'Balanced', note: 'The car as it comes', corners: 0, braking: 0, straights: 0 },
+  { id: 'lowdrag', name: 'Low drag', note: 'Faster on the straights, less grip in corners', corners: -1, braking: 0, straights: 1 },
+  { id: 'downforce', name: 'High downforce', note: 'More grip in corners, slower on the straights', corners: 1, braking: 0, straights: -1 },
+  { id: 'braking', name: 'Late braking', note: 'Stops harder into corners, slower on the straights', corners: 0, braking: 1, straights: -1 },
+];
+export const SETUP_LEVELS = [1, 2.5, 4];         // how far each level leans the car
+export const SETUP_COST = [0, 200, 500];            // R&D points to open each level
+export const setupById = (id) => SETUPS.find((s) => s.id === id) || SETUPS[0];
+export function setupTilt(setup) {
+  if (!setup || !setup.id || setup.id === 'balanced') return { corners: 0, braking: 0, straights: 0 };
+  const s = setupById(setup.id), k = SETUP_LEVELS[Math.max(0, Math.min(2, (setup.level || 1) - 1))];
+  return { corners: s.corners * k, braking: s.braking * k, straights: s.straights * k };
 }
 
 // which car each team races: yours is the one you pick; the nine other teams take the rest of the

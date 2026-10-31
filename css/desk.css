@@ -92,7 +92,8 @@ html.dk #app .seg button:hover:not(.on) { background: rgba(255, 255, 255, .08); 
 html.dk .cam-pill { bottom: 14px; padding: 4px; border-radius: 12px; background: rgba(7, 13, 28, .86); border: 1px solid var(--k-line); }
 html.dk .cam-pill button { padding: 8px 16px; font-size: 15px; }
 html.dk #stats, html.dk #talkBtn { display: none !important; }
-html.dk .boost, html.dk .boxfab { width: 66px; right: 16px; border-radius: 12px; }
+/* BOOST and BOX sit in one column straight above the talk button (centred on .dk-talk) */
+html.dk .boost, html.dk .boxfab { width: 80px; right: 32px; border-radius: 12px; }
 html.dk .boxfab { bottom: 196px; }
 html.dk .boost { bottom: 268px; }
 html.dk .talk-said, html.dk .ack { right: 104px; bottom: 112px; }

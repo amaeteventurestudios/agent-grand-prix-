@@ -87,7 +87,7 @@ function oneLap(d, seed, i) {
 // a car's strengths over one lap of this circuit, in the same units as driver pace (4.5% of speed
 // per point): a straights car gains at a fast circuit and gives it back at a twisty one
 function carLap(e, T) {
-  const m = e.car && T ? carMods(e.car) : null;
+  const m = e.car && T ? carMods(e.car, e.setup) : null;
   return m ? (1 - driverPlan(T, null, m).lapTime / T.lapTime) / 0.045 : 0;
 }
 
@@ -147,7 +147,7 @@ export class Race {
         mismatch: 0, plan: null, think: this.r.range(0, 1), advised: {},
         speedMul: 1 - 0.045 * (1 - traits.pace), wobble: 1, penalty: 0,
         failing: null, puncture: false, cleared: false, onTrackStop: false,
-        spec: e.car ? carMods(e.car) : null, dna: e.dna || null, dnaHash: e.dna ? e.dna.hash : null, sv: null, lastTurn: -1, pressT: 0,
+        spec: e.car ? carMods(e.car, e.setup) : null, dna: e.dna || null, dnaHash: e.dna ? e.dna.hash : null, sv: null, lastTurn: -1, pressT: 0,
         tele: { lockups: 0, wides: 0, spins: 0, att: 0, contacts: 0, mistakes: 0, wearSum: 0, dist: 0 },
       };
       car.sv = driverPlan(T, car.dna, car.spec).v;
