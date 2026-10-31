@@ -327,8 +327,8 @@ def wheel(name, key, lod, ring=P2, spokes=10, style='turbine', lip=True, tyre_ri
     for p in wob.data.polygons: p.use_smooth = True
     return wob
 
-def helmet(hx, lod, rule=None):
-    h = loft('helmet', [superellipse(hx + dx, w, 0.52 - hh, 0.52 + hh, (14, 10, 6)[lod], 2, 2) for (dx, w, hh) in
+def helmet(hx, lod, rule=None, hz=0.52):
+    h = loft('helmet', [superellipse(hx + dx, w, hz - hh, hz + hh, (14, 10, 6)[lod], 2, 2) for (dx, w, hh) in
                         ((0.17, 0.02, 0.02), (0.12, 0.1, 0.1), (0.0, 0.13, 0.13), (-0.14, 0.11, 0.11), (-0.21, 0.03, 0.03))])
     finish(h, 1 if lod == 0 else 0)
     return paint(h, rule or (lambda p, n: CF if n.x > 0.5 and p.z > 0.49 else P2))
@@ -433,7 +433,7 @@ def halo_bar(S, lod, parts, rule):
     parts.append(paint(finish(loft('bar', rings), 0, False), lambda p, n: rule(Q(p.x, 0, 1, False, False, p, n))))
 
 def mirrors(S, lod, parts, rule):
-    if lod == 2: return
+    if lod == 2 or S.get('mirror_at', 1) is None: return
     mx, my, mz = S.get('mirror_at', (0.8, 0.46, 0.66))
     for s in (1, -1):
         parts.append(paint(finish(strut('mstalk', (mx - 0.08, s * (my - 0.2), mz - 0.12), (mx, s * my, mz), 0.03, 0.014), 0), solid(CF)))
@@ -525,7 +525,7 @@ def build_car(S, lod):
     halo_bar(S, lod, parts, S.get('bar_rule', lambda q: P1))
     mirrors(S, lod, parts, S.get('mirror_rule', lambda q: P2 if q.n.x < -0.5 else P1))
     suspension(S, lod, parts)
-    if lod < 2: parts.append(helmet(S.get('helmet_x', 0.16), lod, lambda p, n: CF if n.x > 0.5 and p.z > 0.49 else (P2 if abs(p.y) < 0.025 else P1)))
+    if lod < 2: parts.append(helmet(S.get('helmet_x', 0.16), lod, lambda p, n: CF if n.x > 0.5 and p.z > S.get('helmet_z', 0.52) - 0.03 else (P2 if abs(p.y) < 0.025 else P1), S.get('helmet_z', 0.52)))
     if S.get('extras'): S['extras'](lod, parts)
     car = join('body', parts)
     glass = canopy(S, lod)
