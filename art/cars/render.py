@@ -40,13 +40,21 @@ sc.render.engine = 'CYCLES'; sc.cycles.device = 'CPU'; sc.cycles.samples = 48; s
 sc.render.resolution_x, sc.render.resolution_y = 960, 540
 sc.view_settings.view_transform = 'AgX'
 w = bpy.data.worlds.new('w'); sc.world = w; w.use_nodes = True
-w.node_tree.nodes['Background'].inputs[0].default_value = (0.75, 0.78, 0.82, 1); w.node_tree.nodes['Background'].inputs[1].default_value = 0.9
+w.node_tree.nodes['Background'].inputs[0].default_value = (0.62, 0.65, 0.7, 1); w.node_tree.nodes['Background'].inputs[1].default_value = 0.4
 bpy.ops.mesh.primitive_plane_add(size=60)
 fl = bpy.data.materials.new('floor'); fl.use_nodes = True
-fl.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.5, 0.5, 0.52, 1); fl.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.25
+fl.node_tree.nodes['Principled BSDF'].inputs['Base Color'].default_value = (0.42, 0.43, 0.45, 1); fl.node_tree.nodes['Principled BSDF'].inputs['Roughness'].default_value = 0.2
 bpy.context.object.data.materials.append(fl)
-sun = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN')); sc.collection.objects.link(sun)
-sun.data.energy = 3.5; sun.rotation_euler = (math.radians(40), math.radians(15), math.radians(-30))
+# a studio: a big soft panel overhead, long strip lights either side that draw bright lines along the
+# creases, and a warm key from the front
+def area(name, loc, target, sx, sy, energy, color=(1, 1, 1)):
+    L = bpy.data.lights.new(name, 'AREA'); L.shape = 'RECTANGLE'; L.size = sx; L.size_y = sy; L.energy = energy; L.color = color
+    o = bpy.data.objects.new(name, L); sc.collection.objects.link(o); o.location = loc
+    o.rotation_euler = (Vector(target) - Vector(loc)).to_track_quat('-Z', 'Y').to_euler(); return o
+area('top', (0, 0, 7), (0, 0, 0), 9, 3.5, 1400)
+area('stripL', (0.5, 6, 3.2), (0, 0, 0.3), 9, 0.5, 800)
+area('stripR', (0.5, -6, 3.2), (0, 0, 0.3), 9, 0.5, 650)
+area('key', (7, 3, 2.5), (0, 0, 0.4), 3, 3, 450, (1, 0.97, 0.92))
 cam = bpy.data.objects.new('cam', bpy.data.cameras.new('cam')); sc.collection.objects.link(cam); sc.camera = cam
 cam.data.lens = 50
 views = {'34': (6.5, 4.8, 3.0), 'side': (0.0, 9.0, 0.9), 'rear': (-6.5, -4.2, 2.4), 'top': (0.01, 0.0, 11)}
