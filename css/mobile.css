@@ -356,3 +356,9 @@ html.mob .vol-pop { top: calc(max(8px, var(--a-safe-t)) + 40px); right: max(8px,
   html.mob #app.camopen .sec-tick { bottom: 172px; }
 }
 @media (orientation: portrait) and (max-width: 1199px) and (prefers-reduced-motion: reduce) { html.mob .boost, html.mob .boxfab, html.mob .talkfab, html.mob #stage > .chip.agents, html.mob .sec-tick { transition: none; } }
+/* what you said on the radio (and the driver's answer) shows above Hand to agents, in the sector
+   strip's place: the strip steps aside until the words have gone */
+@media (orientation: portrait) and (max-width: 1199px) {
+  html.mob #app:has(#talkSaid:not([hidden])) .sec-tick, html.mob #app:has(#ack:not([hidden])) .sec-tick { visibility: hidden; }
+  html.mob #app.camopen .talk-said, html.mob #app.camopen .ack { bottom: 170px; }
+}
