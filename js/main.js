@@ -5,7 +5,7 @@ import { startHere } from './here.js';
 import * as THREE from 'three';
 import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
-import { DT, LIFE, tyreLife, fmtLap, fmtTime } from './sim.js';
+import { DT, LIFE, tyreLife, fmtLap, fmtTime, rainAt } from './sim.js';
 import { QualiSession, Q_LEN, fmtQ } from './quali.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps, useLayout, layoutInUse } from './game.js';
 import { World } from './world.js';
@@ -527,6 +527,7 @@ function tick() {
   finUI(R);
   $('#hudFlag').textContent = G.venue.flag; $('#hudCity').textContent = G.venue.city;
   $('#hudWx').innerHTML = weatherHTML(R);
+  { const wp = $('#wxPop'); if (wp && !wp.hidden && Math.floor(R.t) !== wp._t) { wp._t = Math.floor(R.t); wxPanel(true); } }
   const sc = $('#hudSc');
   sc.hidden = !R.sc;
   if (R.sc) sc.textContent = R.sc.kind === 'VSC' ? 'VIRTUAL SAFETY CAR' : R.sc.phase === 'in' ? 'SC IN THIS LAP' : 'SAFETY CAR';
@@ -1372,6 +1373,34 @@ function nextRain(R) {
   }
   return null;
 }
+// the radar, lap by lap: how hard it rains over each of the next laps (the race's own forecast)
+function lapForecast(R, n = 5) {
+  const lt = R.track.lapTime * 1.05, lap0 = R.leaderLap(), out = [];
+  for (let k = 0; k < n && lap0 + k <= R.laps; k++) {
+    let sum = 0, top = 0;
+    for (let q = 0; q < 6; q++) { const v = rainAt(R.weather, R.t + (k + q / 6) * lt); sum += v; top = Math.max(top, v); }
+    out.push({ lap: lap0 + k, rain: sum / 6, top });
+  }
+  return out;
+}
+const rainWord = (v) => (v < 0.05 ? 'Dry' : v < 0.3 ? 'Light' : v < 0.6 ? 'Rain' : 'Heavy');
+const rainIcon = (v) => (v < 0.05 ? '☀️' : v < 0.3 ? '🌦️' : v < 0.6 ? '🌧️' : '⛈️');
+function forecastHTML(R) {
+  return `<ol class="fcast">${lapForecast(R).map((f, k) => `<li class="${rainWord(f.top).toLowerCase()}"><small>${k ? 'Lap ' + f.lap : 'Now'}</small><span>${rainIcon(f.top)}</span><b>${rainWord(f.top)}</b><i style="--r:${Math.round(f.top * 100)}%"></i></li>`).join('')}</ol>`;
+}
+// tap the weather chip: the forecast for the next five laps
+function wxPanel(open = $('#wxPop')?.hidden !== false) {
+  let el = $('#wxPop');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'wxPop'; el.className = 'wx-pop'; el.hidden = true;
+    $('#stage').append(el);
+    document.addEventListener('pointerdown', (e) => { if (!el.hidden && !e.target.closest('#wxPop, #hudWx')) el.hidden = true; });
+  }
+  if (open && G.race) el.innerHTML = `<p class="wx-h">Radar · next laps <span class="sim">SIM</span></p>${forecastHTML(G.race)}<p class="wx-n">${wetWord(G.race.wet)} track now. Inters for damp and light rain, wets when it's heavy.</p>`;
+  el.hidden = !open;
+}
+$('#hudWx').addEventListener('click', () => wxPanel());
+$('#hudWx').setAttribute('role', 'button'); $('#hudWx').title = 'Forecast for the next laps';
 function forecast() {
   const R = G.race;
   R.weather.showers.forEach((s, i) => {
@@ -4299,7 +4328,7 @@ function approveCall(id, action) {
 desk = createDesk({
   G, S, $, $$, esc, COMPOUNDS, portraitSVG, ENG_FACE, fmtLap, tyreHTML, engName, mine, myCars, resize, appOn,
   cmd, teamOrder, select, boxPick, boostCar, handTeam, askEngineer, stratRead, radioCalls, radioText, talkStart, talkStop, talkState,
-  approve: approveCall, toast, renderControls, save: store.save, tick: () => tick(),
+  approve: approveCall, toast, renderControls, save: store.save, tick: () => tick(), forecastHTML,
 });
 
 // ---------- test hooks ----------

@@ -1707,3 +1707,21 @@ html.dk .rails { display: none !important; }
   .rail button { height: 19px; font-size: 9px; }
   .rail .ord { height: 24px; }
 }
+
+/* the radar: rain for the next five laps (tap the weather chip; on desktop in Strategy) */
+.wx-pop { position: absolute; top: 58px; right: 60px; z-index: 30; background: #0d1630 !important; width: min(340px, calc(100% - 20px)); padding: 12px 14px; border-radius: 14px; color: #eef3ff; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); border: 1px solid rgba(140, 175, 255, .2); font: 600 13px var(--f-ui); }
+.wx-pop[hidden] { display: none; }
+.wx-pop .wx-h { margin: 0 0 8px; font: 700 12px var(--f-ui); letter-spacing: .08em; text-transform: uppercase; display: flex; justify-content: space-between; }
+.wx-pop .wx-h .sim { opacity: .6; }
+.wx-pop .wx-n { margin: 8px 0 0; font: 500 12px/1.35 var(--f-ui); opacity: .8; }
+.fcast { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.fcast li { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 8px; background: rgba(255, 255, 255, .06); position: relative; overflow: hidden; }
+.fcast li small { font: 600 10px var(--f-ui); opacity: .75; white-space: nowrap; }
+.fcast li span { font-size: 18px; line-height: 1.1; }
+.fcast li b { font: 700 11px var(--f-ui); }
+.fcast li i { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: linear-gradient(90deg, #3b82f6 var(--r), transparent var(--r)); }
+.fcast li.light b { color: #7cc4ff; } .fcast li.rain b { color: #3b9bff; } .fcast li.heavy b { color: #a78bfa; }
+.hud .chip.wx { cursor: pointer; }
+html.mob .wx-pop { top: calc(max(8px, var(--a-safe-t)) + 40px); right: max(8px, var(--a-safe-r)); }
+html.dk .fcast { margin-bottom: 4px; }
+html.dk .fcast li { background: var(--k-card2, rgba(255,255,255,.06)); }
