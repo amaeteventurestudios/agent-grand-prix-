@@ -862,10 +862,10 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
   /* the cards on the race already say which car and how it's doing */
   .wall .car-card, .wall .mine-tabs { display: none; }
   /* BOOST, RADIO and BOX in one row at the bottom, the mic in the middle */
-  .boost, .boxfab { bottom: 52px; width: min(31%, 120px); padding: 7px 6px 6px; }
+  .boost, .boxfab, .talkfab { bottom: 52px; width: min(31%, 120px); padding: 7px 6px 6px; }
   .boost { left: 8px; right: auto; }
   .boxfab { right: 8px; }
-  .talkfab { left: 50%; right: auto; transform: translateX(-50%); bottom: 52px; width: min(30%, 112px); padding: 7px 6px 6px; }
+  .talkfab { left: 50%; right: auto; transform: translateX(-50%); }
   .talkfab b { font-size: 22px; }
   .talk-said { right: auto; left: 50%; transform: translateX(-50%); bottom: 124px; max-width: calc(100% - 24px); }
   .ack { right: auto; left: 50%; transform: translateX(-50%); bottom: 124px; }
@@ -1662,3 +1662,48 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .vol-pop input[type=range] { flex: 1; accent-color: #d4ff3a; }
 .vol-pop input[type=checkbox] { width: 20px; height: 20px; accent-color: #d4ff3a; }
 .set-seg { flex: none; }
+
+/* BOOST, the mic and BOX are one size: same width, same height, the words in the middle */
+.boost, .boxfab, .talkfab { box-sizing: border-box; height: 62px; align-content: center; border-radius: 12px; }
+@media (max-width: 560px), (max-height: 559px) and (orientation: landscape) { .boost, .boxfab, .talkfab { height: 54px; } }
+@media (max-height: 559px) and (orientation: landscape) {
+  .boost, .boxfab, .talkfab { right: 8px; width: 64px; padding: 5px 4px; }
+  .boxfab { bottom: 48px; } .boost { bottom: 108px; } .talkfab { bottom: 168px; }
+}
+
+/* phones: a slim rail per car at the side of the race (js/main.js rails): pace, battery, fight, team orders */
+.rails { display: none; }
+.rails:not([hidden]) { display: flex; justify-content: space-between; position: absolute; left: 6px; right: 6px; top: calc(var(--below, 104px) + 6px); z-index: 4; pointer-events: none; }
+.rail { pointer-events: auto; width: 52px; display: grid; gap: 5px; align-content: start; }
+.rail .rh { display: grid; justify-items: center; gap: 1px; padding: 4px 2px 3px; border-radius: 8px; background: rgba(7, 13, 28, .72); border-top: 3px solid var(--tc, #fff); color: #fff; }
+.rail .rh span { font: 800 italic 14px/1 var(--f-display); letter-spacing: .03em; }
+.rail .rh small { font: 700 10px/1 var(--f-ui); color: rgba(238, 243, 255, .75); }
+.rail .rg { position: relative; display: grid; gap: 2px; padding: 3px; border-radius: 8px; background: rgba(7, 13, 28, .6); }
+.rail .rg em { font: 700 8px/1 var(--f-ui); letter-spacing: .08em; color: rgba(238, 243, 255, .7); text-align: center; font-style: normal; padding: 1px 0 2px; }
+.rail .ro { display: grid; gap: 2px; }
+.rail button { border: 0; border-radius: 5px; height: 26px; padding: 0; background: rgba(255, 255, 255, .1); color: rgba(238, 243, 255, .9); font: 700 9.5px/1 var(--f-ui); letter-spacing: .02em; cursor: pointer; touch-action: manipulation; }
+.rail button.on { color: #07101f; }
+.rail .pace .push.on, .rail .battle .attack.on { background: #ff5a1f; color: #fff; }
+.rail .pace .normal.on, .rail .ers .balanced.on, .rail .battle .neutral.on { background: #eef3ff; }
+.rail .pace .save.on, .rail .ers .harvest.on { background: #3ddc5a; }
+.rail .ers .deploy.on { background: #d4ff3a; }
+.rail .battle .defend.on { background: #3b82f6; color: #fff; }
+/* the battery's charge, a thin bar down the side of its buttons */
+.rail .ers .ro { margin-left: 7px; }
+.rail .bat { position: absolute; left: 3px; bottom: 3px; top: 15px; width: 5px; border-radius: 3px; background: rgba(255, 255, 255, .15); overflow: hidden; display: flex; align-items: flex-end; }
+.rail .bat i { display: block; width: 100%; background: #d4ff3a; border-radius: 3px; transition: height .3s linear; }
+.rail .ord { height: 30px; background: rgba(7, 13, 28, .72); font-size: 8.5px; line-height: 1.1; padding: 0 2px; }
+.rail .ord.on { background: #ffd21f; color: #07101f; }
+.rail.ai .rg, .rail.ai .ord { opacity: .55; }
+.rail.out { opacity: .6; }
+html.dk .rails { display: none !important; }
+@media (max-height: 559px) and (orientation: landscape) {
+  /* both rails together on the left, clear of BOOST, the mic and BOX on the right */
+  .rails:not([hidden]) { top: 50px; right: auto; justify-content: flex-start; gap: 6px; }
+  .rail { width: 50px; gap: 4px; }
+  .rail .rh { padding: 3px 2px 2px; }
+  .rail .rg em { display: none; }
+  .rail .bat { top: 3px; }
+  .rail button { height: 19px; font-size: 9px; }
+  .rail .ord { height: 24px; }
+}

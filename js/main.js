@@ -565,6 +565,7 @@ function tick() {
   } else fl.hidden = true;
   stageCards(R, f);
   driverCards(R);
+  rails(R);
   pitLine(R, f);
   boostBtn(R);
   boxBtn(R);
@@ -1252,6 +1253,48 @@ $('#drivers').addEventListener('click', (e) => {
   // a second tap on the car you're already running opens its calls
   if (G.mineSel === id && G.sel === id && app.dataset.sheet === 'peek') { setTab('wall'); sheet('half'); }
   G.mineSel = id; select(id);
+});
+
+// phones: a slim rail at the side of the race for each of your cars, so the calls are a thumb away
+// and the track stays clear: pace, battery (with its charge) and how hard to fight, plus team orders
+const LAND = '(max-height: 559px) and (orientation: landscape)';
+const RAIL = [
+  ['pace', 'pace', 'PACE', [['push', 'PUSH'], ['normal', 'NORM'], ['save', 'SAVE']]],
+  ['ersMode', 'ers', 'BATTERY', [['deploy', 'DEPLOY'], ['balanced', 'BAL'], ['harvest', 'HARV']]],
+  ['battle', 'battle', 'FIGHT', [['attack', 'ATTACK'], ['neutral', 'NEUTRAL'], ['defend', 'DEFEND']]],
+];
+const ORDER_NEXT = { free: 'hold', hold: 'free' };
+function rails(R) {
+  const el = $('#rails');
+  const show = !G.attract && !R.done && (phoneUp() ? app.dataset.sheet === 'peek' : matchMedia(LAND).matches);
+  if (el.hidden === show) el.hidden = !show;
+  if (!show) return;
+  if (el.children.length !== 2) el.innerHTML = ['you-0', 'you-1'].map((id) => `<div class="rail" data-id="${id}"></div>`).join('');
+  const a = R.byId.get('you-0'), b = R.byId.get('you-1');
+  const swapOk = Math.abs(a.pos - b.pos) === 1 && !a.pit && !b.pit && !a.dnf && !b.dnf;
+  ['you-0', 'you-1'].forEach((id, k) => {
+    const c = R.byId.get(id), r = el.children[k], gone = c.dnf || c.finished;
+    const order = c.letBy || R.mate(c).letBy ? 'swap' : c.order;
+    const sig = [c.pos, c.pace, c.ersMode, c.battle, order, c.auto, gone, swapOk, c.team.c1, c.code].join('|');
+    if (r.dataset.k !== sig) {
+      r.dataset.k = sig;
+      r.className = `rail${c.auto ? ' ai' : ''}${gone ? ' out' : ''}`;
+      r.style.setProperty('--tc', c.team.c1);
+      r.innerHTML = `<b class="rh"><span>${esc(c.code)}</span><small>${c.dnf ? 'OUT' : 'P' + c.pos}${c.auto ? ' · AI' : ''}</small></b>` + (gone ? '' :
+        RAIL.map(([key, m, label, opts]) => `<div class="rg ${m}"><em>${label}</em>${m === 'ers' ? '<i class="bat"><i></i></i>' : ''}<div class="ro">${opts.map(([v, t]) => `<button type="button" data-m="${m}" data-v="${v}" class="${v}${c[key] === v ? ' on' : ''}">${t}</button>`).join('')}</div></div>`).join('') +
+        `<button type="button" class="ord${order !== 'free' ? ' on' : ''}" data-order="${order === 'swap' ? 'free' : swapOk && order === 'hold' ? 'swap' : ORDER_NEXT[order] || 'free'}" title="Team orders, both cars">${{ free: 'RACE FREE', hold: 'HOLD POS', swap: 'SWAPPING' }[order]}</button>`);
+    }
+    const bat = r.querySelector('.bat i');
+    if (bat) { const h = Math.round(clamp(c.ers, 0, 1) * 100) + '%'; if (bat.style.height !== h) bat.style.height = h; }
+  });
+}
+$('#rails').addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t || !G.race) return;
+  const id = t.closest('.rail').dataset.id;
+  if (t.dataset.order) { G.mineSel = id; teamOrder(t.dataset.order); return; }
+  if (t.dataset.m === 'ers' && G.boost && G.boost.id === id) G.boost = null;
+  cmd({ [t.dataset.m]: t.dataset.v }, id);
+  renderControls(true);
 });
 
 // you asked: the engineer's view in the same card, with the call ready if there is one

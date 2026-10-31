@@ -1131,7 +1131,8 @@ export class World {
   drawTag(o, pos, selected, mine, full) {
     // your cars also show the tyre left, in 5% steps, coloured like the ring under them
     const c0 = o.car, life = mine && !c0.dnf && c0.tyre ? Math.max(0, Math.round((1 - c0.tyre.wear) * 20) * 5) : null;
-    const key = pos + '|' + selected + '|' + mine + '|' + full + '|' + life;
+    const comp = life === null ? '' : c0.tyre.c || '';
+    const key = pos + '|' + selected + '|' + mine + '|' + full + '|' + life + '|' + comp;
     const ud = o.tag.userData; if (ud.key === key) return; ud.key = key;
     const x = ud.cv.getContext('2d'), c = o.car;
     const name = full ? tagName(c.name) : '';
@@ -1141,7 +1142,7 @@ export class World {
     const posW = Math.ceil(x.measureText('P' + pos).width);
     const tyreTxt = life === null ? '' : life + '%';
     x.font = '700 24px "Barlow Semi Condensed", system-ui, sans-serif';
-    const tyreW = tyreTxt ? Math.ceil(x.measureText(tyreTxt).width) + 30 : 0;
+    const tyreW = tyreTxt ? Math.ceil(x.measureText(tyreTxt).width) + 50 : 0;
     const w = Math.min(TAG_W, 10 + 62 + 10 + nameW + posW + tyreW + 16);
     x.clearRect(0, 0, TAG_W, 64);
     x.fillStyle = selected ? '#d4ff3a' : '#ffffff';
@@ -1157,10 +1158,17 @@ export class World {
     x.fillStyle = name ? '#5b6472' : '#111827'; x.font = '700 27px "Barlow Semi Condensed", system-ui, sans-serif';
     x.fillText('P' + pos, 82 + nameW, 32);
     if (tyreTxt) {
-      const tx = 82 + nameW + posW + 12, col = tyreColour(life / 100);
-      x.fillStyle = col; x.beginPath(); x.arc(tx + 7, 32, 7, 0, 7); x.fill();
+      // a little tyre: black wheel, the compound's colour round it and its letter, then the life
+      // left with a traffic-light bar under it (green, yellow to plan the stop, red)
+      const tx = 82 + nameW + posW + 12, col = tyreColour(life / 100), cc = (COMPOUNDS[comp] || {}).color || '#9aa3ad';
+      x.fillStyle = '#111827'; x.beginPath(); x.arc(tx + 15, 32, 15, 0, 7); x.fill();
+      x.strokeStyle = cc; x.lineWidth = 4; x.beginPath(); x.arc(tx + 15, 32, 10.5, 0, 7); x.stroke();
+      x.fillStyle = '#ffffff'; x.font = '700 15px "Barlow Semi Condensed", system-ui, sans-serif'; x.textAlign = 'center';
+      x.fillText(comp, tx + 15, 33); x.textAlign = 'left';
       x.fillStyle = life < 28 ? '#c81e1e' : '#111827'; x.font = '700 24px "Barlow Semi Condensed", system-ui, sans-serif';
-      x.fillText(tyreTxt, tx + 18, 32);
+      const pw = Math.ceil(x.measureText(tyreTxt).width);
+      x.fillText(tyreTxt, tx + 36, 30);
+      x.fillStyle = col; roundRect(x, tx + 36, 43, pw, 5, 2.5); x.fill();
     }
     ud.w = w;
     ud.tex.repeat.set(w / TAG_W, 1); ud.tex.needsUpdate = true;
@@ -1335,8 +1343,8 @@ export class World {
         // about the same size in pixels on every screen (30 to 46 px for the sprite)
         const px = clamp(H * 0.05, phone ? 30 : 34, 46) * (key ? 1.1 : 1) * (far ? 0.82 : 1);
         const k = px / H * 2 * Math.tan(camera.fov * Math.PI / 360) / 0.04;
-        // from far away only the followed cars, yours and the top three keep a tag
-        o.tag.visible = dcam > 14 && (!far || key || c.pos <= 3);
+        // only your two cars (and a car you chose to follow) carry a tag: the rest of the field stays clean
+        o.tag.visible = dcam > 14 && key;
         o.tag.position.set(g.position.x, 2.8, g.position.z);
         // names when the camera is close enough; on a phone only for your cars
         const wantFull = key || (!far && dcam < 110 && !phone);
