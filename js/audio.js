@@ -51,6 +51,9 @@ export class Sound {
     if (this.ctx && this.on) this.master.gain.setTargetAtTime(on ? this.vol * 0.4 : this.vol, this.ctx.currentTime, on ? 0.06 : 0.35);
   }
 
+  // the race sound's volume (0..1), from the desktop pause menu
+  setVol(v) { this.vol = v; if (this.ctx && this.on) this.master.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1); }
+
   stop() {
     this.on = false;
     if (this.ctx) this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08);

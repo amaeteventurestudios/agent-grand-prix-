@@ -7,7 +7,7 @@ import { CALENDAR, VENUES, COMPOUNDS, LIVERIES, TEAMS } from './data.js';
 import { hashString, clamp } from './rng.js';
 import { DT, LIFE, tyreLife, fmtLap, fmtTime } from './sim.js';
 import { QualiSession, Q_LEN, fmtQ } from './quali.js';
-import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
+import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps, useLayout, layoutInUse } from './game.js';
 import { World } from './world.js';
 import { Ceremony } from './ceremony.js';
 import { Music } from './music.js';
@@ -37,6 +37,7 @@ setRadioLang(LANG);
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { plans as briefPlans } from './briefing.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
+import { createDesk } from './desk.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -76,12 +77,13 @@ new ResizeObserver(resize).observe(stage);
 // ---------- game state ----------
 const G = { race: null, setup: null, kind: null, venue: null, seed: 0, speed: 1, paused: false, acc: 0, sel: null, evIdx: 0, gap: 'interval', attract: true, ended: false, radioN: 0, forecastSaid: new Set(), round: null, day: null };
 let world = null;
+let desk = null;   // the desktop race command center (js/desk.js), made once the page's functions exist
 const team = () => (S.team && !S.team.draft ? S.team : DEFAULT_TEAM);   // a team still being built races as the default one
 const mine = () => (G.attract ? [] : ['you-0', 'you-1']);
 
 function loadVenue(venue) {
   stopCere();
-  if (world && world.venue.id === venue.id) return;
+  if (world && world.venue.id === venue.id && world.T === trackFor(venue)) return;
   if (world) world.dispose();
   world = new World(renderer, venue, trackFor(venue), { lite, car: carModel() });
   cams.setWorld(world);
@@ -90,6 +92,7 @@ function loadVenue(venue) {
 
 // ---------- the live race behind the home screen ----------
 function attract() {
+  useLayout();
   stopCere();
   G.attract = true; G.ended = false; sound.stop(); music.play(1.5); live.clear(); G.room = null; stopListening(); G.lesson = null; lessonCard(null);
   const n = dayNumber(), venue = dailyVenue(n);
@@ -120,7 +123,7 @@ const LIVE_KEY = 'agp.live.v1';
 const live = {
   rec: null,
   track(R, args, saved) {
-    const rec = this.rec = { id: (saved && saved.id) || Math.random().toString(36).slice(2, 12), kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
+    const rec = this.rec = { id: (saved && saved.id) || Math.random().toString(36).slice(2, 12), layout: layoutInUse(), kind: G.kind, venue: G.venue.id, seed: G.seed, round: G.round, day: G.day, laps: G.laps || null, args, cmds: saved ? saved.cmds.slice() : [], n: 0, at: 0 };
     const step = R.step.bind(R), command = R.command.bind(R);
     R.step = () => { step(); rec.n++; };
     R.command = (id, c, from) => { if (!this.replaying) rec.cmds.push(from ? [rec.n, id, c, from] : [rec.n, id, c]); return command(id, c, from); };
@@ -255,6 +258,8 @@ function resumeRace(saved) {
   // a live race is rejoined from its room, which holds every call; the browser's own copy isn't needed
   if (saved.kind === 'live') { readRoom(saved.args.room).then((r) => { if (r && r.you >= 0 && !r.error) liveStart(r); else { live.clear(); attract(); } }); return true; }
   Object.assign(G, { kind: saved.kind, venue: v, seed: saved.seed, round: saved.round, day: saved.day, laps: saved.laps });
+  // a race saved before the new circuits (no layout in it) finishes on the old one
+  useLayout(saved.layout || 1);
   startRace(saved.args.startCompounds, saved.args.auto, saved);
   return true;
 }
@@ -295,6 +300,7 @@ function frame(now) {
     if (!G.attract) sound.update(R, world, camera, G.sel, cams.mode, G.paused || R.done || !$('#screen').hidden ? 0 : G.speed);
   }
   if (world && R && !G.attract && !G.cere) garageFeed(R);
+  if (R && !G.cere) desk?.frame(R, dt);
   renderer.render(world ? world.scene : new THREE.Scene(), camera);
   uiT += dt;
   if (uiT > 0.2 && R && !G.attract) { uiT = 0; tick(); }
@@ -394,6 +400,7 @@ const music = new Music();
 music.allow(() => S.settings.music !== false && S.settings.sound !== false);
 // the engineer on the radio: speaks the calls so you don't have to read them
 const voice = new Voice();
+sound.vol = S.settings.vol ?? sound.vol; voice.vol = S.settings.rvol ?? 1;
 voice.duck = (on) => sound.duck(on);
 const voiceId = () => (S.settings.voice === undefined || (S.settings.voice && !VOICES.some((v) => v.id === S.settings.voice)) ? 'michael' : S.settings.voice);
 const carTag = (id) => (id === 'you-1' ? 'car2' : 'car1');
@@ -424,7 +431,6 @@ const driverVoice = (id) => DRIVER_VOICES.filter((v) => v !== voiceId())[id === 
 function reply(id, clip) { if (S.settings.replies !== false) say(['@' + driverVoice(id) + '/' + clip]); }
 const WHY_CLIPS = [['soaked', 'w_soaked'], ['wet out here', 'w_wet'], ['standing water', 'w_water'], ['overheating', 'w_wetshot'], ['dry line', 'w_dryline'],
   ['Safety car! Cheap', 'w_sc'], ['Virtual safety car. Box', 'w_vsc'], ['finished', 'w_finished'], ['second compound. Box now', 'w_second'], ['Pit window', 'w_window']];
-const FACT_CLIPS = ['w_finished', 'w_second', 'w_window', 'w_water'];
 const whyClip = (t) => (WHY_CLIPS.find(([k]) => t.includes(k)) || [])[1];
 // the crowd in the stands reacts to the same moments the crowd sound does
 let cheerBurst = 0;
@@ -435,11 +441,35 @@ function setSound(on) {
   if (on && !G.attract) sound.start(lite); else sound.stop();
   music.refresh();
 }
-$('#soundBtn').addEventListener('click', () => setSound(S.settings.sound === false));
+// the sound button opens a small panel: sound on or off, and how loud the race and the radio are
+function volPanel(open = $('#volPop')?.hidden !== false) {
+  let el = $('#volPop');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'volPop'; el.className = 'vol-pop'; el.hidden = true;
+    el.innerHTML = `<label class="vp-row"><span>Sound</span><input type="checkbox" role="switch" data-v="on"></label>
+      <label class="vp-row"><span>Race</span><input type="range" min="0" max="1" step="0.05" data-v="vol" aria-label="Race volume"></label>
+      <label class="vp-row"><span>Radio</span><input type="range" min="0" max="1" step="0.05" data-v="rvol" aria-label="Radio volume"></label>`;
+    $('#stage').append(el);
+    el.addEventListener('input', (e) => {
+      const k = e.target.dataset.v;
+      if (k === 'on') return setSound(e.target.checked);
+      const v = +e.target.value; S.settings[k] = v; store.save();
+      if (k === 'vol') sound.setVol(v); else voice.setVol(v);
+      if (v > 0 && S.settings.sound === false) { setSound(true); el.querySelector('[data-v="on"]').checked = true; }
+    });
+    document.addEventListener('pointerdown', (e) => { if (!el.hidden && !e.target.closest('#volPop, #soundBtn')) el.hidden = true; });
+  }
+  el.querySelector('[data-v="on"]').checked = S.settings.sound !== false;
+  el.querySelector('[data-v="vol"]').value = S.settings.vol ?? sound.vol;
+  el.querySelector('[data-v="rvol"]').value = S.settings.rvol ?? 1;
+  el.hidden = !open;
+}
+$('#soundBtn').addEventListener('click', () => volPanel());
 soundIcon();
 document.addEventListener('visibilitychange', () => { if (!sound.ctx) return; if (document.hidden) sound.ctx.suspend(); else if (sound.on) sound.ctx.resume(); });
 document.addEventListener('keydown', (e) => {
   if (G.attract || e.target.closest('input')) return;
+  if (desk?.keydown(e)) return;
   const k = e.key.toLowerCase();
   if (k === ' ' || k === 'escape') { e.preventDefault(); $('#screen').hidden ? pauseMenu() : resume(); }
   const cm = { '1': 'live', '2': 'overview', '3': 'chase', '4': 'fpv', '5': 'tv', '6': 'pit' }[k]; if (cm) setCam(cm);
@@ -540,6 +570,7 @@ function tick() {
   } else fl.hidden = true;
   stageCards(R, f);
   driverCards(R);
+  rails(R);
   pitLine(R, f);
   boostBtn(R);
   boxBtn(R);
@@ -548,6 +579,7 @@ function tick() {
   suggestCheck(R);
   driverNudges(R);
   engineer(R);
+  desk?.tick(R);
   live.save();
 }
 
@@ -862,7 +894,15 @@ function freeTick() {
   } catch { free.rec = null; free.fails++; free.retry = performance.now() + 3000; }
 }
 setInterval(freeTick, 400);
+// the desktop radio's channel: words with no name in them go to the channel you picked (a driver,
+// the engineer or both cars); phones have no channels, so nothing changes there
+function chanWrap(t) {
+  if (G.chan === 'all' && !/\b(both|everyone|everybody|team|guys|all cars)\b/i.test(t)) return 'Both cars, ' + t;
+  if (G.chan === 'eng' && !/strategist|engineer/i.test(t)) return 'Engineer, ' + t;
+  return t;
+}
 function understand(text, alts = []) {
+  text = chanWrap(text); alts = alts.map(chanWrap);
   const cars = myCars().map((c) => ({ id: c.id, name: c.name, code: c.code }));
   // a question for a driver ("Nova, can you pass him?", "how are the tyres?") goes to that driver's
   // brain; a remark ("good job") too, unless it also carries a call
@@ -884,7 +924,7 @@ function addressed(text, cars) {
 }
 // the optional interpreter for what the matcher can't place (off unless our server has a key)
 async function interpret(heard) {
-  const miss = () => (G.aiBrain ? aiTalk(heard) : (talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'), reply(G.mineSel || 'you-0', 'r_sayagain')));
+  const miss = () => (G.chan === 'eng' ? (addRadio({ from: 'you', text: heard.trim() }), strategist(G.race.byId.get(G.mineSel || 'you-0')), radioDone()) : G.aiBrain ? aiTalk(heard) : (talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'), reply(G.mineSel || 'you-0', 'r_sayagain')));
   if (!G.interp) return miss();
   const R = G.race, cars = myCars();
   talkSaid('“' + heard.trim() + '” …');
@@ -901,6 +941,7 @@ async function interpret(heard) {
 // one transmission: commands, questions, confirmations and questions back
 function radioDo(r, text) {
   const R = G.race; if (!R) return;
+  text = chanWrap(text);
   addRadio({ from: 'you', text: text.trim().replace(/^./, (x) => x.toUpperCase()) });
   talkSaid('“' + text.trim() + '”', 'ok');
   if (r.clarify) { reply(G.mineSel || 'you-0', 'r_sayagain'); addRadio({ from: 'driver', code: R.byId.get(G.mineSel || 'you-0').code, text: `Say again: ${r.clarify}` }); return radioDone(); }
@@ -1073,6 +1114,14 @@ function driverNudges(R) {
 // can accept by saying "do it"
 function strategist(c) {
   G.askT = performance.now();
+  const R = G.race, o = stratRead(c);
+  if (o.call) { talk.offer = { call: o.call, t: R.t }; o.clip = [...o.clip, 's_confirm']; o.text += ' Say "do it" and I\'ll make the call.'; }
+  say(o.clip, true); addRadio({ from: 'engineer', text: o.text });
+  return o;
+}
+// the engineer's reading of one car, said by no one: strategist() speaks it, the desktop Strategy tab
+// shows it while your agents or your engineer run the stops
+function stratRead(c) {
   const R = G.race, left = R.laps - R.leaderLap(), ahead = R.order[c.pos - 2], behind = R.order[c.pos];
   const rain = R.weather.showers.find((s) => s.start > R.t && (s.start - R.t) / (R.track.lapTime * 1.05) < 2.5);
   let o;
@@ -1084,8 +1133,6 @@ function strategist(c) {
   else if (ahead && c.interval > 0 && c.interval < 1.0 && c.ers > 0.3) o = { clip: ['k_chase'], text: `${c.code} is ${c.interval.toFixed(1)} s behind ${ahead.code} with ${Math.round(c.ers * 100)}% battery. Boost and attack.`, call: { id: c.id, k: 'boost' } };
   else if (c.ers < 0.25) o = { clip: ['k_harvest'], text: `${c.code}'s battery is at ${Math.round(c.ers * 100)}%. Harvest now for the next fight.`, call: { id: c.id, k: 'harvest' } };
   else o = { clip: ['s_stay'], text: `Stay out. ${c.code}'s tyres are at ${Math.round((1 - c.tyre.wear) * 100)}% with ${left} laps to go.` };
-  if (o.call) { talk.offer = { call: o.call, t: R.t }; o.clip = [...o.clip, 's_confirm']; o.text += ' Say "do it" and I\'ll make the call.'; }
-  say(o.clip, true); addRadio({ from: 'engineer', text: o.text });
   return o;
 }
 {
@@ -1183,6 +1230,9 @@ function stageCards(R, f) {
   if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
 }
 
+// tyre left as a traffic light: green while it's fine, yellow when it's time to plan the stop,
+// red when grip falls away (the engine's cliff at 72% wear), flashing red when a puncture is near
+const tyreLevel = (life) => (life > 0.5 ? 'g' : life > 0.28 ? 'y' : life > 0.15 ? 'r' : 'r blink');
 // phones: your two cars as cards across the top of the race; tap one to give it calls
 function driverCards(R) {
   const el = $('#drivers');
@@ -1195,9 +1245,9 @@ function driverCards(R) {
   ['you-0', 'you-1'].forEach((id, k) => {
     const c = R.byId.get(id), life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
     const state = c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? `Boxing · ${COMPOUNDS[c.pitReq].name}s` : c.auto ? 'Autonomous' : { push: 'Pushing', save: 'Saving tyres', normal: '' }[c.pace] + (c.battle !== 'neutral' ? (c.pace === 'normal' ? '' : ' · ') + (c.battle === 'attack' ? 'Attack' : 'Defend') : '');
-    const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 25 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
+    const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 28 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
     if (b._pk !== c.team.c1 + c.name) { b._pk = c.team.c1 + c.name; b._ps = portraitSVG(c, c.team, { size: 28, bg: false }); }
-    const html = `${b._ps}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}`;
+    const html = `${b._ps}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}${c.dnf ? '' : `<i class="tb ${tyreLevel(life / 100)}" style="--l:${life}%"></i>`}`;
     if (b.className !== cls) b.className = cls;
     if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
   });
@@ -1210,23 +1260,48 @@ $('#drivers').addEventListener('click', (e) => {
   G.mineSel = id; select(id);
 });
 
-// Team Principal mode: the engineer shows what matters (the fact, never an order) and gives a view
-// only when you ask. "Ask the engineer" gets the strategist's reading with the call on a button; the
-// call is still yours to make, so it goes through your own command path.
-function suggest(car, fact, action) {
-  const el = $('#suggest');
-  // a lesson teaches one thing at a time, so race info waits until it's over
-  if (!fact || car.dnf || car.finished || car.auto || (G.lesson && !G.lesson.done)) return;
-  coachHide();
-  const at = performance.now(); G.suggest = { id: car.id, at, action };
-  el.innerHTML = `<div class="ch"><span>📊 Race info · ${esc(car.code)}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(fact)}</p>
-    <div class="acts"><button type="button" class="go">Ask the engineer</button><button type="button" class="no">OK</button></div>`;
-  el.hidden = false;
-  const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
-  el.querySelector('.x').onclick = el.querySelector('.no').onclick = close;
-  el.querySelector('.go').onclick = () => { close(); askEngineer(car); };
-  setTimeout(close, 16000);
+// phones: a slim rail at the side of the race for each of your cars, so the calls are a thumb away
+// and the track stays clear: pace, battery (with its charge) and how hard to fight, plus team orders
+const LAND = '(max-height: 559px) and (orientation: landscape)';
+const RAIL = [
+  ['pace', 'pace', 'PACE', [['push', 'PUSH'], ['normal', 'NORM'], ['save', 'SAVE']]],
+  ['ersMode', 'ers', 'BATTERY', [['deploy', 'DEPLOY'], ['balanced', 'BAL'], ['harvest', 'HARV']]],
+  ['battle', 'battle', 'FIGHT', [['attack', 'ATTACK'], ['neutral', 'NEUTRAL'], ['defend', 'DEFEND']]],
+];
+const ORDER_NEXT = { free: 'hold', hold: 'free' };
+function rails(R) {
+  const el = $('#rails');
+  const show = !G.attract && !R.done && (phoneUp() ? app.dataset.sheet === 'peek' : matchMedia(LAND).matches);
+  if (el.hidden === show) el.hidden = !show;
+  if (!show) return;
+  if (el.children.length !== 2) el.innerHTML = ['you-0', 'you-1'].map((id) => `<div class="rail" data-id="${id}"></div>`).join('');
+  const a = R.byId.get('you-0'), b = R.byId.get('you-1');
+  const swapOk = Math.abs(a.pos - b.pos) === 1 && !a.pit && !b.pit && !a.dnf && !b.dnf;
+  ['you-0', 'you-1'].forEach((id, k) => {
+    const c = R.byId.get(id), r = el.children[k], gone = c.dnf || c.finished;
+    const order = c.letBy || R.mate(c).letBy ? 'swap' : c.order;
+    const sig = [c.pos, c.pace, c.ersMode, c.battle, order, c.auto, gone, swapOk, c.team.c1, c.code].join('|');
+    if (r.dataset.k !== sig) {
+      r.dataset.k = sig;
+      r.className = `rail${c.auto ? ' ai' : ''}${gone ? ' out' : ''}`;
+      r.style.setProperty('--tc', c.team.c1);
+      r.innerHTML = `<b class="rh"><span>${esc(c.code)}</span><small>${c.dnf ? 'OUT' : 'P' + c.pos}${c.auto ? ' · AI' : ''}</small></b>` + (gone ? '' :
+        RAIL.map(([key, m, label, opts]) => `<div class="rg ${m}"><em>${label}</em>${m === 'ers' ? '<i class="bat"><i></i></i>' : ''}<div class="ro">${opts.map(([v, t]) => `<button type="button" data-m="${m}" data-v="${v}" class="${v}${c[key] === v ? ' on' : ''}">${t}</button>`).join('')}</div></div>`).join('') +
+        `<button type="button" class="ord${order !== 'free' ? ' on' : ''}" data-order="${order === 'swap' ? 'free' : swapOk && order === 'hold' ? 'swap' : ORDER_NEXT[order] || 'free'}" title="Team orders, both cars">${{ free: 'RACE FREE', hold: 'HOLD POS', swap: 'SWAPPING' }[order]}</button>`);
+    }
+    const bat = r.querySelector('.bat i');
+    if (bat) { const h = Math.round(clamp(c.ers, 0, 1) * 100) + '%'; if (bat.style.height !== h) bat.style.height = h; }
+  });
 }
+$('#rails').addEventListener('click', (e) => {
+  const t = e.target.closest('button'); if (!t || !G.race) return;
+  const id = t.closest('.rail').dataset.id;
+  if (t.dataset.order) { G.mineSel = id; teamOrder(t.dataset.order); return; }
+  if (t.dataset.m === 'ers' && G.boost && G.boost.id === id) G.boost = null;
+  cmd({ [t.dataset.m]: t.dataset.v }, id);
+  renderControls(true);
+});
+
 // you asked: the engineer's view in the same card, with the call ready if there is one
 function askEngineer(car) {
   const R = G.race; if (!R || car.dnf || car.finished || (G.lesson && !G.lesson.done)) return;
@@ -1242,6 +1317,7 @@ function askEngineer(car) {
   const go = el.querySelector('.go');
   if (go) go.onclick = () => { close(); talk.offer = null; radioCalls([o.call]); renderControls(true); tick(); };
   setTimeout(close, 20000);
+  return o;
 }
 const callAction = (c) => (c.k === 'boxnow' ? { box: c.tyre } : c.k === 'harvest' ? { ers: 'harvest' } : c.k === 'boost' ? { boost: true } : {});
 function suggestCheck(R) {
@@ -1277,14 +1353,15 @@ function pitLine(R, f) {
   now.textContent = step === 2 ? `Stationary ${Math.max(0, f.stopT).toFixed(1)} s` : step > 2 && f.stopTimes?.length ? `Stationary ${f.stopTimes.at(-1).toFixed(1)} s` : 'Stationary';
 }
 
-// temperatures in both scales
-const tempTxt = (c) => `${c}°C / ${Math.round(c * 9 / 5 + 32)}°F`;
+// temperatures in the scale the player picked in Settings (°F by default in the US, °C elsewhere)
+const units = () => S.settings.units || (/^en-US$/i.test(navigator.language || '') ? 'F' : 'C');
+const tempTxt = (c) => (units() === 'F' ? `${Math.round(c * 9 / 5 + 32)}°F` : `${c}°C`);
 function wetWord(w) { return w < 0.08 ? 'Dry' : w < 0.25 ? 'Damp' : w < 0.6 ? 'Wet' : 'Soaked'; }
 function weatherHTML(R) {
   const fc = nextRain(R);
   const icon = R.rain > 0.5 ? '🌧️' : R.rain > 0.05 ? '🌦️' : G.venue.time === 'night' ? '🌙' : G.venue.time === 'dusk' ? '🌇' : '☀️';
   // the weather is the race's own forecast, not the real one at the venue, and says so
-  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${G.venue.temp}°C<span class="tf"> / ${Math.round(G.venue.temp * 9 / 5 + 32)}°F</span>`;
+  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${tempTxt(G.venue.temp)}`;
   if (fc !== null && R.rain < 0.05) txt += ` <span class="fc">· rain in ~${fc} lap${fc > 1 ? 's' : ''}</span>`;
   return txt;
 }
@@ -1489,6 +1566,7 @@ function nextDry(c) { if (c.plan?.next && c.plan.next !== c.tyre.c) return c.pla
 // ---------- radio and toasts ----------
 function addRadio(m) {
   if (m.from === 'engineer' && engineerQuiet(m.car ? [carTag(m.car)] : null)) { if (m.chat) return; m = { ...m, from: 'info' }; }
+  desk?.radio(m);
   const ol = $('#radio'), li = document.createElement('li');
   const who = m.from === 'engineer' ? 'Engineer' : m.from === 'info' ? 'Pit wall' : m.from === 'driver' ? (m.code || 'Driver') : m.from === 'you' ? 'You' : 'Race control';
   li.className = m.from;
@@ -1566,11 +1644,11 @@ function drainEvents() {
     const e = R.events[G.evIdx++];
     const isMine = e.car && my.includes(e.car), car = e.car && R.byId.get(e.car);
     if (e.type === 'advice' && isMine) {
-      // Team Principal mode: the fact only, spoken only when the clip is a plain reading (no "box now")
-      const fact = e.fact || e.text, clip = /Reminder/.test(e.text) ? 'w_second' : whyClip(e.text);
-      if (FACT_CLIPS.includes(clip)) say([carTag(e.car), clip], true);
+      // Team Principal mode: you make the calls, so the engineer stays out of your ear: the fact goes
+      // in the radio log only, and his view comes when you ask (Engineer tab, "Ask the engineer")
+      const fact = e.fact || e.text;
       addRadio({ from: 'race', text: `${car.code}: ${fact}` });
-      suggest(car, fact, e.action);
+      desk?.advice(e, car, fact);
     } else if ((e.type === 'radio' || e.type === 'pit') && isMine) {
       const bx = /Boxing this lap for (\w)/.exec(e.text);
       if (bx) { say([carTag(e.car), whyClip(e.text), 'bb_' + bx[1]].filter(Boolean)); reply(e.car, 'r_box'); }
@@ -1870,7 +1948,7 @@ function appCard() {
 const MOB = matchMedia('(pointer: coarse) and (max-width: 760px), (pointer: coarse) and (max-height: 540px), (pointer: coarse) and (orientation: portrait) and (max-width: 1080px)');
 const appOn = () => !params.has('desk') && (params.has('app') || MOB.matches);
 // on a phone, Hand to agents / Take control sits above the race buttons, under your thumb, rather than in the top bar
-const appMark = () => { const on = appOn(), b = $('#agentsBtn'); document.documentElement.classList.toggle('mob', on); if (on) $('meta[name="theme-color"]')?.setAttribute('content', '#060b18'); if (b) (on ? $('#stage') : $('.hud-right')).append(b); };
+const appMark = () => { const on = appOn(), b = $('#agentsBtn'); document.documentElement.classList.toggle('mob', on); if (on) $('meta[name="theme-color"]')?.setAttribute('content', '#060b18'); if (b) (on ? $('#stage') : $('.hud-right')).append(b); desk?.check(); };
 appMark();
 MOB.addEventListener?.('change', () => { appMark(); if (G.attract && !$('#screen').hidden && /\b(nbhome|appsc)\b/.test($('#screen').className)) home(); });
 const TABS = [
@@ -2185,17 +2263,21 @@ function rulesSheet(back) {
 // Settings: the few things players ask to change, kept on this device
 function settingsSheet(back) {
   const sw = (k, on, label, note) => `<div class="set-row"><span><b>${label}</b><small>${note}</small></span><button type="button" class="switch" role="switch" aria-checked="${on}" data-s="${k}" aria-label="${label}"></button></div>`;
+  const pick = (k, v, label, note, opts) => `<div class="set-row"><span><b>${label}</b><small>${note}</small></span><div class="seg set-seg" role="group" aria-label="${label}">${opts.map(([o, t]) => `<button type="button" data-p="${k}" data-o="${o}" class="${v === o ? 'on' : ''}" aria-pressed="${v === o}">${t}</button>`).join('')}</div></div>`;
   const draw = () => {
     const sh = show(`<h2>Settings</h2>
       ${sw('sound', S.settings.sound !== false, 'Sound', 'Engines, the crowd and the radio')}
       ${sw('music', S.settings.music !== false, 'Music', 'The theme on the menus, the grid and the podium')}
       ${sw('voice', S.settings.voice !== false, 'Engineer’s voice', 'Your race engineer speaks the calls')}
       ${sw('coach', S.settings.coach !== false, 'Race coach', 'Tips during your first races and quick races')}
+      ${pick('units', units(), 'Temperature', 'Shown in the race’s top bar and the circuit cards', [['C', '°C'], ['F', '°F']])}
       <div class="set-row"><span><b>Language</b><small>English, Français, Español, Português, العربية, Naijá</small></span>${langPicker(true)}</div>
       ${installItem(true)}
       <div class="actions"><button class="btn" id="seBack" type="button">Done</button></div>`);
     sh.onclick = (e) => {
       if (e.target.closest('[data-go="install"]')) return doInstall(() => settingsSheet(back));
+      const p = e.target.closest('[data-p]');
+      if (p) { S.settings[p.dataset.p] = p.dataset.o; store.save(); if (G.race) $('#hudWx').innerHTML = weatherHTML(G.race); return draw(); }
       const b = e.target.closest('[data-s]'); if (!b) return;
       const k = b.dataset.s, on = b.getAttribute('aria-checked') !== 'true';
       if (k === 'sound') S.settings.sound = on;
@@ -3421,7 +3503,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   const head = (title) => `<header class="wiz-head">${dots(i, steps.length)}<div class="sub">${label}</div>${o.venue && step !== 'circuit' ? `<h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>` : ''}${title}</header><div class="wiz-body">`;
 
   if (step === 'circuit') {
-    const vb = (v) => `<button type="button" data-v="${v.id}" class="${v.id === (o.venue && o.venue.id) ? 'next' : ''}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span><span>${tempTxt(v.temp).split(' /')[0]} · ${v.rain > 0.35 ? 'Rain likely' : v.rain > 0.15 ? 'Rain possible' : 'Usually dry'}${v.time === 'night' ? ' · Night' : ''}</span></button>`;
+    const vb = (v) => `<button type="button" data-v="${v.id}" class="${v.id === (o.venue && o.venue.id) ? 'next' : ''}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span><span>${tempTxt(v.temp)} · ${v.rain > 0.35 ? 'Rain likely' : v.rain > 0.15 ? 'Rain possible' : 'Usually dry'}${v.time === 'night' ? ' · Night' : ''}</span></button>`;
     const sh = show(`${head('<h2>Pick a circuit</h2><p class="lede">No points, just racing. Good for practice.</p>')}
       <div class="sub">Featured</div>
       <div class="venues feat">${FEATURED.map((id) => vb(venueById(id))).join('')}</div>
@@ -3693,6 +3775,7 @@ function qualiUI(force) {
 
 function startRace(picks, auto, saved = null) {
   hide();
+  if (!saved) useLayout();
   if (!reduce) loadGLB('people/driver').catch(() => {});   // the podium celebration's drivers, ready for the flag
   if (!(saved && saved.live)) { G.room = null; stopListening(); }
   // a Racing Academy lesson rides on this race when startLesson() asked for one
@@ -3715,7 +3798,7 @@ function startRace(picks, auto, saved = null) {
   world.setCars(G.race.cars);
   G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; G.boxPicks = {}; coachHide(); G.suggest = null; $('#suggest').hidden = true;
   $('#radio').innerHTML = '';
-  buildTower(); buildCard(); renderControls(true);
+  buildTower(); desk?.start(G.race); buildCard(); renderControls(true);
   $('#hud').hidden = false; $('#camPill').hidden = false;
   setCam('live');
   if (S.settings.sound !== false) sound.start(lite);
@@ -3797,12 +3880,14 @@ function voiceSheet(back) {
 }
 function pauseMenu() {
   if (G.attract) return;
+  if (desk?.on) return pauseDesk();
   G.paused = true;
   const sh = show(`<h2>Paused</h2><p class="lede">${G.venue.flag} ${esc(G.venue.city)} · lap ${G.race.leaderLap()} of ${G.race.laps}</p>
     <div class="actions" style="flex-direction:column">
       <button class="btn wide" id="pResume" type="button">Resume</button>
       ${appOn() && !fairRace() ? `<div class="seg pspeed" role="group" aria-label="Race speed">${[1, 2, 4, 8, 16].map((v) => `<button type="button" data-ps="${v}" class="${G.speed === v ? 'on' : ''}">${v}×</button>`).join('')}</div>` : ''}
       <button class="btn ghost wide" id="pVoice" type="button">Radio voices</button>
+      <button class="btn ghost wide" id="pSet" type="button">Settings</button>
       <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
       <button class="btn ghost wide" id="pAcademy" type="button">Racing Academy</button>
@@ -3812,6 +3897,7 @@ function pauseMenu() {
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
   $$('[data-ps]', sh).forEach((x) => x.addEventListener('click', () => { $(`.hud [data-speed="${x.dataset.ps}"]`)?.click(); $$('[data-ps]', sh).forEach((y) => y.classList.toggle('on', y === x)); }));
+  $('#pSet').addEventListener('click', () => settingsSheet(pauseMenu));
   $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
   $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
   $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
@@ -3822,6 +3908,60 @@ function pauseMenu() {
   $('#pQuit').addEventListener('click', () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); });
 }
 function resume() { hide(); G.paused = false; }
+// the pause menu on a wide desktop screen: the same actions in four groups, and a second press
+// before anything that throws the race away
+function pauseDesk() {
+  G.paused = true;
+  const R = G.race, lesson = G.kind === 'academy', live = !R.done && !lesson && myRunning().length > 0;
+  const pct = (v) => Math.round(v * 100);
+  const sw = (k, on, label) => `<label class="pm-sw"><span>${label}</span><input type="checkbox" role="switch" data-pm="${k}" ${on ? 'checked' : ''}></label>`;
+  const pmPick = (k, v, label, opts) => `<div class="pm-speed"><span>${label}</span><div class="seg" role="group" aria-label="${label}">${opts.map(([o, t]) => `<button type="button" data-pp="${k}" data-o="${o}" class="${v === o ? 'on' : ''}">${t}</button>`).join('')}</div></div>`;
+  const row = (id, label, note, cls = '') => `<button type="button" class="pm-row ${cls}" id="${id}"><b>${label}</b>${note ? `<small>${note}</small>` : ''}</button>`;
+  const sh = show(`<div class="pm-h"><div><small>Paused</small><h2>${G.venue.flag} ${esc(G.venue.city)}</h2><p>Lap ${R.leaderLap()} of ${R.laps}${G.kind ? ' · ' + esc({ daily: 'Daily Grand Prix', dailyfull: 'Daily · full distance', season: 'Season round', quick: 'Quick race', academy: 'Racing Academy', practice: 'Free practice', live: 'Live Grand Prix' }[G.kind] || '') : ''}</p></div>
+      <button class="btn pm-go" id="pResume" type="button">Resume <small>Esc</small></button></div>
+    <div class="pm-grid">
+      <section><h3>Race</h3>
+        ${appOn() || fairRace() ? '' : `<div class="pm-speed"><span>Race speed</span><div class="seg" role="group" aria-label="Race speed">${[1, 2, 4, 8, 16].map((v) => `<button type="button" data-ps="${v}" class="${G.speed === v ? 'on' : ''}">${v}×</button>`).join('')}</div></div>`}
+        ${canFinish() ? row('pFinish', 'Finish the race now', 'Your agents take both cars to the flag') : ''}
+        ${row('pRestart', lesson ? 'Restart lesson' : 'Restart race', 'This race is lost', 'warn')}
+        ${row('pQuit', 'Quit to home', R.done ? '' : 'This race is lost', 'warn')}
+        <div class="pm-confirm" hidden><p></p><div><button type="button" class="btn pm-yes">Yes</button><button type="button" class="btn ghost pm-no">Keep racing</button></div></div></section>
+      <section><h3>Audio and voice</h3>
+        ${sw('sound', S.settings.sound !== false, 'Sound')}
+        <label class="pm-vol"><span>Race sound</span><input type="range" min="0" max="100" value="${pct(S.settings.vol ?? 0.8)}" data-vol="vol" aria-label="Race sound volume"></label>
+        <label class="pm-vol"><span>Radio voices</span><input type="range" min="0" max="100" value="${pct(S.settings.rvol ?? 1)}" data-vol="rvol" aria-label="Radio voice volume"></label>
+        ${sw('replies', S.settings.replies !== false, 'Drivers answer out loud')}
+        ${row('pVoice', 'Radio voices', esc($('#voiceName').textContent || ''))}</section>
+      <section><h3>AI and drivers</h3>
+        ${row('pDna', 'Driver DNA', 'How each driver races')}
+        ${pmPick('units', units(), 'Temperature', [['C', '°C'], ['F', '°F']])}
+        ${live ? row('pAgents', agentsOn() ? 'Take the team back' : 'Hand the team to my agents', agentsOn() ? 'You make the calls again' : 'Your agents make every call') : ''}</section>
+      <section><h3>Help and learning</h3>
+        ${row('pHelp', 'How to play', '')}
+        ${row('pAcademy', 'Racing Academy', 'Short lessons in a real race')}</section>
+    </div>`, 'dkmenu');
+  $('#pResume').addEventListener('click', resume);
+  $$('[data-ps]', sh).forEach((x) => x.addEventListener('click', () => { $(`.hud [data-speed="${x.dataset.ps}"]`)?.click(); $$('[data-ps]', sh).forEach((y) => y.classList.toggle('on', y === x)); }));
+  $$('[data-pp]', sh).forEach((x) => x.addEventListener('click', () => { S.settings[x.dataset.pp] = x.dataset.o; store.save(); $$(`[data-pp="${x.dataset.pp}"]`, sh).forEach((y) => y.classList.toggle('on', y === x)); $('#hudWx').innerHTML = weatherHTML(R); }));
+  $$('[data-pm]', sh).forEach((x) => x.addEventListener('change', () => { if (x.dataset.pm === 'sound') setSound(x.checked); else { S.settings.replies = x.checked; store.save(); } }));
+  $$('[data-vol]', sh).forEach((x) => x.addEventListener('input', () => { const v = +x.value / 100; S.settings[x.dataset.vol] = v; if (x.dataset.vol === 'vol') sound.setVol(v); else voice.setVol(v); store.save(); }));
+  $$('[data-vol]', sh).forEach((x) => x.addEventListener('change', () => { if (x.dataset.vol === 'rvol') reply('you-0', 'r_copy'); }));
+  $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
+  $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
+  $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
+  $('#pAcademy').addEventListener('click', () => academyHome(pauseMenu));
+  $('#pAgents')?.addEventListener('click', () => { handTeam(!agentsOn()); resume(); });
+  $('#pFinish')?.addEventListener('click', finishNow);
+  const restart = () => (lesson && G.lessonId ? startLesson(G.lessonId) : G.kind === 'practice' ? freePractice() : pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }, 'tyres'));
+  const quit = () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); };
+  const confirm = (text, go) => {
+    const c = $('.pm-confirm', sh); c.hidden = false; $('p', c).textContent = text; $('.pm-yes', c).focus();
+    $('.pm-yes', c).onclick = go; $('.pm-no', c).onclick = () => { c.hidden = true; };
+  };
+  $('#pRestart').addEventListener('click', () => (R.done ? restart() : confirm(`Restart? This race ends here and starts again from the grid.`, restart)));
+  $('#pQuit').addEventListener('click', () => (R.done ? quit() : confirm('Quit to home? This race ends here and is not saved.', quit)));
+  $('#pResume').focus();
+}
 
 // Hand the team to my agents: both your cars go Autonomous at once, so the AI strategists make every
 // call, and Take it back gives both cars to you again. It works in any race; a live race with other
@@ -4127,6 +4267,41 @@ function standings(over) {
   if (ns) ns.addEventListener('click', () => { S.season = { no: S.season.no + 1, round: 1, pts: {}, teamPts: {}, results: [] }; store.save(); home(); });
 }
 
+// typed radio (the desktop Radio tab and the test hook): the same path as speech
+function radioText(text) {
+  if (!G.race || G.attract) return null;
+  const r = understand(text); talk.m = { t0: performance.now(), id: ++talk.n };
+  if (r) radioDo(r, text); else { talk.m = null; interpret(text); }
+  radioPlans(G.race); return r;
+}
+// what the radio is doing now, for the desktop's talk buttons
+function talkState() {
+  if (!radioSupported()) return 'na';
+  if (S.settings.talk === false) return 'off';
+  if (talk.rec || free.armed) return 'listen';
+  const s = $('#talkSaid');
+  if (!s.hidden && /…$/.test(s.textContent) && !/^Listening/.test(s.textContent)) return 'think';
+  if (!s.hidden && s.classList.contains('ok')) return 'sent';
+  if (voice.speaking()) return 'rx';
+  if (S.settings.sound === false) return 'muted';
+  return 'idle';
+}
+// you approved a proposal (AI Team): the call goes to the car as yours, and a car you handed to the
+// agents stays with them
+function approveCall(id, action) {
+  const R = G.race, c = R && R.byId.get(id); if (!c || c.dnf || c.finished) return false;
+  if (!R.command(id, action)) return false;
+  heardBy(c, action);
+  if (action.box) { say([carTag(id), 'bb_' + action.box]); reply(id, 'r_box'); ack(`${c.code}: Box this lap · ${COMPOUNDS[action.box].name}s`); }
+  else if (action.ers) { say([carTag(id), 'c_' + action.ers]); ack(`${c.code}: ${CALL_WORDS.ers[action.ers]}`); }
+  renderControls(true); return true;
+}
+desk = createDesk({
+  G, S, $, $$, esc, COMPOUNDS, portraitSVG, ENG_FACE, fmtLap, tyreHTML, engName, mine, myCars, resize, appOn,
+  cmd, teamOrder, select, boxPick, boostCar, handTeam, askEngineer, stratRead, radioCalls, radioText, talkStart, talkStop, talkState,
+  approve: approveCall, toast, renderControls, save: store.save, tick: () => tick(),
+});
+
 // ---------- test hooks ----------
 window.__agp = {
   music,
@@ -4141,10 +4316,10 @@ window.__agp = {
   get room() { const L = G.room; return L ? { id: L.id, n: L.n, me: L.me, calls: L.calls.length, snaps: L.snaps || {} } : null; },
   // the podium celebration: cere(sec) moves it on by sec seconds; cere() says where it is
   cere(sec = 0) { const c = G.cere; if (!c) return null; for (let k = 0; k < sec / 0.05; k++) { c.update(0.05); world.update(G.race, 1, 0.05, camera, null, [], false, { speed: 1, focus: cams.look, showRing: false }); } return { t: c.t, phase: c.phase, plan: c.plan, top: c.top.map((d) => ({ k: d.k, t0: d.t0, show: d.show, pose: d.pose, al: d.al, figs: !!c.figs, arrived: d.arrived })) }; },
-  cam: setCam, tab: setTab, select, results, pre, academy: startLesson, practice: freePractice,
+  cam: setCam, tab: setTab, select, get desk() { return desk; }, results, pre, academy: startLesson, practice: freePractice,
   get lesson() { const L = G.lesson; return L ? { step: L.step && L.step.id, i: L.i, n: L.steps.length, done: L.done } : null; }, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
   // team radio without a mic: radio('Nova, push') runs a transcript through the same path as speech
-  radio(text) { const r = understand(text); talk.m = { t0: performance.now(), id: ++talk.n }; if (r) radioDo(r, text); else { talk.m = null; interpret(text); } radioPlans(G.race); return r; },
+  radio: radioText,
   get talk() { return talk; },
   voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
   car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },

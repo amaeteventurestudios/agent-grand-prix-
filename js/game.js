@@ -2,6 +2,7 @@
 import { VENUES, TEAMS } from './data.js';
 import { hashString } from './rng.js';
 import { generateTrack } from './track.js';
+import { layoutSeedKey } from './layout.js';
 import { Race, qualify, lapsFor } from './sim.js';
 import { qualiPlan } from './quali.js';
 import { simInputs, slotOf, lockForRace } from './dna.js';
@@ -25,10 +26,20 @@ export function dailyVenue(n) {
   return dailyOrder[((k % L) + L) % L];
 }
 
+// layout 2 (31 Oct 2026) builds circuits from pieces; layout 1 was the round one. A race saved on
+// layout 1 finishes on it: resuming it calls useLayout(1) until the next race starts.
+export const LAYOUT = 2;
+let layoutNow = LAYOUT;
+export function useLayout(n) { layoutNow = n === 1 ? 1 : LAYOUT; }
+export const layoutInUse = () => layoutNow;
 const trackCache = new Map();
-export function trackFor(venue) {
-  if (!trackCache.has(venue.id)) trackCache.set(venue.id, Object.assign(generateTrack(hashString(venue.id + '-layout-1'), venue), { venueId: venue.id }));
-  return trackCache.get(venue.id);
+export function trackFor(venue, layout = layoutNow) {
+  const key = venue.id + '|' + layout;
+  if (!trackCache.has(key)) {
+    const seed = hashString(layout === 1 ? venue.id + '-layout-1' : layoutSeedKey(venue.id));
+    trackCache.set(key, Object.assign(generateTrack(seed, venue, layout), { venueId: venue.id }));
+  }
+  return trackCache.get(key);
 }
 
 export const DEFAULT_TEAM = {

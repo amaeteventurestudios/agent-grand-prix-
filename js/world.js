@@ -15,7 +15,10 @@ import { lagos, dakar, nairobi, capeTown, tokyo, iceland, singapore, shanghai, m
 
 export const CAR_SCALE = 1.35;
 const tmp = {}, tmp2 = {};
-const TAG_W = 320;   // tag canvas width; a tag uses as much of it as its text needs
+const TAG_W = 320;
+// tyre left on one of your cars, as a traffic light (the same steps as the driver cards):
+// green while it's fine, yellow to plan the stop, red when grip falls away
+const tyreColour = (life) => (life > 0.5 ? '#3ddc5a' : life > 0.28 ? '#ffd21f' : '#ff3b3b');   // tag canvas width; a tag uses as much of it as its text needs
 // the name on a car's tag: the driver's first name, in capitals, cut to fit
 const tagName = (n) => { const w = String(n || '').trim().split(/\s+/)[0].toUpperCase(); return w.length > 11 ? w.slice(0, 10) + '.' : w; };
 const col = (h) => new THREE.Color(h);
@@ -1017,14 +1020,14 @@ export class World {
     this.rainGeo = new THREE.BoxGeometry(0.1, 0.12, 0.25);
     // the glowing ring under the followed car
     const ring = new THREE.RingGeometry(3.3, 3.75, 48); ring.rotateX(-Math.PI / 2); ring.scale(1.22, 1, 0.78);
-    this.ring = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8 }));
+    this.ring = new THREE.Mesh(ring.clone(), new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8 }));
     this.ring.renderOrder = 2;
     const halo = new THREE.CircleGeometry(3.3, 40); halo.rotateX(-Math.PI / 2); halo.scale(1.22, 1, 0.78);
     this.halo = new THREE.Mesh(halo, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.2, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -7 }));
     this.scene.add(this.ring, this.halo);
     // your other car keeps a ring too (same colour, a little softer, gently pulsing), so both are easy to find
     this.mineRings = [0, 1].map(() => {
-      const r = new THREE.Mesh(ring, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8 }));
+      const r = new THREE.Mesh(ring.clone(), new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -8, polygonOffsetUnits: -8 }));
       const h = new THREE.Mesh(halo, new THREE.MeshBasicMaterial({ color: '#d4ff3a', transparent: true, opacity: 0.14, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -7, polygonOffsetUnits: -7 }));
       r.renderOrder = 2; r.visible = h.visible = false; this.scene.add(r, h);
       return { r, h };
@@ -1072,11 +1075,14 @@ export class World {
       const body = new THREE.Mesh(this.carGeo(c.team), this.carMat);
       body.castShadow = true;
       const rl = new THREE.Mesh(this.rainGeo, this.rainLightMat); rl.position.set(-2.55 * CAR_SCALE, 0.62 * CAR_SCALE, 0);
-      g.add(body, rl);
+      // BOOST: two light trails off the back of the car while it deploys the battery
+      const trail = new THREE.Group(); trail.visible = false;
+      for (const rx of [0, Math.PI / 2]) { const m = new THREE.Mesh(this.trailGeo(), this.trailMat()); m.rotation.x = rx; trail.add(m); }
+      g.add(body, rl, trail);
       const tag = this.makeTag(c);
       this.scene.add(tag);
       this.carGroup.add(g);
-      this.carObjs.set(c.id, { group: g, body, tag, rl, car: c });
+      this.carObjs.set(c.id, { group: g, body, tag, rl, trail, car: c });
     }
     this.setTeams([...new Map(cars.map((c) => [c.team.id, c.team])).values()]);
     this.teamCar = new Map(cars.filter((c) => c.team.car).map((c) => [c.team.id, c.team.car]));
@@ -1123,7 +1129,10 @@ export class World {
   // "7 NOVA P8": the car number in a team-coloured chip, the driver's name, then the position. The
   // compact form ("7 P8") is used when tags crowd together or the camera is far away.
   drawTag(o, pos, selected, mine, full) {
-    const key = pos + '|' + selected + '|' + mine + '|' + full;
+    // your cars also show the tyre left, in 5% steps, coloured like the ring under them
+    const c0 = o.car, life = mine && !c0.dnf && c0.tyre ? Math.max(0, Math.round((1 - c0.tyre.wear) * 20) * 5) : null;
+    const comp = life === null ? '' : c0.tyre.c || '';
+    const key = pos + '|' + selected + '|' + mine + '|' + full + '|' + life + '|' + comp;
     const ud = o.tag.userData; if (ud.key === key) return; ud.key = key;
     const x = ud.cv.getContext('2d'), c = o.car;
     const name = full ? tagName(c.name) : '';
@@ -1131,7 +1140,10 @@ export class World {
     const nameW = name ? Math.ceil(x.measureText(name).width) + 12 : 0;
     x.font = '700 27px "Barlow Semi Condensed", system-ui, sans-serif';
     const posW = Math.ceil(x.measureText('P' + pos).width);
-    const w = Math.min(TAG_W, 10 + 62 + 10 + nameW + posW + 16);
+    const tyreTxt = life === null ? '' : life + '%';
+    x.font = '700 24px "Barlow Semi Condensed", system-ui, sans-serif';
+    const tyreW = tyreTxt ? Math.ceil(x.measureText(tyreTxt).width) + 50 : 0;
+    const w = Math.min(TAG_W, 10 + 62 + 10 + nameW + posW + tyreW + 16);
     x.clearRect(0, 0, TAG_W, 64);
     x.fillStyle = selected ? '#d4ff3a' : '#ffffff';
     roundRect(x, 4, 8, w - 8, 46, 12); x.fill();
@@ -1145,8 +1157,33 @@ export class World {
     if (name) { x.fillStyle = '#111827'; x.font = '700 25px "Barlow Semi Condensed", system-ui, sans-serif'; x.fillText(name, 82, 32); }
     x.fillStyle = name ? '#5b6472' : '#111827'; x.font = '700 27px "Barlow Semi Condensed", system-ui, sans-serif';
     x.fillText('P' + pos, 82 + nameW, 32);
+    if (tyreTxt) {
+      // a little tyre: black wheel, the compound's colour round it and its letter, then the life
+      // left with a traffic-light bar under it (green, yellow to plan the stop, red)
+      const tx = 82 + nameW + posW + 12, col = tyreColour(life / 100), cc = (COMPOUNDS[comp] || {}).color || '#9aa3ad';
+      x.fillStyle = '#111827'; x.beginPath(); x.arc(tx + 15, 32, 15, 0, 7); x.fill();
+      x.strokeStyle = cc; x.lineWidth = 4; x.beginPath(); x.arc(tx + 15, 32, 10.5, 0, 7); x.stroke();
+      x.fillStyle = '#ffffff'; x.font = '700 15px "Barlow Semi Condensed", system-ui, sans-serif'; x.textAlign = 'center';
+      x.fillText(comp, tx + 15, 33); x.textAlign = 'left';
+      x.fillStyle = life < 28 ? '#c81e1e' : '#111827'; x.font = '700 24px "Barlow Semi Condensed", system-ui, sans-serif';
+      const pw = Math.ceil(x.measureText(tyreTxt).width);
+      x.fillText(tyreTxt, tx + 36, 30);
+      x.fillStyle = col; roundRect(x, tx + 36, 43, pw, 5, 2.5); x.fill();
+    }
     ud.w = w;
     ud.tex.repeat.set(w / TAG_W, 1); ud.tex.needsUpdate = true;
+  }
+
+  // the ring under one of your cars drains like a gauge as its tyres wear, and changes colour;
+  // anyone else's car (when you follow it) gets the full ring in the usual lime
+  gauge(ring, c) {
+    const life = c && c.tyre && !c.dnf ? clamp(1 - c.tyre.wear, 0, 1) : 1, geo = ring.geometry;
+    const segs = 48, n = Math.max(1, Math.round(segs * life));
+    if (geo.userData.n !== n) { geo.userData.n = n; geo.setDrawRange(0, n * 6); }
+    ring.material.color.set(c ? tyreColour(life) : '#d4ff3a');
+    // under 15% the ring flashes: a puncture is close
+    ring.userData.blink = !!c && life < 0.15;
+    if (ring.userData.blink) ring.material.opacity = Math.sin(performance.now() / 120) > 0 ? 0.95 : 0.2;
   }
 
   // keep tags from piling on top of each other: the followed car first, then yours, then by
@@ -1221,6 +1258,23 @@ export class World {
     this.weatherKey = [rain, wet];
   }
 
+  // the boost trail: a streak that fades from the car backwards, drawn additive so it glows
+  trailGeo() {
+    if (!this._trailGeo) { const geo = new THREE.PlaneGeometry(9 * CAR_SCALE, 0.9 * CAR_SCALE); geo.translate(-2.6 * CAR_SCALE - 4.5 * CAR_SCALE, 0.6 * CAR_SCALE, 0); this._trailGeo = geo; }
+    return this._trailGeo;
+  }
+  trailMat() {
+    if (!this._trailMat) {
+      const cv = document.createElement('canvas'); cv.width = 128; cv.height = 16; const x = cv.getContext('2d');
+      const gr = x.createLinearGradient(128, 0, 0, 0); gr.addColorStop(0, 'rgba(200,255,90,1)'); gr.addColorStop(0.25, 'rgba(110,247,255,.75)'); gr.addColorStop(1, 'rgba(110,247,255,0)');
+      x.fillStyle = gr; x.fillRect(0, 0, 128, 16);
+      const v = x.createLinearGradient(0, 0, 0, 16); v.addColorStop(0, 'rgba(0,0,0,1)'); v.addColorStop(0.5, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,1)');
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = v; x.fillRect(0, 0, 128, 16);
+      this._trailMat = new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(cv), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    }
+    return this._trailMat;
+  }
+
   // place cars: alpha blends between the last two simulation steps
   update(race, alpha, dt, camera, selectedId, mineIds, showTags, { speed = 1, focus = null, showRing = true } = {}) {
     const T = this.T;
@@ -1234,6 +1288,9 @@ export class World {
     const tags = [];
     for (const c of race.cars) {
       const o = this.carObjs.get(c.id); if (!o) continue;
+      const boosting = c.ersMode === 'deploy' && c.ers > 0.01 && !c.pit && !c.dnf && !race.done && c.v > 30;
+      if (o.trail.visible !== boosting) o.trail.visible = boosting;
+      if (boosting) o.trail.scale.x = 0.75 + 0.25 * Math.sin(performance.now() / 45 + c.i);
       let d = c.prevDist + (c.dist - c.prevDist) * alpha, lat = c.prevLat + (c.lat - c.prevLat) * alpha, stopYaw = 0;
       // a stopped car: the engine leaves its last step's positions behind (and a crash puts it in the
       // wall in one step), so blending between them would rock it back and forth for good. Slide it
@@ -1286,18 +1343,20 @@ export class World {
         // about the same size in pixels on every screen (30 to 46 px for the sprite)
         const px = clamp(H * 0.05, phone ? 30 : 34, 46) * (key ? 1.1 : 1) * (far ? 0.82 : 1);
         const k = px / H * 2 * Math.tan(camera.fov * Math.PI / 360) / 0.04;
-        // from far away only the followed cars, yours and the top three keep a tag
-        o.tag.visible = dcam > 14 && (!far || key || c.pos <= 3);
+        // only your two cars (and a car you chose to follow) carry a tag: the rest of the field stays clean
+        o.tag.visible = dcam > 14 && key;
         o.tag.position.set(g.position.x, 2.8, g.position.z);
         // names when the camera is close enough; on a phone only for your cars
         const wantFull = key || (!far && dcam < 110 && !phone);
         if (o.tag.visible) tags.push({ o, pos: c.pos, sel, mine, key, wantFull, scaleY: 0.04 * k, hPx: px, rank: sel ? -2 : mine ? -1 : c.pos });
       }
       if (c.id === selectedId) {
+        this.gauge(this.ring, mineIds.includes(c.id) ? c : null);
         this.ring.position.set(g.position.x, 0.14, g.position.z); this.ring.rotation.y = g.rotation.y;
         this.halo.position.copy(this.ring.position); this.halo.rotation.y = g.rotation.y;
       } else if (mineIds.includes(c.id) && g.visible && mr < 2) {
         const { r, h } = this.mineRings[mr++];
+        this.gauge(r, c);
         r.position.set(g.position.x, 0.14, g.position.z); r.rotation.y = g.rotation.y;
         h.position.copy(r.position); h.rotation.y = g.rotation.y;
         r.visible = h.visible = true;
@@ -1308,7 +1367,7 @@ export class World {
     const selCar = selectedId && race.byId.get(selectedId);
     this.ring.visible = this.halo.visible = !!selCar && showRing && !(selCar.dnf && selCar.cleared);
     for (let i = mr; i < 2; i++) this.mineRings[i].r.visible = this.mineRings[i].h.visible = false;
-    if (mr) { const k = 0.5 + 0.5 * Math.sin(performance.now() / 260); for (const { r, h } of this.mineRings) { r.material.opacity = 0.62 + 0.3 * k; h.material.opacity = 0.1 + 0.08 * k; } }
+    if (mr) { const k = 0.5 + 0.5 * Math.sin(performance.now() / 260); for (const { r, h } of this.mineRings) { if (!r.userData.blink) r.material.opacity = 0.62 + 0.3 * k; h.material.opacity = 0.1 + 0.08 * k; } }
     // safety car on track, lights flashing
     const sc = race.sc && race.sc.kind === 'SC' ? race.sc : null;
     this.scCar.visible = !!sc;

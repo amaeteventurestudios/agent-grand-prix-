@@ -137,7 +137,7 @@ export class Race {
         grid: i + 1,
         dist: -10 - i * 9, lat: i % 2 ? -2.6 : 2.6, latT: 0, v: 0, prevDist: 0, prevLat: 0,
         tyre: { c: start, wear: 0, laps: 0, fresh: 0, temp: 0.55 }, used: [start], stops: 0,
-        ers: 0.6, pace: 'normal', ersMode: 'balanced', battle: 'neutral', order: 'free', letBy: null, orderLap: -9,
+        ers: 1, pace: 'normal', ersMode: 'balanced', battle: 'neutral', order: 'free', letBy: null, orderLap: -9,
         pitReq: null, pit: null, stopT: 0,
         pass: null, yieldT: 0, mistakeT: 0,
         finished: false, dnf: false, pos: i + 1,
@@ -295,8 +295,11 @@ export class Race {
       }
       // battery
       let boost = 1;
-      if (car.ersMode === 'deploy' && str && car.ers > 0) { boost = 1.03; car.ers -= 0.035 * dt; }
-      else if (car.ersMode === 'balanced' && str && car.ers > 0) { const k = d ? d.deploy : 1; boost = 1 + 0.01 * k; car.ers -= 0.011 * k * dt; }
+      // deploying (BOOST): a real kick on the straights, and some help out of the corners too
+      if (car.ersMode === 'deploy' && car.ers > 0) { boost = str ? 1.065 : 1.02; car.ers -= (str ? 0.035 : 0.02) * dt; }
+      // Balanced keeps a reserve: under 40% it stops spending and lets the corners charge it back,
+      // so the battery is there for BOOST when you want it
+      else if (car.ersMode === 'balanced' && str && car.ers > 0.4) { const k = d ? d.deploy : 1; boost = 1 + 0.01 * k; car.ers -= 0.011 * k * dt; }
       else if (car.ersMode === 'harvest') { boost = 0.994; car.ers += 0.016 * dt; }
       car.ers = clamp(car.ers + (str ? 0 : 0.008 * dt), 0, 1);
       let vt = car.sv[i] * f * boost;
@@ -412,7 +415,7 @@ export class Race {
       }
       if (Math.abs(car.lat - o.lat) >= CAR_W * 0.92) {
         const str = T.straight[Math.floor(((car.dist % L) + L) % L)];
-        car._vt *= 1 + (str ? 0.03 : 0.015) + (car.battle === 'attack' ? 0.01 : 0) + (car.ersMode === 'deploy' && car.ers > 0 ? 0.015 : 0);
+        car._vt *= 1 + (str ? 0.03 : 0.015) + (car.battle === 'attack' ? 0.01 : 0) + (car.ersMode === 'deploy' && car.ers > 0 ? 0.03 : 0);
       }
     }
 

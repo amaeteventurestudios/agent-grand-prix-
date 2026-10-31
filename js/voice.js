@@ -14,7 +14,9 @@ export const VOICES = [
 const COMMON = ['car1', 'car2', 'q_S', 'q_M', 'q_H', 'q_I', 'q_W', 'b_S', 'b_M', 'b_H', 'w_window', 'w_finished', 'lights', 'nice', 'lost', 'goodstop', 'k_chase', 'k_defend', 'k_team'];
 
 export class Voice {
-  constructor(base = 'assets/voice/') { this.base = base; this.id = null; this.buf = new Map(); this.q = []; this.busy = false; this.ctx = null; this.duck = null; }
+  constructor(base = 'assets/voice/') { this.base = base; this.id = null; this.buf = new Map(); this.q = []; this.busy = false; this.ctx = null; this.duck = null; this.vol = 1; }
+  // the radio's volume (0..1), from the desktop pause menu
+  setVol(v) { this.vol = v; if (this.gain) this.gain.gain.value = 1.15 * v; }
   // ctx: the game's AudioContext when sound is on, so the radio sits in the same mix
   use(id, ctx) {
     if (id !== this.id) { this.buf.clear(); this.q = []; }
@@ -30,7 +32,7 @@ export class Voice {
       const x = this.ctx, hp = x.createBiquadFilter(), lp = x.createBiquadFilter(), sh = x.createWaveShaper(), g = x.createGain();
       hp.type = 'highpass'; hp.frequency.value = 320; lp.type = 'lowpass'; lp.frequency.value = 3600; lp.Q.value = 0.9;
       const n = 256, curve = new Float32Array(n); for (let i = 0; i < n; i++) { const v = i / (n - 1) * 2 - 1; curve[i] = Math.tanh(v * 1.8) / Math.tanh(1.8); }
-      sh.curve = curve; g.gain.value = 1.15;
+      sh.curve = curve; g.gain.value = 1.15 * this.vol; this.gain = g;
       hp.connect(lp).connect(sh).connect(g).connect(x.destination);
       this.chain = hp;
     }
