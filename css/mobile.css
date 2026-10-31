@@ -347,3 +347,12 @@ html.mob .hud .chip.fin > span[aria-hidden], html.mob .hud .chip.fin .fl { displ
 html.mob .vol-pop { top: calc(max(8px, var(--a-safe-t)) + 40px); right: max(8px, var(--a-safe-r)); }
 /* upright phones: the race buttons sit down by the tab bar, so this follows them */
 @media (orientation: portrait) { html.mob #stage > .chip.agents { bottom: 80px; } }
+/* the camera views open in a strip just above the tab bar: the race buttons step up out of its way
+   while it's open, and back down once a view is picked */
+@media (orientation: portrait) and (max-width: 1199px) {
+  html.mob .boost, html.mob .boxfab, html.mob .talkfab, html.mob #stage > .chip.agents, html.mob .sec-tick { transition: bottom .2s ease; }
+  html.mob #app.camopen .boost, html.mob #app.camopen .boxfab, html.mob #app.camopen .talkfab { bottom: 58px; }
+  html.mob #app.camopen #stage > .chip.agents { bottom: 124px; }
+  html.mob #app.camopen .sec-tick { bottom: 172px; }
+}
+@media (orientation: portrait) and (max-width: 1199px) and (prefers-reduced-motion: reduce) { html.mob .boost, html.mob .boxfab, html.mob .talkfab, html.mob #stage > .chip.agents, html.mob .sec-tick { transition: none; } }
