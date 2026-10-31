@@ -7,7 +7,7 @@
 // A short room echo gives it space. Each team's engine has its own pitch and character.
 // Plus wind and crowd, the pit wheel guns and rain.
 const GEARS = [0, 22, 36, 50, 63, 75, 86, 96, 120]; // gear tops in m/s
-const IDLE = 4000, MAX = 12000;
+const IDLE = 3600, MAX = 10800;
 const C_SOUND = 446;   // speed of sound in world units (the world is drawn a little larger than life)
 
 export class Sound {
@@ -26,7 +26,7 @@ export class Sound {
       this.master = x.createGain(); this.master.gain.value = ctx ? this.vol : 0;
       const comp = x.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.2;
       // the compressor adds make-up gain, so trim after it to keep peaks clear of clipping
-      const trim = x.createGain(); trim.gain.value = 0.55;
+      const trim = x.createGain(); trim.gain.value = 0.42;
       this.master.connect(comp).connect(trim).connect(x.destination);
       // a short room: the stands and the pit wall throw the sound back
       this.verb = x.createConvolver(); this.verb.buffer = room(x, 1.3);
@@ -68,13 +68,15 @@ export class Sound {
     const drive = x.createGain(); drive.gain.value = 1.4;
     const ws = x.createWaveShaper(); ws.curve = this.curve; ws.oversample = '2x';
     // exhaust resonances, then the distance and load filter
-    const f1 = x.createBiquadFilter(); f1.type = 'peaking'; f1.frequency.value = 330; f1.Q.value = 1.1; f1.gain.value = 7;
-    const f2 = x.createBiquadFilter(); f2.type = 'peaking'; f2.frequency.value = 1150; f2.Q.value = 1.6; f2.gain.value = 5;
-    const lp = x.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.9; lp.frequency.value = 2400;
-    const hp = x.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 38;
+    const f1 = x.createBiquadFilter(); f1.type = 'peaking'; f1.frequency.value = 180; f1.Q.value = 0.9; f1.gain.value = 9;
+    const f2 = x.createBiquadFilter(); f2.type = 'peaking'; f2.frequency.value = 760; f2.Q.value = 1.1; f2.gain.value = 7;
+    const lp = x.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.7; lp.frequency.value = 1800;
+    const hp = x.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 32;
+    // the chest: a low shelf under it all, so a car going by is felt as well as heard
+    const body = x.createBiquadFilter(); body.type = 'lowshelf'; body.frequency.value = 160; body.gain.value = 8;
     // the rasp: filtered noise, pulsed at the firing rate
     const ns = x.createBufferSource(); ns.buffer = this.noise; ns.loop = true; ns.playbackRate.value = 0.8 + Math.random() * 0.4;
-    const nf = x.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 2600; nf.Q.value = 0.7;
+    const nf = x.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = 1100; nf.Q.value = 0.8;
     const rasp = x.createGain(); rasp.gain.value = 0;
     const pulse = x.createOscillator(); pulse.type = 'square';
     const depth = x.createGain(); depth.gain.value = 0;
@@ -82,17 +84,19 @@ export class Sound {
     // the turbo and the energy recovery motor whine above it all
     const whine = x.createOscillator(); whine.type = 'sine';
     const wg = x.createGain(); wg.gain.value = 0;
+    const sub = x.createOscillator(); sub.type = 'triangle';
+    const sg = x.createGain(); sg.gain.value = 0.55;
     const out = x.createGain(); out.gain.value = 0;
     const pan = x.createStereoPanner ? x.createStereoPanner() : null;
-    o1.connect(mix); o2.connect(g2).connect(mix);
-    mix.connect(drive).connect(ws).connect(f1).connect(f2).connect(lp).connect(hp).connect(out);
+    o1.connect(mix); o2.connect(g2).connect(mix); sub.connect(sg).connect(mix);
+    mix.connect(drive).connect(ws).connect(body).connect(f1).connect(f2).connect(lp).connect(hp).connect(out);
     ns.connect(nf).connect(rasp).connect(lp);
     whine.connect(wg).connect(out);
     const dest = pan ? (out.connect(pan), pan) : out;
     dest.connect(this.master);
     const send = x.createGain(); send.gain.value = 0; dest.connect(send).connect(this.verb);
-    o1.start(); o2.start(); ns.start(); pulse.start(); whine.start();
-    return { o1, o2, lp, out, pan, send, rasp, depth, pulse, whine, wg, drive, f1, id: null, gear: 1, cut: 0, pop: 0, dPrev: null, vr: 0 };
+    o1.start(); o2.start(); sub.start(); ns.start(); pulse.start(); whine.start();
+    return { o1, o2, sub, lp, out, pan, send, rasp, depth, pulse, whine, wg, drive, f1, id: null, gear: 1, cut: 0, pop: 0, dPrev: null, vr: 0 };
   }
 
   bed(freq, q) {
@@ -131,7 +135,7 @@ export class Sound {
         v = free.shift(); if (!v) continue; v.id = c.id; v.dPrev = null; v.vr = 0;
         const w = this.waves[Math.floor(hash(c.team.id + 'w') * 3)]; v.o1.setPeriodicWave(w); v.o2.setPeriodicWave(w);
       }
-      const team = hash(c.team.id), pitch = 0.95 + team * 0.1;
+      const team = hash(c.team.id), pitch = 0.9 + team * 0.1;
       // revs from speed in the current gear
       const sp = Number.isFinite(c.v) ? Math.max(0, c.v) : 0;
       let g = 1; while (g < GEARS.length - 1 && sp > GEARS[g]) g++;
@@ -153,17 +157,18 @@ export class Sound {
       const fc = (Number.isFinite(rpm) ? rpm : IDLE) / 120 * pitch * dop * (c.ersMode === 'deploy' ? 1.01 : 1);   // one engine cycle
       v.o1.frequency.setTargetAtTime(fc, t, 0.03);
       v.o2.frequency.setTargetAtTime(fc, t, 0.03);
+      v.sub.frequency.setTargetAtTime(fc * 3, t, 0.03);
       v.pulse.frequency.setTargetAtTime(fc * 6, t, 0.03);
       v.whine.frequency.setTargetAtTime((2600 + 4200 * (rpm - IDLE) / (MAX - IDLE)) * dop, t, 0.06);
-      v.drive.gain.setTargetAtTime(0.9 + 1.1 * load, t, 0.05);
-      v.f1.frequency.setTargetAtTime(300 + 90 * team + 60 * load, t, 0.1);
+      v.drive.gain.setTargetAtTime(1.2 + 1.6 * load, t, 0.05);
+      v.f1.frequency.setTargetAtTime(150 + 60 * team + 40 * load, t, 0.1);
       // distance takes the top off; on board you hear the intake and the gearbox
       const far = 1 / (1 + d / 220);
-      v.lp.frequency.setTargetAtTime(cockpit ? 1500 + 1200 * load : (900 + 3200 * load) * (0.35 + 0.65 * far), t, 0.05);
+      v.lp.frequency.setTargetAtTime(cockpit ? 1200 + 900 * load : (900 + 2600 * load) * (0.4 + 0.6 * far), t, 0.05);
       const raspK = (0.05 + 0.1 * load + (v.pop > 0 ? 0.6 : 0) + (load < 0.5 && Math.random() < 0.05 ? 0.35 : 0)) * (0.4 + 0.6 * far);
-      v.rasp.gain.setTargetAtTime(raspK * 0.5, t, 0.015);
-      v.depth.gain.setTargetAtTime(raspK * 0.5, t, 0.015);
-      v.wg.gain.setTargetAtTime((cockpit ? 0.02 : 0.009) * load * far, t, 0.08);
+      v.rasp.gain.setTargetAtTime(raspK * 0.4, t, 0.015);
+      v.depth.gain.setTargetAtTime(raspK * 0.4, t, 0.015);
+      v.wg.gain.setTargetAtTime((cockpit ? 0.006 : 0.002) * load * far, t, 0.08);
       let vol = cockpit ? 0.5 : 0.8 / (1 + (d / 26) ** 2) * (sel ? 1.25 : 1);
       vol *= 0.55 + 0.45 * load;
       if (v.cut > 0) vol *= 0.3;
@@ -194,10 +199,10 @@ function engineWave(x, k) {
   let seed = 1234 + k * 977;
   const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
   for (let h = 1; h <= N; h++) {
-    let a = (0.04 + 0.05 * k / 2) * rnd() / Math.sqrt(h);
-    if (h % 3 === 0) a += (0.32 + 0.08 * k) / Math.pow(h / 3, 0.7);
-    if (h % 6 === 0) a += 1.0 / Math.pow(h / 6, 0.85 - 0.08 * k);
-    if (h === 1 || h === 2) a += 0.18;   // the deep pulse you feel in your chest
+    let a = (0.04 + 0.05 * k / 2) * rnd() / h;
+    if (h % 3 === 0) a += (0.5 + 0.08 * k) / Math.pow(h / 3, 1.0);
+    if (h % 6 === 0) a += 1.0 / Math.pow(h / 6, 1.15 - 0.08 * k);
+    if (h <= 3) a += 0.35;   // the deep pulse you feel in your chest
     const ph = rnd() * Math.PI * 2;
     re[h] = a * Math.cos(ph); im[h] = a * Math.sin(ph);
   }
