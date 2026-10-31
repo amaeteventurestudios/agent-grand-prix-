@@ -10,6 +10,7 @@ import { QualiSession, Q_LEN, fmtQ } from './quali.js';
 import { setupRace, dayNumber, dailyVenue, DEFAULT_TEAM, TAKEN_NUMS, trackFor, LENGTHS, raceLaps } from './game.js';
 import { World } from './world.js';
 import { Ceremony } from './ceremony.js';
+import { Music } from './music.js';
 import { MODELS, loadGLB } from './cars.js';
 import { Cams } from './cams.js';
 import { Sound } from './audio.js';
@@ -90,7 +91,7 @@ function loadVenue(venue) {
 // ---------- the live race behind the home screen ----------
 function attract() {
   stopCere();
-  G.attract = true; G.ended = false; sound.stop(); live.clear(); G.room = null; stopListening(); G.lesson = null; lessonCard(null);
+  G.attract = true; G.ended = false; sound.stop(); music.play(1.5); live.clear(); G.room = null; stopListening(); G.lesson = null; lessonCard(null);
   const n = dayNumber(), venue = dailyVenue(n);
   loadVenue(venue);
   const setup = setupRace({ venue, seed: hashString('attract-' + n), team: team(), withPlayer: false, laps: 30, car: carModel() || 'falcon' });
@@ -388,6 +389,9 @@ $('#menuBtn').addEventListener('click', pauseMenu);
 
 // engine sound: on by default, remembered on this device; it starts with the first tap of a race
 const sound = new Sound();
+// the theme (js/music.js): menus, the grid and the podium; off with Sound or with its own switch in Settings
+const music = new Music();
+music.allow(() => S.settings.music !== false && S.settings.sound !== false);
 // the engineer on the radio: speaks the calls so you don't have to read them
 const voice = new Voice();
 voice.duck = (on) => sound.duck(on);
@@ -429,6 +433,7 @@ function soundIcon() { const b = $('#soundBtn'), on = S.settings.sound !== false
 function setSound(on) {
   S.settings.sound = on; store.save(); soundIcon();
   if (on && !G.attract) sound.start(lite); else sound.stop();
+  music.refresh();
 }
 $('#soundBtn').addEventListener('click', () => setSound(S.settings.sound === false));
 soundIcon();
@@ -2183,6 +2188,7 @@ function settingsSheet(back) {
   const draw = () => {
     const sh = show(`<h2>Settings</h2>
       ${sw('sound', S.settings.sound !== false, 'Sound', 'Engines, the crowd and the radio')}
+      ${sw('music', S.settings.music !== false, 'Music', 'The theme on the menus, the grid and the podium')}
       ${sw('voice', S.settings.voice !== false, 'Engineer’s voice', 'Your race engineer speaks the calls')}
       ${sw('coach', S.settings.coach !== false, 'Race coach', 'Tips during your first races and quick races')}
       <div class="set-row"><span><b>Language</b><small>English, Français, Español, Português, العربية, Naijá</small></span>${langPicker(true)}</div>
@@ -2193,9 +2199,10 @@ function settingsSheet(back) {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const k = b.dataset.s, on = b.getAttribute('aria-checked') !== 'true';
       if (k === 'sound') S.settings.sound = on;
+      if (k === 'music') S.settings.music = on ? undefined : false;
       if (k === 'voice') S.settings.voice = on ? undefined : false;
       if (k === 'coach') S.settings.coach = on ? undefined : false;
-      store.save(); draw();
+      store.save(); music.refresh(); draw();
     };
     sh.onchange = langChange;
     $('#seBack').addEventListener('click', back);
@@ -3712,6 +3719,9 @@ function startRace(picks, auto, saved = null) {
   $('#hud').hidden = false; $('#camPill').hidden = false;
   setCam('live');
   if (S.settings.sound !== false) sound.start(lite);
+  // the theme carries over the grid and the lights, then gives way to the engines at lights out
+  // (a resumed race goes straight to the engines; the fallback covers a grid that waits on a lesson)
+  if (saved) music.stop(0.8); else music.fadeAfter(25, 4);
   voice.use(voiceId(), sound.ctx);
   // your drivers' own lines (js/brain.js), fetched now so the first answer isn't waiting on a download
   if (S.settings.replies !== false && voiceId()) mine().forEach((id) => voice.pack(driverVoice(id) + '-brain'));
@@ -3734,14 +3744,14 @@ let lightsTimers = [];
 function lightsSequence(skip) {
   const L = $('#lights'), dots = $$('i', L);
   lightsTimers.forEach(clearTimeout); lightsTimers = [];
-  if (skip) { L.hidden = true; world.setLights(0, true); if (!G.race.started) G.race.start(); return; }
+  if (skip) { L.hidden = true; world.setLights(0, true); music.stop(1.5); if (!G.race.started) G.race.start(); return; }
   L.hidden = false; L.classList.remove('go'); dots.forEach((d) => d.classList.remove('on'));
   world.setLights(0);
   const step = 700;
   for (let i = 0; i < 5; i++) lightsTimers.push(setTimeout(() => { dots[i].classList.add('on'); world.setLights(i + 1); beep(440, 0.12); }, 600 + i * step));
   const hold = 600 + 5 * step + 400 + Math.random() * 900;
   lightsTimers.push(setTimeout(() => {
-    dots.forEach((d) => d.classList.remove('on')); L.classList.add('go'); world.setLights(0, true); beep(880, 0.3);
+    dots.forEach((d) => d.classList.remove('on')); L.classList.add('go'); world.setLights(0, true); beep(880, 0.3); music.stop(3);
     G.race.start();
     lightsTimers.push(setTimeout(() => (L.hidden = true), 900));
   }, hold));
@@ -3880,7 +3890,7 @@ const TYRE_EMOJI = { S: '🔴', M: '🟡', H: '⚪', I: '🟢', W: '🔵' };
 function startCere(R) {
   if (reduce || !world || !R.result || G.kind === 'academy' || R.result.filter((x) => !x.dnf).length < 3) return false;
   $('#suggest').hidden = true; G.suggest = null;
-  app.classList.add('cere-on');
+  app.classList.add('cere-on'); music.play(3);
   G.cere = new Ceremony({ race: R, world, camera, cams, ui: $('#stage'), sound, lite, venue: G.venue,
     done: () => { G.cere = null; app.classList.remove('cere-on'); if (G.race === R && !G.attract) results(); } });
   return true;
@@ -3894,7 +3904,7 @@ function results() {
   // the record of the race just run, kept before it is cleared: the leaderboard checks a Daily by
   // replaying it on the server, so it is sent the race itself rather than a finishing place
   const ran = live.rec && !live.rec.lesson ? { kind: live.rec.kind, venue: live.rec.venue, seed: live.rec.seed, args: live.rec.args, cmds: live.rec.cmds.slice(), n: live.rec.n } : null;
-  live.clear();
+  live.clear(); music.play(2);
   if (G.resFor === G.race) return resultsView();
   G.resFor = G.race;
   const R = G.race, res = R.result, my = res.filter((x) => x.car.team.you);
@@ -4119,6 +4129,7 @@ function standings(over) {
 
 // ---------- test hooks ----------
 window.__agp = {
+  music,
   skipIntro() { lightsSequence(true); },
   ff(sec) { const R = G.race; for (let i = 0; i < sec / DT && !R.done; i++) R.step(); tick(); },
   start(kind = 'daily', id, length) {
