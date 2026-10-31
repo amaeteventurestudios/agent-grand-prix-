@@ -36,6 +36,7 @@ setRadioLang(LANG);
 import { Brain, intent as brainIntent, read as brainRead } from './brain.js';
 import { plans as briefPlans } from './briefing.js';
 import { LESSONS, Lesson, lessonById, fill, progress, complete, doneCount } from './academy.js';
+import { createDesk } from './desk.js';
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -75,6 +76,7 @@ new ResizeObserver(resize).observe(stage);
 // ---------- game state ----------
 const G = { race: null, setup: null, kind: null, venue: null, seed: 0, speed: 1, paused: false, acc: 0, sel: null, evIdx: 0, gap: 'interval', attract: true, ended: false, radioN: 0, forecastSaid: new Set(), round: null, day: null };
 let world = null;
+let desk = null;   // the desktop race command center (js/desk.js), made once the page's functions exist
 const team = () => (S.team && !S.team.draft ? S.team : DEFAULT_TEAM);   // a team still being built races as the default one
 const mine = () => (G.attract ? [] : ['you-0', 'you-1']);
 
@@ -294,6 +296,7 @@ function frame(now) {
     if (!G.attract) sound.update(R, world, camera, G.sel, cams.mode, G.paused || R.done || !$('#screen').hidden ? 0 : G.speed);
   }
   if (world && R && !G.attract && !G.cere) garageFeed(R);
+  if (R && !G.cere) desk?.frame(R, dt);
   renderer.render(world ? world.scene : new THREE.Scene(), camera);
   uiT += dt;
   if (uiT > 0.2 && R && !G.attract) { uiT = 0; tick(); }
@@ -390,6 +393,7 @@ $('#menuBtn').addEventListener('click', pauseMenu);
 const sound = new Sound();
 // the engineer on the radio: speaks the calls so you don't have to read them
 const voice = new Voice();
+sound.vol = S.settings.vol ?? sound.vol; voice.vol = S.settings.rvol ?? 1;
 voice.duck = (on) => sound.duck(on);
 const voiceId = () => (S.settings.voice === undefined || (S.settings.voice && !VOICES.some((v) => v.id === S.settings.voice)) ? 'michael' : S.settings.voice);
 const carTag = (id) => (id === 'you-1' ? 'car2' : 'car1');
@@ -435,6 +439,7 @@ soundIcon();
 document.addEventListener('visibilitychange', () => { if (!sound.ctx) return; if (document.hidden) sound.ctx.suspend(); else if (sound.on) sound.ctx.resume(); });
 document.addEventListener('keydown', (e) => {
   if (G.attract || e.target.closest('input')) return;
+  if (desk?.keydown(e)) return;
   const k = e.key.toLowerCase();
   if (k === ' ' || k === 'escape') { e.preventDefault(); $('#screen').hidden ? pauseMenu() : resume(); }
   const cm = { '1': 'live', '2': 'overview', '3': 'chase', '4': 'fpv', '5': 'tv', '6': 'pit' }[k]; if (cm) setCam(cm);
@@ -543,6 +548,7 @@ function tick() {
   suggestCheck(R);
   driverNudges(R);
   engineer(R);
+  desk?.tick(R);
   live.save();
 }
 
@@ -857,7 +863,15 @@ function freeTick() {
   } catch { free.rec = null; free.fails++; free.retry = performance.now() + 3000; }
 }
 setInterval(freeTick, 400);
+// the desktop radio's channel: words with no name in them go to the channel you picked (a driver,
+// the engineer or both cars); phones have no channels, so nothing changes there
+function chanWrap(t) {
+  if (G.chan === 'all' && !/\b(both|everyone|everybody|team|guys|all cars)\b/i.test(t)) return 'Both cars, ' + t;
+  if (G.chan === 'eng' && !/strategist|engineer/i.test(t)) return 'Engineer, ' + t;
+  return t;
+}
 function understand(text, alts = []) {
+  text = chanWrap(text); alts = alts.map(chanWrap);
   const cars = myCars().map((c) => ({ id: c.id, name: c.name, code: c.code }));
   // a question for a driver ("Nova, can you pass him?", "how are the tyres?") goes to that driver's
   // brain; a remark ("good job") too, unless it also carries a call
@@ -879,7 +893,7 @@ function addressed(text, cars) {
 }
 // the optional interpreter for what the matcher can't place (off unless our server has a key)
 async function interpret(heard) {
-  const miss = () => (G.aiBrain ? aiTalk(heard) : (talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'), reply(G.mineSel || 'you-0', 'r_sayagain')));
+  const miss = () => (G.chan === 'eng' ? (addRadio({ from: 'you', text: heard.trim() }), strategist(G.race.byId.get(G.mineSel || 'you-0')), radioDone()) : G.aiBrain ? aiTalk(heard) : (talkSaid(`Didn't catch a call in “${heard.trim()}”`, 'miss'), reply(G.mineSel || 'you-0', 'r_sayagain')));
   if (!G.interp) return miss();
   const R = G.race, cars = myCars();
   talkSaid('“' + heard.trim() + '” …');
@@ -896,6 +910,7 @@ async function interpret(heard) {
 // one transmission: commands, questions, confirmations and questions back
 function radioDo(r, text) {
   const R = G.race; if (!R) return;
+  text = chanWrap(text);
   addRadio({ from: 'you', text: text.trim().replace(/^./, (x) => x.toUpperCase()) });
   talkSaid('“' + text.trim() + '”', 'ok');
   if (r.clarify) { reply(G.mineSel || 'you-0', 'r_sayagain'); addRadio({ from: 'driver', code: R.byId.get(G.mineSel || 'you-0').code, text: `Say again: ${r.clarify}` }); return radioDone(); }
@@ -1068,6 +1083,14 @@ function driverNudges(R) {
 // can accept by saying "do it"
 function strategist(c) {
   G.askT = performance.now();
+  const R = G.race, o = stratRead(c);
+  if (o.call) { talk.offer = { call: o.call, t: R.t }; o.clip = [...o.clip, 's_confirm']; o.text += ' Say "do it" and I\'ll make the call.'; }
+  say(o.clip, true); addRadio({ from: 'engineer', text: o.text });
+  return o;
+}
+// the engineer's reading of one car, said by no one: strategist() speaks it, the desktop Strategy tab
+// shows it while your agents or your engineer run the stops
+function stratRead(c) {
   const R = G.race, left = R.laps - R.leaderLap(), ahead = R.order[c.pos - 2], behind = R.order[c.pos];
   const rain = R.weather.showers.find((s) => s.start > R.t && (s.start - R.t) / (R.track.lapTime * 1.05) < 2.5);
   let o;
@@ -1079,8 +1102,6 @@ function strategist(c) {
   else if (ahead && c.interval > 0 && c.interval < 1.0 && c.ers > 0.3) o = { clip: ['k_chase'], text: `${c.code} is ${c.interval.toFixed(1)} s behind ${ahead.code} with ${Math.round(c.ers * 100)}% battery. Boost and attack.`, call: { id: c.id, k: 'boost' } };
   else if (c.ers < 0.25) o = { clip: ['k_harvest'], text: `${c.code}'s battery is at ${Math.round(c.ers * 100)}%. Harvest now for the next fight.`, call: { id: c.id, k: 'harvest' } };
   else o = { clip: ['s_stay'], text: `Stay out. ${c.code}'s tyres are at ${Math.round((1 - c.tyre.wear) * 100)}% with ${left} laps to go.` };
-  if (o.call) { talk.offer = { call: o.call, t: R.t }; o.clip = [...o.clip, 's_confirm']; o.text += ' Say "do it" and I\'ll make the call.'; }
-  say(o.clip, true); addRadio({ from: 'engineer', text: o.text });
   return o;
 }
 {
@@ -1237,6 +1258,7 @@ function askEngineer(car) {
   const go = el.querySelector('.go');
   if (go) go.onclick = () => { close(); talk.offer = null; radioCalls([o.call]); renderControls(true); tick(); };
   setTimeout(close, 20000);
+  return o;
 }
 const callAction = (c) => (c.k === 'boxnow' ? { box: c.tyre } : c.k === 'harvest' ? { ers: 'harvest' } : c.k === 'boost' ? { boost: true } : {});
 function suggestCheck(R) {
@@ -1484,6 +1506,7 @@ function nextDry(c) { if (c.plan?.next && c.plan.next !== c.tyre.c) return c.pla
 // ---------- radio and toasts ----------
 function addRadio(m) {
   if (m.from === 'engineer' && engineerQuiet(m.car ? [carTag(m.car)] : null)) { if (m.chat) return; m = { ...m, from: 'info' }; }
+  desk?.radio(m);
   const ol = $('#radio'), li = document.createElement('li');
   const who = m.from === 'engineer' ? 'Engineer' : m.from === 'info' ? 'Pit wall' : m.from === 'driver' ? (m.code || 'Driver') : m.from === 'you' ? 'You' : 'Race control';
   li.className = m.from;
@@ -1565,6 +1588,7 @@ function drainEvents() {
       const fact = e.fact || e.text, clip = /Reminder/.test(e.text) ? 'w_second' : whyClip(e.text);
       if (FACT_CLIPS.includes(clip)) say([carTag(e.car), clip], true);
       addRadio({ from: 'race', text: `${car.code}: ${fact}` });
+      desk?.advice(e, car, fact);
       suggest(car, fact, e.action);
     } else if ((e.type === 'radio' || e.type === 'pit') && isMine) {
       const bx = /Boxing this lap for (\w)/.exec(e.text);
@@ -1865,7 +1889,7 @@ function appCard() {
 const MOB = matchMedia('(pointer: coarse) and (max-width: 760px), (pointer: coarse) and (max-height: 540px), (pointer: coarse) and (orientation: portrait) and (max-width: 1080px)');
 const appOn = () => !params.has('desk') && (params.has('app') || MOB.matches);
 // on a phone, Hand to agents / Take control sits above the race buttons, under your thumb, rather than in the top bar
-const appMark = () => { const on = appOn(), b = $('#agentsBtn'); document.documentElement.classList.toggle('mob', on); if (on) $('meta[name="theme-color"]')?.setAttribute('content', '#060b18'); if (b) (on ? $('#stage') : $('.hud-right')).append(b); };
+const appMark = () => { const on = appOn(), b = $('#agentsBtn'); document.documentElement.classList.toggle('mob', on); if (on) $('meta[name="theme-color"]')?.setAttribute('content', '#060b18'); if (b) (on ? $('#stage') : $('.hud-right')).append(b); desk?.check(); };
 appMark();
 MOB.addEventListener?.('change', () => { appMark(); if (G.attract && !$('#screen').hidden && /\b(nbhome|appsc)\b/.test($('#screen').className)) home(); });
 const TABS = [
@@ -3708,7 +3732,7 @@ function startRace(picks, auto, saved = null) {
   world.setCars(G.race.cars);
   G.sel = 'you-0'; G.mineSel = 'you-0'; G.coachState = null; G.eng = null; G.boxPicks = {}; coachHide(); G.suggest = null; $('#suggest').hidden = true;
   $('#radio').innerHTML = '';
-  buildTower(); buildCard(); renderControls(true);
+  buildTower(); desk?.start(G.race); buildCard(); renderControls(true);
   $('#hud').hidden = false; $('#camPill').hidden = false;
   setCam('live');
   if (S.settings.sound !== false) sound.start(lite);
@@ -3787,6 +3811,7 @@ function voiceSheet(back) {
 }
 function pauseMenu() {
   if (G.attract) return;
+  if (desk?.on) return pauseDesk();
   G.paused = true;
   const sh = show(`<h2>Paused</h2><p class="lede">${G.venue.flag} ${esc(G.venue.city)} · lap ${G.race.leaderLap()} of ${G.race.laps}</p>
     <div class="actions" style="flex-direction:column">
@@ -3812,6 +3837,57 @@ function pauseMenu() {
   $('#pQuit').addEventListener('click', () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); });
 }
 function resume() { hide(); G.paused = false; }
+// the pause menu on a wide desktop screen: the same actions in four groups, and a second press
+// before anything that throws the race away
+function pauseDesk() {
+  G.paused = true;
+  const R = G.race, lesson = G.kind === 'academy', live = !R.done && !lesson && myRunning().length > 0;
+  const pct = (v) => Math.round(v * 100);
+  const sw = (k, on, label) => `<label class="pm-sw"><span>${label}</span><input type="checkbox" role="switch" data-pm="${k}" ${on ? 'checked' : ''}></label>`;
+  const row = (id, label, note, cls = '') => `<button type="button" class="pm-row ${cls}" id="${id}"><b>${label}</b>${note ? `<small>${note}</small>` : ''}</button>`;
+  const sh = show(`<div class="pm-h"><div><small>Paused</small><h2>${G.venue.flag} ${esc(G.venue.city)}</h2><p>Lap ${R.leaderLap()} of ${R.laps}${G.kind ? ' · ' + esc({ daily: 'Daily Grand Prix', dailyfull: 'Daily · full distance', season: 'Season round', quick: 'Quick race', academy: 'Racing Academy', practice: 'Free practice', live: 'Live Grand Prix' }[G.kind] || '') : ''}</p></div>
+      <button class="btn pm-go" id="pResume" type="button">Resume <small>Esc</small></button></div>
+    <div class="pm-grid">
+      <section><h3>Race</h3>
+        ${appOn() || fairRace() ? '' : `<div class="pm-speed"><span>Race speed</span><div class="seg" role="group" aria-label="Race speed">${[1, 2, 4, 8, 16].map((v) => `<button type="button" data-ps="${v}" class="${G.speed === v ? 'on' : ''}">${v}×</button>`).join('')}</div></div>`}
+        ${canFinish() ? row('pFinish', 'Finish the race now', 'Your agents take both cars to the flag') : ''}
+        ${row('pRestart', lesson ? 'Restart lesson' : 'Restart race', 'This race is lost', 'warn')}
+        ${row('pQuit', 'Quit to home', R.done ? '' : 'This race is lost', 'warn')}
+        <div class="pm-confirm" hidden><p></p><div><button type="button" class="btn pm-yes">Yes</button><button type="button" class="btn ghost pm-no">Keep racing</button></div></div></section>
+      <section><h3>Audio and voice</h3>
+        ${sw('sound', S.settings.sound !== false, 'Sound')}
+        <label class="pm-vol"><span>Race sound</span><input type="range" min="0" max="100" value="${pct(S.settings.vol ?? 0.8)}" data-vol="vol" aria-label="Race sound volume"></label>
+        <label class="pm-vol"><span>Radio voices</span><input type="range" min="0" max="100" value="${pct(S.settings.rvol ?? 1)}" data-vol="rvol" aria-label="Radio voice volume"></label>
+        ${sw('replies', S.settings.replies !== false, 'Drivers answer out loud')}
+        ${row('pVoice', 'Radio voices', esc($('#voiceName').textContent || ''))}</section>
+      <section><h3>AI and drivers</h3>
+        ${row('pDna', 'Driver DNA', 'How each driver races')}
+        ${live ? row('pAgents', agentsOn() ? 'Take the team back' : 'Hand the team to my agents', agentsOn() ? 'You make the calls again' : 'Your agents make every call') : ''}</section>
+      <section><h3>Help and learning</h3>
+        ${row('pHelp', 'How to play', '')}
+        ${row('pAcademy', 'Racing Academy', 'Short lessons in a real race')}</section>
+    </div>`, 'dkmenu');
+  $('#pResume').addEventListener('click', resume);
+  $$('[data-ps]', sh).forEach((x) => x.addEventListener('click', () => { $(`.hud [data-speed="${x.dataset.ps}"]`)?.click(); $$('[data-ps]', sh).forEach((y) => y.classList.toggle('on', y === x)); }));
+  $$('[data-pm]', sh).forEach((x) => x.addEventListener('change', () => { if (x.dataset.pm === 'sound') setSound(x.checked); else { S.settings.replies = x.checked; store.save(); } }));
+  $$('[data-vol]', sh).forEach((x) => x.addEventListener('input', () => { const v = +x.value / 100; S.settings[x.dataset.vol] = v; if (x.dataset.vol === 'vol') sound.setVol(v); else voice.setVol(v); store.save(); }));
+  $$('[data-vol]', sh).forEach((x) => x.addEventListener('change', () => { if (x.dataset.vol === 'rvol') reply('you-0', 'r_copy'); }));
+  $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
+  $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
+  $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
+  $('#pAcademy').addEventListener('click', () => academyHome(pauseMenu));
+  $('#pAgents')?.addEventListener('click', () => { handTeam(!agentsOn()); resume(); });
+  $('#pFinish')?.addEventListener('click', finishNow);
+  const restart = () => (lesson && G.lessonId ? startLesson(G.lessonId) : G.kind === 'practice' ? freePractice() : pre({ kind: G.kind, venue: G.venue, seed: G.seed, round: G.round, day: G.day }, 'tyres'));
+  const quit = () => { lightsTimers.forEach(clearTimeout); $('#lights').hidden = true; attract(); };
+  const confirm = (text, go) => {
+    const c = $('.pm-confirm', sh); c.hidden = false; $('p', c).textContent = text; $('.pm-yes', c).focus();
+    $('.pm-yes', c).onclick = go; $('.pm-no', c).onclick = () => { c.hidden = true; };
+  };
+  $('#pRestart').addEventListener('click', () => (R.done ? restart() : confirm(`Restart? This race ends here and starts again from the grid.`, restart)));
+  $('#pQuit').addEventListener('click', () => (R.done ? quit() : confirm('Quit to home? This race ends here and is not saved.', quit)));
+  $('#pResume').focus();
+}
 
 // Hand the team to my agents: both your cars go Autonomous at once, so the AI strategists make every
 // call, and Take it back gives both cars to you again. It works in any race; a live race with other
@@ -4117,6 +4193,41 @@ function standings(over) {
   if (ns) ns.addEventListener('click', () => { S.season = { no: S.season.no + 1, round: 1, pts: {}, teamPts: {}, results: [] }; store.save(); home(); });
 }
 
+// typed radio (the desktop Radio tab and the test hook): the same path as speech
+function radioText(text) {
+  if (!G.race || G.attract) return null;
+  const r = understand(text); talk.m = { t0: performance.now(), id: ++talk.n };
+  if (r) radioDo(r, text); else { talk.m = null; interpret(text); }
+  radioPlans(G.race); return r;
+}
+// what the radio is doing now, for the desktop's talk buttons
+function talkState() {
+  if (!radioSupported()) return 'na';
+  if (S.settings.talk === false) return 'off';
+  if (talk.rec || free.armed) return 'listen';
+  const s = $('#talkSaid');
+  if (!s.hidden && /…$/.test(s.textContent) && !/^Listening/.test(s.textContent)) return 'think';
+  if (!s.hidden && s.classList.contains('ok')) return 'sent';
+  if (voice.speaking()) return 'rx';
+  if (S.settings.sound === false) return 'muted';
+  return 'idle';
+}
+// you approved a proposal (AI Team): the call goes to the car as yours, and a car you handed to the
+// agents stays with them
+function approveCall(id, action) {
+  const R = G.race, c = R && R.byId.get(id); if (!c || c.dnf || c.finished) return false;
+  if (!R.command(id, action)) return false;
+  heardBy(c, action);
+  if (action.box) { say([carTag(id), 'bb_' + action.box]); reply(id, 'r_box'); ack(`${c.code}: Box this lap · ${COMPOUNDS[action.box].name}s`); }
+  else if (action.ers) { say([carTag(id), 'c_' + action.ers]); ack(`${c.code}: ${CALL_WORDS.ers[action.ers]}`); }
+  renderControls(true); return true;
+}
+desk = createDesk({
+  G, S, $, $$, esc, COMPOUNDS, portraitSVG, ENG_FACE, fmtLap, tyreHTML, engName, mine, myCars, resize, appOn,
+  cmd, teamOrder, select, boxPick, boostCar, handTeam, askEngineer, stratRead, radioCalls, radioText, talkStart, talkStop, talkState,
+  approve: approveCall, toast, renderControls, save: store.save, tick: () => tick(),
+});
+
 // ---------- test hooks ----------
 window.__agp = {
   skipIntro() { lightsSequence(true); },
@@ -4130,10 +4241,10 @@ window.__agp = {
   get room() { const L = G.room; return L ? { id: L.id, n: L.n, me: L.me, calls: L.calls.length, snaps: L.snaps || {} } : null; },
   // the podium celebration: cere(sec) moves it on by sec seconds; cere() says where it is
   cere(sec = 0) { const c = G.cere; if (!c) return null; for (let k = 0; k < sec / 0.05; k++) { c.update(0.05); world.update(G.race, 1, 0.05, camera, null, [], false, { speed: 1, focus: cams.look, showRing: false }); } return { t: c.t, phase: c.phase, plan: c.plan, top: c.top.map((d) => ({ k: d.k, t0: d.t0, show: d.show, pose: d.pose, al: d.al, figs: !!c.figs, arrived: d.arrived })) }; },
-  cam: setCam, tab: setTab, select, results, pre, academy: startLesson, practice: freePractice,
+  cam: setCam, tab: setTab, select, get desk() { return desk; }, results, pre, academy: startLesson, practice: freePractice,
   get lesson() { const L = G.lesson; return L ? { step: L.step && L.step.id, i: L.i, n: L.steps.length, done: L.done } : null; }, crew: (up = true, big = false) => crewReact(G.race.byId.get('you-0'), up, big),
   // team radio without a mic: radio('Nova, push') runs a transcript through the same path as speech
-  radio(text) { const r = understand(text); talk.m = { t0: performance.now(), id: ++talk.n }; if (r) radioDo(r, text); else { talk.m = null; interpret(text); } radioPlans(G.race); return r; },
+  radio: radioText,
   get talk() { return talk; },
   voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
   car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
