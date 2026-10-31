@@ -13,6 +13,7 @@ import { carMods } from './carspec.js';
 
 export const DT = 0.05;
 const LOOP = 25; // timing loop spacing, m
+const SC_OUT = 30, SC_IN = 10, VSC_TIME = 20; // seconds: how long a safety car (out, then coming in) and a virtual one last
 
 // Laps of life before a tyre is fully worn, at wear multiplier 1.
 export const LIFE = { S: 4.6, M: 7.6, H: 11.5, I: 8, W: 10 };
@@ -897,12 +898,13 @@ export class Race {
     // marshals need help: a crash brings out the safety car, a car parked by the wall the virtual one
     const lap = this.leaderLap();
     if (this.sc || this.flag || lap >= this.laps) return;
+    // one safety car (or virtual one) a race, and none in the last two laps: yellow flags only then
+    if (this.scCount >= 1 || lap >= this.laps - 2) { this.emit('flag', `Yellow flags for the stopped ${car.code}.`, car); return; }
     // a lesson waiting on its own safety car cue keeps the flag for it: yellows only until then
     if (this.stage && this.stage.calm && (this.stage.cues || []).some((q) => q.sc && !q.done)) { this.emit('flag', `Yellow flags for the stopped ${car.code}.`, car); return; }
     const crash = kind === 'crash';
     const want = crash ? (this.r() < 0.8 ? 'SC' : 'VSC') : (this.r() < 0.6 ? 'VSC' : this.r() < 0.4 ? 'SC' : null);
     if (!want) { this.emit('flag', `Yellow flags for the stopped ${car.code}.`, car); return; }
-    if (want === 'SC' && lap >= this.laps - 1) { this.deploy('VSC', car); return; }
     this.deploy(want, car);
   }
 
@@ -942,20 +944,21 @@ export class Race {
     const T = this.track, L = T.L, i = Math.floor(((S.dist % L) + L) % L);
     S.v = T.v[i] * 0.6;
     S.dist += S.v * dt; S.run += S.v * dt;
-    const stopped = this.cars.some((c) => c.onTrackStop && !c.cleared);
+    // short and sharp: the marshals clear the stopped car while the field is slowed, so a safety car
+    // period never lasts more than SC_OUT + SC_IN seconds (about 40), and a virtual one VSC_TIME
+    const on = this.t - S.t;
+    if (on > SC_OUT) for (const c of this.cars) if (c.onTrackStop && !c.cleared) c.cleared = true;
     if (S.kind === 'VSC') {
-      if (this.t - S.t > 22 && !stopped) { this.sc = null; this.emit('sc', 'VSC ending. Green flag! Racing again.', null, { phase: 'green' }); }
+      if (on > VSC_TIME) { this.sc = null; this.emit('sc', 'VSC ending. Green flag! Racing again.', null, { phase: 'green' }); }
       return;
     }
-    if (S.phase === 'out' && S.run > L * 1.6 && !stopped) {
-      S.phase = 'in'; this.emit('sc', 'Safety car in this lap. Get ready for the restart!', null, { phase: 'in' });
+    if (S.phase === 'out' && on > SC_OUT) {
+      S.phase = 'in'; S.inT = this.t; this.emit('sc', 'Safety car in this lap. Get ready for the restart!', null, { phase: 'in' });
     }
-    if (S.phase === 'in') {
-      // the safety car peels into the pits; the leader controls the restart at the line
+    if (S.phase === 'in' && this.t - S.inT > SC_IN) {
+      // the safety car peels into the pits and the leader takes the field away
       const lead = this.order.find((c) => !c.dnf && !c.finished);
-      if (lead && Math.floor(lead.dist / L) > Math.floor(lead.prevDist / L)) {
-        this.sc = null; this.emit('sc', 'GREEN FLAG! The race is back on!', lead, { phase: 'green' });
-      }
+      this.sc = null; this.emit('sc', 'GREEN FLAG! The race is back on!', lead, { phase: 'green' });
     }
   }
 
