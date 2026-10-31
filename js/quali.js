@@ -41,7 +41,7 @@ export function qualiPlan({ entries, venue, seed, track, weather, choices = {} }
     const r = rng((seed ^ 0x9a11 ^ Math.imul(i + 1, 0x9e3779b1)) >>> 0);
     const aiGo = Math.round(r.range(0.06, 0.62) * Q_LEN), dice = r(), split = [r.range(-0.006, 0.006), r.range(-0.006, 0.006)];
     const c = calls({ go: aiGo, tyre: wetT || 'S', push: 'normal' }, choices[e.id], wetT);
-    const plan = driverPlan(T, e.dna, e.car ? carMods(e.car) : null);
+    const plan = driverPlan(T, e.dna, e.car ? carMods(e.car, e.setup, T) : null);
     // out and in laps at the circuit's own pace for everyone, so only the flying lap tells cars apart
     const outLap = T.lapTime * OUT, flyStart = c.go + outLap;
     let q = base[i] + TYRE[c.tyre] + PUSH[c.push].gain + 0.05 * clamp(flyStart / Q_LEN, 0, 1);

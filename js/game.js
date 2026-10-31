@@ -8,6 +8,7 @@ import { qualiPlan } from './quali.js';
 import { simInputs, slotOf, lockForRace } from './dna.js';
 import { weatherFor } from './weather.js';
 import { teamCars } from './carspec.js';
+import { bestSetup } from './rnd.js';
 
 export const EPOCH = Date.UTC(2026, 9, 23); // Daily Grand Prix #1: 23 October 2026, Abuja
 
@@ -112,11 +113,12 @@ export function raceLaps(track, length = 'short') {
 
 // stage: a Racing Academy scene. { grid: { 'you-0': 6 } (start positions), showers: [{ start, end, peak }]
 // (seconds; [] for a dry race), calm: true (no failures), cues: [{ t, sc: 'SC' }] }. Normal races have none.
-export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null, stops = null, seats = null, me = -1, quali = null }) {
+export function setupRace({ venue, seed, team, withPlayer = true, laps, startCompounds = {}, auto = false, dna = null, weather: source = 'simulated', car, stage = null, stops = null, seats = null, me = -1, quali = null, setups = null }) {
   const track = trackFor(venue);
   const L = laps || lapsFor(track);
   const entries = seats ? shareTeams(seatRoster(seats)) : roster(team, withPlayer);
   const cars = car === undefined && !seats ? null : teamCars(TEAMS.map((t) => t.id), car || 'falcon');
+  const pickFor = {};
   for (const e of entries) {
     if (e.seat) {
       // a person's car in a live race: their own car model, their own Driver DNA, their own calls
@@ -127,6 +129,9 @@ export function setupRace({ venue, seed, team, withPlayer = true, laps, startCom
     if (cars) e.team.car = e.car = cars[e.team.id] || cars.you;
     if (e.player) { e.auto = auto; if (startCompounds[e.id]) e.startCompound = startCompounds[e.id]; if (stops && stops[e.id]) e.stops = stops[e.id]; }
     if (e.team.you && dna) { const p = dna[slotOf(e.id)]; e.dna = simInputs(p); e.dnaProfile = p; }
+    // setups (js/rnd.js): yours as you picked them; every other team runs its engineer's level-1 pick.
+    // Without setups (the Daily, a live race) every car runs Balanced.
+    if (setups && e.car) e.setup = e.player ? setups[e.id] || null : (pickFor[e.car] ||= bestSetup(track, e.car));
   }
   let weather = weatherFor(source, venue, seed, L * track.lapTime * 1.1);
   // qualifying: one flying lap each (js/quali.js); quali holds the calls you made in the session,
