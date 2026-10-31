@@ -392,7 +392,7 @@ def rear_wing(S, lod, parts):
         ys = [t * R['span'] for t in (-1, -0.8, -0.55, -0.3, 0, 0.3, 0.55, 0.8, 1)] if lod < 2 else [-R['span'], 0, R['span']]
         st = [el(y) for y in ys]
         parts.append(blade_wing('rwing%d' % k, st, lod, (lambda q, k=k: R['paint'](k, q))))
-    for s in (1, -1):
+    for s in (1, -1) if R.get('plate') else ():
         parts.append(plate('rplate', R['plate'], R.get('plate_t', 0.026), (lambda q: R['plate_paint'](q)), at=s * (R['span'] + 0.012)))
     for (yy, poly, t) in R.get('pylons', ()):
         parts.append(plate('pylon', poly, t, R.get('pylon_paint', solid(CF)), at=yy))
@@ -438,7 +438,7 @@ def mirrors(S, lod, parts, rule):
     for s in (1, -1):
         parts.append(paint(finish(strut('mstalk', (mx - 0.08, s * (my - 0.2), mz - 0.12), (mx, s * my, mz), 0.03, 0.014), 0), solid(CF)))
         rings = []
-        for (dx, w, h) in ((0.09, 0.045, 0.02), (0.06, 0.08, 0.035), (-0.03, 0.085, 0.038), (-0.05, 0.07, 0.03)):
+        for (dx, w, h) in ((0.08, 0.035, 0.016), (0.05, 0.065, 0.028), (-0.025, 0.07, 0.03), (-0.04, 0.058, 0.024)):
             rings.append([Vector((mx + dx, s * my + yy * w, mz + zz * h)) for (yy, zz) in ((-1, -1), (1, -1), (1.1, 0.6), (0.6, 1), (-0.6, 1), (-1.1, 0.6))])
         mo = loft('mirror', rings)
         for p in mo.data.polygons: p.use_smooth = False
@@ -506,6 +506,12 @@ def build_car(S, lod):
             if lod < 2 and F.get('stay'):
                 for (p0, p1) in F['stay']:
                     parts.append(paint(finish(strut('stay', (p0[0], s * p0[1], p0[2]), (p1[0], s * p1[1], p1[2]), 0.06, 0.02), 0), solid(CF)))
+    if lod < 2 and S.get('barge', not S.get('NAC')):
+        # turning vanes between the front wheels and the sidepods
+        for s in (1, -1):
+            for (yy, x0, h) in ((0.5, 1.12, 0.3), (0.6, 1.02, 0.24), (0.7, 0.94, 0.18)):
+                parts.append(plate('barge', [(x0, 0.08), (x0 - 0.38, 0.08), (x0 - 0.42, 0.08 + h), (x0 - 0.12, 0.08 + h * 0.8)], 0.012,
+                                   S.get('barge_rule', solid(CF)), at=s * yy))
     floor(S, lod, parts, S.get('floor_rule', lambda q: P2 if abs(q.n.y) > 0.6 and abs(q.p.y) > 0.55 else CF))
     diffuser(S, lod, parts)
     front_wing(S, lod, parts)

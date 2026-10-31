@@ -3,122 +3,90 @@
 # an intake scoop over the canopy, a shrouded turbine fan standing on the engine cover behind the
 # airbox, accent wheel rings, and a tall rear wing with accent edges.
 import math
-from mathutils import Vector
+from mathutils import Vector, Matrix
 from carkit import *
-from openwheel import build_car, lerp_table, rel_height, CAMS
+from hyper import *
+from base import *
 
-MONO = [  # x, half-width, bottom, top, top roundness
-    (2.90, 0.045, 0.142, 0.168, 2.2),
-    (2.70, 0.140, 0.124, 0.215, 4.6),
-    (2.36, 0.200, 0.114, 0.282, 4.6),
-    (1.96, 0.222, 0.108, 0.360, 4.2),
-    (1.52, 0.238, 0.102, 0.445, 3.8),
-    (1.08, 0.258, 0.098, 0.520, 3.4),
-    (0.66, 0.292, 0.095, 0.565, 3.2),
-    (0.26, 0.302, 0.092, 0.575, 3.1),
-    (-0.22, 0.294, 0.092, 0.590, 3.0),
-    (-0.70, 0.262, 0.096, 0.665, 2.9),
-    (-1.18, 0.214, 0.106, 0.680, 2.7),
-    (-1.60, 0.162, 0.122, 0.585, 2.5),
-    (-1.98, 0.120, 0.155, 0.455, 2.2),
-    (-2.26, 0.070, 0.200, 0.340, 2.0),
-]
-POD = [  # x, centre y, half-width, bottom, top
-    (0.68, 0.51, 0.120, 0.230, 0.440),
-    (0.56, 0.53, 0.195, 0.185, 0.480),
-    (0.24, 0.54, 0.212, 0.155, 0.495),
-    (-0.28, 0.52, 0.200, 0.140, 0.475),
-    (-0.80, 0.45, 0.165, 0.130, 0.435),
-    (-1.24, 0.36, 0.115, 0.133, 0.375),
-    (-1.60, 0.27, 0.060, 0.148, 0.305),
-    (-1.82, 0.22, 0.024, 0.162, 0.265),
-]
+BODY = body('needle', b1=0.08, b2=0.05)
 
-def mono_rule(p, n):
-    h = rel_height(MONO, p)
-    if h < 0.3 or p.x < -1.9: return CF
-    w = lerp_table(MONO, p.x, 1)
-    # thin accent lines sweeping from the nose up over the cockpit shoulders
-    if 0.5 < p.x < 2.6 and n.z > 0.1 and abs(abs(p.y) - (0.62 * w + 0.02)) < 0.022: return P2
+def body_rule(q):
+    if q.cap or q.x < -2.15 or q.u < 1.85: return CF
+    if 2.88 < q.u < 3.02 and q.x > 0.6: return P2
+    if q.u < 2.88 and q.x > 1.0: return CF
     return P1
 
-def pod_rule(s):
-    def r(p, n):
-        x = p.x
-        if x > 0.62 and n.x > 0.55: return CF                      # the intake mouth
-        if x > 0.5 and n.x > 0.2: return P2                        # its accent lining
-        if rel_height(POD, p, 3, 4) < 0.3: return CF
-        yc, hw = lerp_table(POD, x, 1), lerp_table(POD, x, 2)
-        # an accent blade low on the flank, pointing back
-        if abs(p.y) > yc + 0.4 * hw and -1.1 < x < 0.3:
-            t = (0.3 - x) / 1.4
-            if abs(p.z - (0.25 + 0.03 * t)) < 0.03 * (1 - t) + 0.012: return P2
-        return P1
-    return r
+POD = pods(x0=0.85, w=1.0, h=0.95, under=1.25, rake=0.1)
 
-def fender_paint(s, hub, p, nn):
-    if (p.y - hub.y) * s < -0.17: return P2                         # accent inner edge
-    out = p - hub; out.y = 0
-    if math.degrees(math.atan2(out.z, out.x)) < -2: return P2      # accent tip at the front
+def pod_rule(q):
+    if q.inner is True or q.cap: return CF
+    if q.inner == 'lip' or q.x > 0.8: return P2
+    if q.u < 2.2 or q.u > 4.2: return CF
+    c = 2.4 + 0.6 * max(0.0, min(1.0, (0.4 - q.x) / 1.8))
+    if abs(q.u - c) < 0.13 and q.x > -1.6: return P2
+    if q.u < c: return CF
+    return P1
+
+def hood_rule(q):
+    if q.inner: return CF
+    if q.u < 0.5 or q.x < 14: return P2
+    return CF
+
+def fwing_paint(k, q):
+    if k == 0 and q.x < 0.62 and not q.inner and q.u > 0.3: return P2   # the tunnels under the nose
+    if k == 2 and q.u > 0.75: return P2
     return CF
 
 def turbine(lod, parts):
-    if lod > 1: return
-    xc, zc, R, depth = -1.1, 0.9, 0.25, 0.16
-    n = (28, 16)[lod]
-    def circ(x, r): return [Vector((x, r * math.cos(2 * math.pi * i / n), zc + r * math.sin(2 * math.pi * i / n))) for i in range(n)]
-    x0, x1 = xc + depth / 2, xc - depth / 2
-    # the shroud: a short tube with a rounded front lip
-    rings = [circ(x0 - 0.01, R - 0.025), circ(x0, R - 0.01), circ(x0 - 0.005, R + 0.012), circ(x1, R + 0.012), circ(x1, R - 0.025)]
-    tube = loft('shroud', rings, cap=False)
-    parts.append(paint(finish(tube, 0), lambda p, nn: P2 if p.x > x0 - 0.02 else CF))
-    hub = loft('fanhub', [superellipse(x, r, zc - r, zc + r, (12, 8)[lod], 2, 2) for (x, r) in ((x0 + 0.02, 0.01), (x0 - 0.01, 0.05), (x1 + 0.02, 0.055), (x1, 0.03))])
-    parts.append(paint(finish(hub, 0), solid(MT)))
-    for b in range((13, 9)[lod]):
-        a = 2 * math.pi * b / (13, 9)[lod]
-        ca, sa = math.cos(a), math.sin(a)
-        blade = []
-        for (r, tw) in ((0.05, 38), (R - 0.03, 22)):
-            ring = []
-            for (u, v) in ((-0.03, -0.004), (0.03, -0.004), (0.03, 0.004), (-0.03, 0.004)):
-                # a flat blade twisted about its radial axis
-                t = math.radians(tw)
-                bx, bt = u * math.sin(t) + v * math.cos(t), u * math.cos(t) - v * math.sin(t)
-                ring.append(Vector((xc + bx, r * ca - bt * sa, zc + r * sa + bt * ca)))
-            blade.append(ring)
-        parts.append(paint(finish(loft('blade', blade), 0, False), solid(MT)))
-    # a pylon tying the shroud down to the engine cover
-    py = loft('fanpylon', [[Vector((x, yy, z)) for (yy, z) in ((-0.015, 0.6), (0.015, 0.6), (0.015, zc - R + 0.01), (-0.015, zc - R + 0.01))] for x in (xc + 0.05, xc - 0.07)])
-    parts.append(paint(finish(py, 0, False), solid(CF)))
-
-def scoop(lod, parts):
-    if lod > 1: return
-    sc = loft('scoop', [superellipse(x, w, zb, zt, (12, 8)[lod], 3.2, 3.2) for (x, w, zb, zt) in
-                        ((-0.22, 0.05, 0.79, 0.84), (-0.3, 0.085, 0.77, 0.9), (-0.5, 0.08, 0.77, 0.89), (-0.66, 0.04, 0.75, 0.82))])
-    parts.append(paint(finish(sc, 1), lambda p, n: CF if n.x > 0.6 else (P2 if n.x > 0.15 else P1)))
-
-def extras(lod, parts):
-    turbine(lod, parts); scoop(lod, parts)
+    """The shrouded fan on the engine cover: a ring facing back, blades inside, a hub."""
+    if lod == 2: return
+    cx, cz, R = -1.62, 0.9, 0.2
+    def place(ob):
+        # lathe parts spin round Y; turn them to face back along X and move them up behind the airbox
+        ob.data.transform(Matrix.Rotation(math.radians(90), 4, 'Z'))
+        ob.data.transform(Matrix.Translation((cx, 0, cz)))
+        return ob
+    shroud = lathe('shroud', [(R + 0.035, -0.08), (R + 0.045, 0.0), (R + 0.03, 0.09), (R, 0.09), (R - 0.005, 0.0), (R, -0.08)], (40, 20, 8)[lod])
+    paint(shroud, lambda p, n: P2 if abs(p.x - cx) > 0.075 else CF)
+    parts.append(place(shroud))
+    hub = lathe('hub', [(0.0, -0.06), (0.05, -0.04), (0.05, 0.05), (0.0, 0.06)], 16)
+    paint(hub, solid(MT)); parts.append(place(hub))
+    nb = 16 if lod == 0 else 8
+    for k in range(nb):
+        a = 2 * math.pi * k / nb
+        ring = []
+        for (r0, tw) in ((0.05, 0.4), (R - 0.004, 0.75)):
+            c, s = math.cos(a), math.sin(a)
+            pts = []
+            for (dw, dd) in ((-0.03, -0.01), (0.03, 0.01), (0.03, 0.016), (-0.03, -0.004)):
+                ang = a + dw / r0 * 0.6
+                pts.append(Vector((cx + dd * 2 + dw * math.sin(tw), r0 * math.cos(ang), cz + r0 * math.sin(ang))))
+            ring.append(pts)
+        bl = loft('blade', ring); paint(bl, solid(MT)); parts.append(bl)
+    # the pylon it stands on
+    parts.append(plate('fanpost', [(-1.45, 0.6), (-1.78, 0.6), (-1.72, 0.74), (-1.52, 0.74)], 0.06, solid(CF), at=0.0))
 
 SPEC = dict(
-    MONO=MONO, POD=POD, mono_rule=mono_rule, pod_rule=pod_rule,
-    fwing=((0.07, 0.46, 3.04, 2, 0.02), (0.135, 0.32, 2.78, 12, 0.016), (0.205, 0.24, 2.6, 22, 0.013)),
-    fwing_span=1.08, fwing_sweep=0.32, fwing_rise=0.1,
-    # the inner tunnels: accent on the upper faces between the nose and the outer third
-    fwing_paint=lambda k, p, n, u: P2 if (n.z > 0.2 and 0.26 < abs(p.y) < 0.76) or (k == 0 and u > 0.85) else CF,
-    fplate=((3.04, 0.04, 0.18), (2.86, 0.04, 0.44), (2.5, 0.05, 0.42), (2.22, 0.08, 0.22)), fplate_y=1.06,
-    fplate_paint=lambda s, p, n: P2 if n.y * s < -0.5 or p.x > 2.94 else CF,
-    fins=((0.3, CF), (0.76, CF)),
-    fenders=(('FL', (-14, 112, 0.06, 0.1, 0.06)),), fender_paint=fender_paint,
-    rwing=((1.0, 0.36, -1.95, 5, 0.022), (1.14, 0.22, -2.23, 24, 0.015)), rwing_span=0.72,
-    rwing_paint=lambda k, p, n: P2 if (k == 1 and p.x < -2.38) or (k == 0 and n.x > 0.5) else CF,
-    rplate=((-1.86, 0.88, 1.16), (-2.18, 0.76, 1.3), (-2.54, 0.7, 1.38)),
-    rplate_paint=lambda p, n: P2 if p.x > -1.94 or p.z > 1.28 or p.x < -2.46 else CF,
-    pylons=(-0.18, 0.18),
-    airbox=((-0.38, 0.11, 0.8), (-0.5, 0.12, 0.82), (-0.8, 0.1, 0.75), (-0.98, 0.05, 0.69)),
-    airbox_paint=lambda p, n: CF if n.x > 0.6 else P1,
-    fin=((-1.28, 0.62, 0.72), (-1.62, 0.58, 0.86), (-1.95, 0.5, 0.96)), fin_paint=lambda p, n: P2 if p.z > 0.86 else CF,
-    helmet_x=0.2, wheel_ring=P2, barge=True, extras=extras,
+    BODY=BODY, body_segs=(2, 5, 12, 10), body_rule=body_rule,
+    POD=POD, pod_segs=(3, 5, 12, 8, 3), pod_rule=pod_rule,
+    FENDERS=[dict(key='FL', a0=12, a1=118, rule=hood_rule, sharp=(True, True, False, True), segs=(3, 7, 7),
+                  prof=[(0.37, -0.05, 0), (0.37, 0.0, 0.04), (0.18, 0.03, 0.03), (0.0, 0.0, 0)],
+                  stay=[((1.66, 0.66, 0.72), (1.45, 0.25, 0.46))])],
+    floor=FLOOR, floor_fences=((-0.88, -1.1, 0.82, 0.1),),
+    fwing=fwing(fwing_paint, x0=2.92, span=1.04, cascade=1.1,
+                plate=[(2.9, 0.05), (2.9, 0.16), (2.76, 0.4), (2.5, 0.4), (2.3, 0.2), (2.26, 0.05)], plate_y=1.05,
+                plate_paint=lambda q: P2 if q.n.y * (1 if q.p.y > 0 else -1) < -0.5 else CF),
+    rwing=rwing(lambda k, q: P2 if q.u > 0.85 and not q.inner else CF,
+                lambda q: P2 if q.p.x < -2.42 or q.p.z > 1.22 else CF, span=0.92, z=1.02, pylons='twin'),
+    AIRBOX=dict(rows=[(0.05, [(0, 0.72, 0), (0.06, 0.72, 0), (0.08, 0.79, 0.03), (0.06, 0.86, 0.03), (0, 0.88, 0)]),
+                      (-0.25, [(0, 0.72, 0), (0.09, 0.72, 0), (0.1, 0.8, 0.03), (0.07, 0.88, 0.03), (0, 0.9, 0)]),
+                      (-0.8, [(0, 0.62, 0), (0.09, 0.62, 0), (0.1, 0.72, 0.03), (0.07, 0.8, 0.03), (0, 0.82, 0)]),
+                      (-1.3, [(0, 0.58, 0), (0.05, 0.58, 0), (0.05, 0.63, 0.03), (0.04, 0.67, 0.03), (0, 0.68, 0)])],
+                sharp=(False, True, True, True, True), segs=(2, 3, 5, 6), open=True,
+                rule=lambda q: CF if q.cap else (P2 if q.x > -0.02 else P1)),
+    canopy=dict(zb=0.46, round=2.3, bar=(0.95, 0.15, 0.02), rows=canopy_rows(1.22, -0.6, 0.27, 0.8)),
+    mirror_at=(0.8, 0.45, 0.66), helmet_x=0.14, extras=turbine,
+    wheels=dict(ring=P2, spokes=12, style='turbine', tyre_ring=P2),
 )
 
 def build(lod):

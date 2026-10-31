@@ -13,7 +13,7 @@ exec(compile(src, 'render.py', 'exec'))
 sc = bpy.context.scene
 sc.render.film_transparent = True
 sc.render.resolution_x, sc.render.resolution_y = 720, 420
-sc.cycles.samples = 96
+sc.cycles.samples = int(os.environ.get("SAMPLES", 96))
 floor = [o for o in bpy.data.objects if o.type == 'MESH' and o.name.startswith('Plane')][0]
 floor.is_shadow_catcher = True
 cam.data.lens = 40
