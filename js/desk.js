@@ -224,6 +224,7 @@ export function createDesk(api) {
         <b class="dk-pos">${c.dnf ? 'OUT' : 'P' + c.pos}</b></div>
       ${takeBack(c)}
       ${c.plan?.lap && !c.pit && !dis ? `<div class="dk-card dk-window"><small>Next pit window</small><b>Lap ${Math.max(c.plan.lap, lap)}</b><span>${c.plan.next ? api.COMPOUNDS[c.plan.next].name + 's planned' : ''}</span></div>` : ''}
+      <h4 class="dk-sub">Radar · next laps</h4>${api.forecastHTML(R)}
       <h4 class="dk-sub">Tyres for the next stop</h4><div class="dk-tyres">${tyres}</div>
       ${box}
       <h4 class="dk-sub">Race pace</h4><div class="dk-seg">${opt('pace', 'pace', 'save', 'Save')}${opt('pace', 'pace', 'normal', 'Normal')}${opt('pace', 'pace', 'push', 'Push')}</div>

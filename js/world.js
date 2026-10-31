@@ -1226,10 +1226,14 @@ export class World {
     this.rainLines.frustumCulled = false;
     this.scene.add(this.rainLines);
     // spray behind cars
-    const sn = this.lite ? 300 : 800;
+    // soft round puffs of mist thrown up by the rear tyres: a rooster tail behind each car
+    const sn = this.lite ? 500 : 1600;
     this.spray = { n: sn, p: new Float32Array(sn * 3), v: new Float32Array(sn * 3), life: new Float32Array(sn), k: 0 };
     const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(this.spray.p, 3));
-    this.sprayPts = new THREE.Points(sg, new THREE.PointsMaterial({ color: '#e6edf5', size: 1.6, transparent: true, opacity: 0, depthWrite: false }));
+    const pc = document.createElement('canvas'); pc.width = pc.height = 64;
+    { const x = pc.getContext('2d'), gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,0.9)'); gr.addColorStop(0.45, 'rgba(255,255,255,0.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); }
+    const puff = new THREE.CanvasTexture(pc);
+    this.sprayPts = new THREE.Points(sg, new THREE.PointsMaterial({ color: '#e9eff6', size: 2.6, map: puff, transparent: true, opacity: 0, depthWrite: false, sizeAttenuation: true }));
     this.sprayPts.frustumCulled = false;
     this.scene.add(this.sprayPts);
     // sparks: the plank kissing the track at top speed over the bumps of a long straight
@@ -1257,7 +1261,9 @@ export class World {
     this.hemi.intensity = P.hemi * (1 - 0.2 * k);
     this.trackMat.shininess = 8 + 80 * wet;
     this.trackMat.specular.setScalar(0.12 + 0.45 * wet);
-    this.trackMat.color.setScalar(1 - 0.28 * wet);
+    this.trackMat.color.setScalar(1 - 0.34 * wet);
+    // standing water: the sky's colour lies on the track, so a wet track reads as wet from any angle
+    this.trackMat.emissive.copy(hor).multiplyScalar(0.16 * wet * wet);
     this.weatherKey = [rain, wet];
   }
 
@@ -1427,25 +1433,28 @@ export class World {
     }
     // spray
     const S = this.spray, sprayOn = race.wet > 0.25;
-    this.sprayPts.material.opacity = clamp((race.wet - 0.2) * 0.9, 0, 0.55);
+    this.sprayPts.material.opacity = clamp((race.wet - 0.2) * 1.1, 0, 0.7);
     this.sprayPts.visible = sprayOn;
     if (sprayOn) {
       for (const c of race.cars) {
         if (c.v < 25 || c.pit) continue;
         const o = this.carObjs.get(c.id); if (!o) continue;
-        const rate = this.lite ? 0.4 : 1;
-        if (Math.random() > rate) continue;
-        const k = S.k = (S.k + 1) % S.n, gp = o.group.position, ry = o.group.rotation.y;
-        const bx = Math.cos(-ry), bz = Math.sin(-ry);
-        S.p[k * 3] = gp.x - bx * 3.2 + (Math.random() - 0.5) * 2; S.p[k * 3 + 1] = 0.5; S.p[k * 3 + 2] = gp.z - bz * 3.2 + (Math.random() - 0.5) * 2;
-        S.v[k * 3] = bx * c.v * 0.3 + (Math.random() - 0.5) * 3; S.v[k * 3 + 1] = 1.5 + Math.random() * 2.5; S.v[k * 3 + 2] = bz * c.v * 0.3 + (Math.random() - 0.5) * 3;
-        S.life[k] = 0.9;
+        // more spray the wetter it is and the faster the car; two plumes, one off each rear tyre
+        const n = Math.round((this.lite ? 1 : 2) * clamp((race.wet - 0.2) * 2.5, 0.4, 1.6) * (c.v / 60));
+        const gp = o.group.position, ry = o.group.rotation.y, bx = Math.cos(-ry), bz = Math.sin(-ry), sx = -bz, sz = bx;
+        for (let q = 0; q < n; q++) {
+          const k = S.k = (S.k + 1) % S.n, side = q % 2 ? 1 : -1;
+          S.p[k * 3] = gp.x - bx * 2.6 + sx * side * 0.8 + (Math.random() - 0.5) * 0.6; S.p[k * 3 + 1] = 0.35; S.p[k * 3 + 2] = gp.z - bz * 2.6 + sz * side * 0.8 + (Math.random() - 0.5) * 0.6;
+          // thrown up and back off the tyre, at a fraction of the car's speed, spreading out
+          S.v[k * 3] = bx * c.v * 0.55 + sx * side * (1 + Math.random() * 2); S.v[k * 3 + 1] = 2.2 + Math.random() * 2.8; S.v[k * 3 + 2] = bz * c.v * 0.55 + sz * side * (1 + Math.random() * 2);
+          S.life[k] = 0.7 + Math.random() * 0.5;
+        }
       }
       for (let k = 0; k < S.n; k++) {
         if (S.life[k] <= 0) { S.p[k * 3 + 1] = -999; continue; }
         S.life[k] -= dt;
         S.p[k * 3] += S.v[k * 3] * dt; S.p[k * 3 + 1] += S.v[k * 3 + 1] * dt; S.p[k * 3 + 2] += S.v[k * 3 + 2] * dt;
-        S.v[k * 3] *= 0.96; S.v[k * 3 + 2] *= 0.96;
+        S.v[k * 3] *= 0.93; S.v[k * 3 + 2] *= 0.93; S.v[k * 3 + 1] -= 3 * dt;
       }
       this.sprayPts.geometry.attributes.position.needsUpdate = true;
     }
