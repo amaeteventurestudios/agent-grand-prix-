@@ -351,3 +351,16 @@ html.dk .pm-sw, html.dk .pm-vol { display: flex; justify-content: space-between;
 html.dk .pm-vol input { width: 55%; accent-color: var(--k-lime); }
 @media (max-height: 760px) { html.dk .pm-grid section { gap: 4px; } html.dk .pm-row { padding: 7px 12px; } html.dk .screen.dkmenu .sheet { padding: 16px 20px; } }
 @media (prefers-reduced-motion: reduce) { html.dk [data-st="listen"] .dk-mic { animation: none; } }
+/* the driver status cards and orders keep one size while their words change, so nothing jumps */
+html.dk .dk-mini { display: grid; grid-template-rows: auto 22px 48px; min-height: 104px; box-sizing: border-box; }
+html.dk .dk-mini b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 4px 0 2px; }
+html.dk .dk-mini span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+html.dk .dk-orders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html.dk .dk-orders li { text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.dk .dk-orders li:first-child { grid-column: 1 / -1; text-align: left; }
+html.dk .dk-orders li.hot { grid-column: 1 / -1; }
+html.dk .dk-tele dd { font-variant-numeric: tabular-nums; }
+html.dk .dk-take { display: grid; gap: 3px; width: 100%; margin: 0 0 12px; padding: 12px 14px; border: 0; border-radius: 12px; background: var(--k-lime); color: #07101f; text-align: left; cursor: pointer; }
+html.dk .dk-take b { font: 800 italic 20px/1 var(--f-display); letter-spacing: .03em; text-transform: uppercase; }
+html.dk .dk-take small { font: 600 12px/1.3 var(--f-ui); }
+html.dk .dk-take:hover { filter: brightness(1.08); }

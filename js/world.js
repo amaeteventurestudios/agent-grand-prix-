@@ -1291,9 +1291,8 @@ export class World {
     const tags = [];
     for (const c of race.cars) {
       const o = this.carObjs.get(c.id); if (!o) continue;
-      const boosting = c.ersMode === 'deploy' && c.ers > 0.01 && !c.pit && !c.dnf && !race.done && c.v > 30;
-      if (o.trail.visible !== boosting) o.trail.visible = boosting;
-      if (boosting) o.trail.scale.x = 0.75 + 0.25 * Math.sin(performance.now() / 45 + c.i);
+      // no light trails behind a boosting car: the owner found they read as rocket exhaust
+      if (o.trail.visible) o.trail.visible = false;
       let d = c.prevDist + (c.dist - c.prevDist) * alpha, lat = c.prevLat + (c.lat - c.prevLat) * alpha, stopYaw = 0;
       // a stopped car: the engine leaves its last step's positions behind (and a crash puts it in the
       // wall in one step), so blending between them would rock it back and forth for good. Slide it
@@ -1305,6 +1304,15 @@ export class World {
         d = c.dist; lat = st.lat0 + (c.lat - st.lat0) * e;
         if (c.out === 'crash') stopYaw = st.side * 0.55 * e;
       } else o.stop = null;
+      // on track the engine moves a car across in steps at a fixed rate, which drew as a twitch from
+      // side to side: draw it through a soft spring instead, so lines change in smooth arcs
+      const run = !c.dnf && !c.pit && dt > 0;
+      if (run && o.slat !== undefined && Math.abs(lat - o.slat) < 6) {
+        const w = 7, h = Math.min(0.05, dt * Math.max(1, speed));
+        o.svl += (w * w * (lat - o.slat) - 2 * w * o.svl) * h;
+        o.slat += o.svl * h;
+        lat = o.slat;
+      } else { o.slat = lat; o.svl = 0; }
       o.lastLat = lat;
       sampleTrack(T, d, lat, tmp);
       const g = o.group;
@@ -1313,8 +1321,10 @@ export class World {
       // after the flag the podium celebration drives the top three itself (js/ceremony.js)
       const pose = this.carPose?.get(c.id);
       if (pose) { g.position.set(pose.x, 0.02, pose.z); g.rotation.y = pose.ry; o.body.rotation.set(0, 0, 0); o.body.position.y = 0; o.tag.visible = false; continue; }
-      const dl = (c.lat - c.prevLat) / 0.05;
-      let yaw = c.dnf ? stopYaw : Math.atan2(dl, Math.max(c.v, 3)) * 0.8;
+      // the nose follows the smoothed sideways speed, eased again so it never snaps
+      const wantYaw = run ? Math.atan2(o.svl, Math.max(c.v, 3)) * 0.8 : 0;
+      o.syaw = run && o.syaw !== undefined ? o.syaw + (wantYaw - o.syaw) * Math.min(1, dt * Math.max(1, speed) * 6) : wantYaw;
+      let yaw = c.dnf ? stopYaw : o.syaw;
       if (c.pit && !c.dnf) {
         // in the pit lane the nose points where the car is going, so turning into the box and out of it
         // reads as driving; standing still, it settles straight
