@@ -70,6 +70,9 @@ export function createDesk(api) {
       const i = TABS.findIndex(([k]) => k === d.tab), n = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!n) return; e.preventDefault(); setTab(TABS[(i + n + TABS.length) % TABS.length][0]); $(`#dkt-${d.tab}`).focus();
     });
+    wall.addEventListener('pointerdown', (e) => { if (e.target.closest('button')) d.hold = true; });
+    const release = () => setTimeout(() => { d.hold = false; }, 0);
+    window.addEventListener('pointerup', release); window.addEventListener('pointercancel', release);
     wall.addEventListener('click', click);
     wall.addEventListener('submit', (e) => { const f = e.target.closest('.dk-type'); if (!f) return; e.preventDefault(); const i = $('input', f); if (i.value.trim()) { api.radioText(i.value.trim()); i.value = ''; } });
     wall.addEventListener('change', (e) => { const t = e.target.closest('[data-perm]'); if (t) perm(t.dataset.perm, t.checked); });
@@ -152,7 +155,17 @@ export function createDesk(api) {
     fn(R, $(`#dkp-${d.tab}`));
   }
   // innerHTML only when the words changed, so a click is never lost to a redraw
-  function put(el, k, html) { if (d.sig[k] !== html) { d.sig[k] = html; el.innerHTML = html; } }
+  // the panes redraw as the race moves; never while a button is held down, or the press is lost
+  // (the button under the pointer is replaced before the click lands)
+  // A pane in two parts (split by <!--split-->): the driver picker and the control buttons on top are
+  // only redrawn when they change, so they stay put under the pointer while the numbers below move.
+  function put(el, k, html) {
+    if (d.hold) return;
+    const [top, body] = html.includes('<!--split-->') ? html.split('<!--split-->') : ['', html];
+    if (!el.firstElementChild || !el.firstElementChild.classList.contains('dk-top')) { el.innerHTML = '<div class="dk-top"></div><div class="dk-body"></div>'; d.sig[k] = d.sig[k + 'T'] = null; }
+    if (d.sig[k + 'T'] !== top) { d.sig[k + 'T'] = top; el.firstElementChild.innerHTML = top; }
+    if (d.sig[k] !== body) { d.sig[k] = body; el.lastElementChild.innerHTML = body; }
+  }
 
   const status = (c) => (c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? 'Boxing this lap' : 'Racing');
   const stClass = (c) => (c.dnf ? 'out' : c.finished ? 'fin' : c.pit || c.pitReq ? 'pit' : 'ok');
@@ -165,9 +178,16 @@ export function createDesk(api) {
   const faces = new Map();
   function face(c, size) { const k = c.id + size + c.team.c1 + c.name; if (!faces.has(k)) faces.set(k, api.portraitSVG(c, c.team, { size, bg: false })); return faces.get(k); }
 
-  // while your agents run a car, the way back is one big button on every tab: Take control. Any call
-  // you make takes the car back too, and the engineer goes quiet again in Team Principal mode
-  const takeBack = (c) => (c.auto && !c.dnf && !c.finished ? `<button type="button" class="dk-take" data-act="takeback"><b>Take control</b><small>Your agents are running ${esc(c.code)}. Tap to make the calls yourself; the engineer goes quiet.</small></button>` : '');
+  // who runs your cars, on every tab: Take control (you make every call, the engineer goes quiet) or
+  // Hand to my agents (they race both cars). The one in charge now is filled in.
+  function ctl() {
+    const R = G.race, cars = api.myCars().filter((c) => c && !c.dnf && !c.finished);
+    if (!R || R.done || G.kind === 'academy' || !cars.length) return '';
+    const ag = cars.some((c) => c.auto);
+    return `<div class="dk-ctl" role="group" aria-label="Who runs your cars">
+      <button type="button" class="dk-take${ag ? '' : ' on'}" data-act="takeback" aria-pressed="${!ag}"><b>Take control</b><small>${ag ? 'Make every call yourself. The engineer goes quiet.' : 'You are making the calls'}</small></button>
+      <button type="button" class="dk-hand${ag ? ' on' : ''}" data-act="handover" aria-pressed="${ag}"><b>Hand to my agents</b><small>${ag ? 'Your agents are racing both cars' : 'Your agents and engineer run both cars'}</small></button></div>`;
+  }
   function driverPane(R, el) {
     const c = sel(R); if (!c) return;
     const life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100), e = Math.round(c.ers * 100), b = G.brains?.[c.id];
@@ -177,10 +197,8 @@ export function createDesk(api) {
     const atk = c.dnf || c.finished || c.pit ? '–' : c.drs ? 'DRS open' : close ? (c.ers > 0.2 ? `In range of ${esc(ahead.code)}` : 'In range, battery low') : ahead ? `${Math.max(0, c.interval).toFixed(1)} s to ${esc(ahead.code)}` : 'Leading';
     const err = c.tele ? c.tele.mistakes + c.tele.spins + c.tele.wides : 0;
     const last = lastWords(c);
-    put(el, 'driver', `${picker(R)}
-      <div class="dk-card dk-prof">${face(c, 64)}<div><h3>${esc(c.name)}</h3><p>${esc(c.team.name)} · #${c.num ?? ''}</p>
-        <div class="dk-row">${c.dnf ? '' : `<b class="dk-pos">P${c.pos}</b>`}<span class="dk-chip ${stClass(c)}"><i></i>${status(c)}</span>${c.auto ? '<span class="dk-chip ag">Agent driving</span>' : ''}</div></div></div>
-      ${takeBack(c)}
+    put(el, 'driver', `${picker(R)}${ctl()}<!--split-->
+      <div class="dk-line"><span>${esc(c.name)} · ${esc(c.team.name)} · #${c.num ?? ''}</span><span class="dk-chip ${stClass(c)}"><i></i>${status(c)}</span>${c.auto ? '<span class="dk-chip ag">Agent driving</span>' : ''}</div>
       <dl class="dk-tele">
         <div><dt>Speed</dt><dd>${tick8(c.v * 3.6)} km/h</dd></div>
         <div><dt>Gap ahead</dt><dd>${gapTo(R, c)}</dd></div>
@@ -218,11 +236,10 @@ export function createDesk(api) {
       : `<button type="button" class="dk-boxnow" data-act="boxnow" ${lock ? 'disabled' : ''}>Box this lap <small>${api.COMPOUNDS[pick].name}s</small></button>`;
     const pair = api.myCars(), a = pair[0], b2 = pair[1];
     const boost = G.boost && G.boost.id === c.id;
-    put(el, 'strat', `${picker(R)}
+    put(el, 'strat', `${picker(R)}${ctl()}<!--split-->
       <div class="dk-card dk-shead"><div><b>${esc(c.name)}</b><small>${esc(c.team.name)}</small></div>
         <dl><div><dt>Last lap</dt><dd>${c.lastLap ? api.fmtLap(c.lastLap) : '–'}</dd></div><div><dt>Best lap</dt><dd>${isFinite(c.best) ? api.fmtLap(c.best) : '–'}</dd></div><div><dt>Gap ahead</dt><dd>${gapTo(R, c)}</dd></div></dl>
         <b class="dk-pos">${c.dnf ? 'OUT' : 'P' + c.pos}</b></div>
-      ${takeBack(c)}
       ${c.plan?.lap && !c.pit && !dis ? `<div class="dk-card dk-window"><small>Next pit window</small><b>Lap ${Math.max(c.plan.lap, lap)}</b><span>${c.plan.next ? api.COMPOUNDS[c.plan.next].name + 's planned' : ''}</span></div>` : ''}
       <h4 class="dk-sub">Radar · next laps</h4>${api.forecastHTML(R)}
       <h4 class="dk-sub">Tyres for the next stop</h4><div class="dk-tyres">${tyres}</div>
@@ -279,7 +296,7 @@ export function createDesk(api) {
     if (d.sig.radio !== sig) {
       d.sig.radio = sig; d.logN = -1;
       const quick = [['Tyre status?', 'q:tyres'], ['Gap ahead?', 'q:gaps'], ['Push now', 'c:push'], ['Hold position', 'o:hold'], ['Box this lap', 'c:box'], ['Ask the engineer', 'q:eng']];
-      el.innerHTML = `<div class="dk-rhead"><b>Team radio</b><span class="dk-live"><i></i>Connected</span></div>
+      el.innerHTML = `<div class="dk-rhead"><b>Team radio</b><span class="dk-live"><i></i>Connected</span></div><div class="dk-ctlslot"></div>
         <div class="dk-chans" role="radiogroup" aria-label="Who hears you">${CH.map(([k, id], i) => {
           const on = k === 'car' ? (G.chan || 'car') === 'car' && (G.mineSel || 'you-0') === id : G.chan === k;
           const lbl = k === 'car' ? esc(cars[i].name) : k === 'eng' ? 'Engineer' : 'All team';
@@ -293,6 +310,8 @@ export function createDesk(api) {
         <h4 class="dk-sub">Quick calls</h4><div class="dk-quick">${quick.map(([l, k]) => `<button type="button" data-quick="${k}">${l}</button>`).join('')}</div>`;
       mic($('.dk-mic', el)); talkUI(R);
     }
+    const slot = $('.dk-ctlslot', el), h = ctl();
+    if (slot && !d.hold && slot.dataset.h !== h) { slot.dataset.h = h; slot.innerHTML = h; }
     radioLog();
   }
   // the radio log, newest first: each line keeps who said it, the lap, and its buttons
@@ -336,7 +355,7 @@ export function createDesk(api) {
         <p>${esc(p.fact || p.text)} · Tyres ${Math.round((1 - c.tyre.wear) * 100)}%, P${c.pos}, ${R.lapsLeft(c)} laps left</p>
         <div class="dk-acts"><button type="button" class="dk-go" data-ok="${i}">Approve</button><button type="button" class="dk-ghost" data-no="${i}">Reject</button><button type="button" class="dk-ghost" data-why="${i}">Review</button></div></div>`;
     }).join('');
-    put(el, 'team', `<h4 class="dk-sub first">Team agents</h4>
+    put(el, 'team', `${ctl()}<!--split--><h4 class="dk-sub first">Team agents</h4>
       <div class="dk-agents">${cars.map((c) => agent(face(c, 44), c.name, `Driver · ${c.code}`, c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.auto ? 'Racing for you' : 'Racing', stClass(c))).join('')}
         ${agent(api.ENG_FACE, api.engName(), 'Race engineer', lv === 'you' && !anyAssist ? 'Advisory' : 'Working', 'ok')}</div>
       <div class="dk-doing">${cars.map((c) => `<p><b>${esc(c.code)}</b> ${esc(doing(c))}</p>`).join('')}<p><b>ENG</b> ${eng}</p></div>
@@ -378,6 +397,7 @@ export function createDesk(api) {
     if (t.dataset.mine) { G.mineSel = t.dataset.mine; if ((G.chan || 'car') !== 'car') G.chan = 'car'; api.select(t.dataset.mine); }
     else if (t.dataset.pick) (G.boxPicks ||= {})[id] = t.dataset.pick;
     else if (t.dataset.act === 'takeback') api.handTeam(false);
+    else if (t.dataset.act === 'handover') api.handTeam(true);
     else if (t.dataset.act === 'boxnow') api.cmd({ box: api.boxPick(c) });
     else if (t.dataset.act === 'cancel') api.cmd({ box: null });
     else if (t.dataset.act === 'boost') api.boostCar(c);

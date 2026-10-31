@@ -336,6 +336,26 @@ export class Race {
       if (str && dS < 45) car._vt *= 1 + 0.012 * (1 - dS / 45) + (car.drs ? 0.022 : 0);
       // cars are about 2.9 m wide and 7.3 m long on screen: anything closer than that side by side is the same line
       const sameLine = Math.abs(car.lat - ahead.lat) < CAR_W;
+      // BOOST: with a car within reach, the move is on straight away, on a straight or into a corner
+      // (the inside), and the boost carries it past (see the moves below); no cat and mouse
+      if (car.boostT > 0 && car.pass && car.pass.boost && car.pass.id !== ahead.id && dS < 20) {
+        // the car in the way changed (a third car, a teammate): go for that one instead
+        const was = this.byId.get(car.pass.id); if (was && was.hold && was.hold.by === car.id) was.hold = null;
+        car.pass = null;
+      }
+      if (car.boostT > 0 && !this.sc && !car.pass && !ahead.pass && !ahead.pit && !(car.hold && car.hold.t > 0) && dS < 60
+        && !(car.order === 'hold' && ahead.team.id === car.team.id)) {
+        // already off its line: go by on that side; nose to tail: the inside of a corner, else the open side
+        const room = T.half - 1.6, off = car.lat - ahead.lat, k = !str ? Math.sign(T.k[i]) || 1 : 0;
+        let side = Math.abs(off) > 1 ? Math.sign(off) : k || (ahead.lat > 0.5 ? -1 : 1);
+        if (Math.abs(ahead.lat + side * CAR_W * 1.18) > room) side = -side;
+        const lane = clamp(ahead.lat + side * CAR_W * 1.18, -room, room);
+        if (Math.abs(lane - ahead.lat) >= CAR_W) {
+          car.tele.att++;
+          car.pass = { id: ahead.id, side, lane, t: 12, boost: true };
+          ahead.hold = { lat: ahead.lat, t: 13, by: car.id };
+        }
+      }
       if (dS < 22 && sameLine) {
         const lapped = ahead.dist + L * 0.5 < car.dist;
         if (lapped) {
@@ -419,6 +439,8 @@ export class Race {
         if (d < 0) car.pass = null; else car._vt = Math.min(car._vt, o.v * 0.93);
         continue;
       }
+      // a boosted move, once it has pulled out of the other car's line, simply goes past
+      if (car.pass.boost && car.boostT > 0 && Math.abs(car.lat - o.lat) >= CAR_W * 0.7) car._vt = Math.max(car._vt, o.v * 1.05 + 2.5);
       if (Math.abs(car.lat - o.lat) >= CAR_W * 0.92) {
         const str = T.straight[Math.floor(((car.dist % L) + L) % L)];
         car._vt *= 1 + (str ? 0.03 : 0.015) + (car.battle === 'attack' ? 0.01 : 0) + (car.ersMode === 'deploy' && car.ers > 0 ? 0.03 : 0);
@@ -503,7 +525,11 @@ export class Race {
       const nl = car.lat + clamp(latT - car.lat, -rate * dt, rate * dt);
       // in the pit lane, never slide sideways into a car alongside: wait for it to pass
       // on track too: never slide sideways into a car alongside (a spinning or crashing car aside)
-      if (!car.pit) { if (car.offT > 0 || car.failing || !this.sideBlocked(car, nl)) car.lat = nl; }
+      if (!car.pit) {
+        if (car.offT > 0 || car.failing || !this.sideBlocked(car, nl)) car.lat = nl;
+        // a boosted move boxed in on one side tries the other
+        else if (car.pass && car.pass.boost && (car.pass.stuck = (car.pass.stuck || 0) + dt) > 0.8) { car.pass.side = -car.pass.side; car.pass.stuck = 0; }
+      }
       else if (this.pitBeside(car, nl)) car.pit.blk = (car.pit.blk || 0) + dt;
       else { car.lat = nl; car.pit.blk = 0; }
       // mistakes
