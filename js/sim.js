@@ -201,6 +201,8 @@ export class Race {
     this.commands.push(from === 'principal' ? { tick: this.tick, id, cmd } : { tick: this.tick, id, cmd, from });
     if (cmd.pace) car.pace = cmd.pace;
     if (cmd.ers) car.ersMode = cmd.ers;
+    // BOOST from the button: a few seconds of everything the battery has, enough to make the pass
+    if ('boost' in cmd) car.boostT = Math.max(0, +cmd.boost || 0);
     if (cmd.battle) car.battle = cmd.battle;
     if ('box' in cmd) {
       if (cmd.box && !car.pit) { car.pitReq = cmd.box; car.pitBy = from; this.emit('radio', `Copy, box this lap for ${COMPOUNDS[cmd.box].name}s.`, car, { from: 'driver' }); }
@@ -296,12 +298,14 @@ export class Race {
       // battery
       let boost = 1;
       // deploying (BOOST): a real kick on the straights, and some help out of the corners too
-      if (car.ersMode === 'deploy' && car.ers > 0) { boost = str ? 1.065 : 1.02; car.ers -= (str ? 0.035 : 0.02) * dt; }
+      if (car.boostT > 0) car.boostT = car.ers > 0 && !car.pit ? car.boostT - dt : 0;
+      if (car.boostT > 0) { boost = str ? 1.12 : 1.06; car.ers -= (str ? 0.02 : 0.012) * dt; }
+      else if (car.ersMode === 'deploy' && car.ers > 0) { boost = str ? 1.065 : 1.02; car.ers -= (str ? 0.018 : 0.01) * dt; }
       // Balanced keeps a reserve: under 40% it stops spending and lets the corners charge it back,
       // so the battery is there for BOOST when you want it
       else if (car.ersMode === 'balanced' && str && car.ers > 0.4) { const k = d ? d.deploy : 1; boost = 1 + 0.01 * k; car.ers -= 0.011 * k * dt; }
-      else if (car.ersMode === 'harvest') { boost = 0.994; car.ers += 0.016 * dt; }
-      car.ers = clamp(car.ers + (str ? 0 : 0.008 * dt), 0, 1);
+      else if (car.ersMode === 'harvest') { boost = 0.994; car.ers += 0.024 * dt; }
+      car.ers = clamp(car.ers + (str ? 0 : 0.013 * dt), 0, 1);
       let vt = car.sv[i] * f * boost;
       if (car.finished) vt *= 0.55;
       car.vt = vt;
@@ -341,7 +345,7 @@ export class Race {
           const room = T.half - 1.6, side = ahead.lat > 0 ? -1 : 1;
           car.pass = { id: ahead.id, side, lane: clamp(ahead.lat + side * CAR_W * 1.18, -room, room), t: 9 };
           ahead.hold = { lat: ahead.lat, t: 10, by: car.id };
-        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < (car.dna ? car.dna.passGap : 13) && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')
+        } else if (!car.pass && !ahead.pass && !(car.hold && car.hold.t > 0) && !this.sc && dS < (car.boostT > 0 ? 30 : car.dna ? car.dna.passGap : 13) && car._vt > ahead.v + 0.4 && (str || car.battle === 'attack' || car.ersMode === 'deploy')
           && !(car.order === 'hold' && ahead.team.id === car.team.id)) {
           // most moves are made on the straights; with Attack or a boost a driver will also dive down the inside into a corner
           let p = 0.11 * (0.6 + car.traits.aggro) * clamp((car._vt - ahead.v) / 2, 0.25, 2);
@@ -356,6 +360,8 @@ export class Race {
           }
           if (ahead.dna && ahead.dna.defend > 0) p *= 1 - ahead.dna.defend;
           if (this.venue.street) p *= 0.5;
+          // a boost from the button nearly always gets the move on (a hard defender can still close the door)
+          if (car.boostT > 0) p = Math.max(p * 4, ahead.battle === 'defend' ? 0.45 : 0.8);
           if (r() < p) {
             // pull out to whichever side has room for a whole car
             const room = T.half - 1.6;
@@ -441,7 +447,7 @@ export class Race {
         else if (car.stopT <= 0) this.finishStop(car);
         continue;
       }
-      if (vt > car.v) car.v = Math.min(vt, car.v + (13 * (1 - car.v / 92) + 1.5) * dt * (car.pace === 'push' ? 1.03 : 1) * (car.pass && !car.pass.abort ? 1.3 : 1));
+      if (vt > car.v) car.v = Math.min(vt, car.v + (13 * (1 - car.v / 92) + 1.5) * dt * (car.pace === 'push' ? 1.03 : 1) * (car.pass && !car.pass.abort ? 1.3 : 1) * (car.boostT > 0 ? 1.8 : 1));
       else car.v = Math.max(vt, car.v - 46 * dt);
       car.v = Math.max(0, car.v);
       car.dist += car.v * dt;
@@ -863,6 +869,8 @@ export class Race {
     // marshals need help: a crash brings out the safety car, a car parked by the wall the virtual one
     const lap = this.leaderLap();
     if (this.sc || this.flag || lap >= this.laps) return;
+    // a lesson waiting on its own safety car cue keeps the flag for it: yellows only until then
+    if (this.stage && this.stage.calm && (this.stage.cues || []).some((q) => q.sc && !q.done)) { this.emit('flag', `Yellow flags for the stopped ${car.code}.`, car); return; }
     const crash = kind === 'crash';
     const want = crash ? (this.r() < 0.8 ? 'SC' : 'VSC') : (this.r() < 0.6 ? 'VSC' : this.r() < 0.4 ? 'SC' : null);
     if (!want) { this.emit('flag', `Yellow flags for the stopped ${car.code}.`, car); return; }

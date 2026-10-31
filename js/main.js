@@ -719,7 +719,7 @@ function boostBtn(R) {
   const b = $('#boost'), c = R.byId.get(G.mineSel);
   b.hidden = !c || G.attract;
   if (b.hidden) return;
-  if (G.boost && R.t >= G.boost.until) { const p = R.byId.get(G.boost.id); if (p.ersMode === 'deploy') R.command(p.id, { ers: G.boost.prev }); G.boost = null; }
+  if (G.boost && R.t >= G.boost.until) { const p = R.byId.get(G.boost.id); if (p.ersMode === 'deploy') R.command(p.id, { ers: G.boost.prev, boost: 0 }); G.boost = null; }
   const e = Math.round(c.ers * 100), on = !!(G.boost && G.boost.id === c.id);
   b.classList.toggle('on', on);
   b.disabled = c.dnf || c.finished || c.pit != null || (!on && e < 8);
@@ -728,9 +728,9 @@ function boostBtn(R) {
 }
 function boostCar(c) {
   const R = G.race;
-  if (G.boost && G.boost.id === c.id) { cmd({ ers: G.boost.prev }, c.id); G.boost = null; return; }
-  if (G.boost) { const p = R.byId.get(G.boost.id); if (p.ersMode === 'deploy') R.command(p.id, { ers: G.boost.prev }); }
-  const prev = c.ersMode === 'deploy' ? 'balanced' : c.ersMode; cmd({ ers: 'deploy' }, c.id); G.boost = { id: c.id, until: R.t + 12, prev }; toast(`⚡ ${c.code}: boost!`);
+  if (G.boost && G.boost.id === c.id) { cmd({ ers: G.boost.prev, boost: 0 }, c.id); G.boost = null; return; }
+  if (G.boost) { const p = R.byId.get(G.boost.id); if (p.ersMode === 'deploy') R.command(p.id, { ers: G.boost.prev, boost: 0 }); }
+  const prev = c.ersMode === 'deploy' ? 'balanced' : c.ersMode; cmd({ ers: 'deploy', boost: 12 }, c.id); G.boost = { id: c.id, until: R.t + 12, prev }; toast(`⚡ ${c.code}: boost!`);
   lessonEvent({ type: 'boost', id: c.id });
 }
 $('#boost').addEventListener('click', () => {

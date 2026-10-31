@@ -165,6 +165,9 @@ export function createDesk(api) {
   const faces = new Map();
   function face(c, size) { const k = c.id + size + c.team.c1 + c.name; if (!faces.has(k)) faces.set(k, api.portraitSVG(c, c.team, { size, bg: false })); return faces.get(k); }
 
+  // while your agents run a car, the way back is one big button on every tab: Take control. Any call
+  // you make takes the car back too, and the engineer goes quiet again in Team Principal mode
+  const takeBack = (c) => (c.auto && !c.dnf && !c.finished ? `<button type="button" class="dk-take" data-act="takeback"><b>Take control</b><small>Your agents are running ${esc(c.code)}. Tap to make the calls yourself; the engineer goes quiet.</small></button>` : '');
   function driverPane(R, el) {
     const c = sel(R); if (!c) return;
     const life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100), e = Math.round(c.ers * 100), b = G.brains?.[c.id];
@@ -177,6 +180,7 @@ export function createDesk(api) {
     put(el, 'driver', `${picker(R)}
       <div class="dk-card dk-prof">${face(c, 64)}<div><h3>${esc(c.name)}</h3><p>${esc(c.team.name)} · #${c.num ?? ''}</p>
         <div class="dk-row">${c.dnf ? '' : `<b class="dk-pos">P${c.pos}</b>`}<span class="dk-chip ${stClass(c)}"><i></i>${status(c)}</span>${c.auto ? '<span class="dk-chip ag">Agent driving</span>' : ''}</div></div></div>
+      ${takeBack(c)}
       <dl class="dk-tele">
         <div><dt>Speed</dt><dd>${tick8(c.v * 3.6)} km/h</dd></div>
         <div><dt>Gap ahead</dt><dd>${gapTo(R, c)}</dd></div>
@@ -194,14 +198,14 @@ export function createDesk(api) {
         <div class="dk-card dk-mini"><small>Mistakes</small><b>${err}</b><span>${c.tele ? `${c.tele.lockups} lock-ups this race` : ''}</span></div>
       </div>
       <h4 class="dk-sub">Current orders</h4>
-      <ul class="dk-orders"><li>${c.auto ? 'Set by your agents' : 'Set by you'}</li><li>${PACE[c.pace]}</li><li>${ERS[c.ersMode]}</li><li>${BATTLE[c.battle]}</li><li>${ORDER[c.letBy || R.mate(c)?.letBy ? 'swap' : c.order || 'free']}</li>${c.pitReq && !c.pit ? `<li class="hot">Box this lap · ${api.COMPOUNDS[c.pitReq].name}s</li>` : ''}</ul>
+      <ul class="dk-orders"><li>${c.auto ? 'Set by your agents' : 'Set by you'}</li><li>${PACE[c.pace]}</li><li>${ERS[c.ersMode]}</li><li>${BATTLE[c.battle]}</li><li>${ORDER[c.letBy || R.mate(c)?.letBy ? 'swap' : c.order || 'free']}</li>${c.pitReq && !c.pit ? `<li class="hot">Box this lap · ${api.COMPOUNDS[c.pitReq].name}s</li>` : '<li class="hot" style="visibility:hidden">Box</li>'}</ul>
       ${last ? `<h4 class="dk-sub">Last on the radio</h4><p class="dk-quote">“${esc(last)}”</p>` : ''}`);
   }
   function lastWords(c) { const m = d.radio && d.radio.find((x) => x.from === 'driver' && x.code === c.code); return m ? m.text : ''; }
 
   function stratPane(R, el) {
     const c = sel(R); if (!c) return;
-    const dis = c.dnf || c.finished, lock = dis || c.auto, wet = R.wet, ideal = wet > 0.6 ? 'W' : wet > 0.17 ? 'I' : null;
+    const dis = c.dnf || c.finished, lock = dis, wet = R.wet, ideal = wet > 0.6 ? 'W' : wet > 0.17 ? 'I' : null;
     const pick = api.boxPick(c), lap = R.lapOf(c);
     const tyres = Object.keys(api.COMPOUNDS).map((k) => {
       const hint = k === c.tyre.c ? 'Fitted' : ideal ? (k === ideal ? 'Right for the track' : 'S M H'.includes(k) ? 'Too wet' : 'Not wet enough') : 'IW'.includes(k) ? 'Track is dry' : '';
@@ -218,7 +222,7 @@ export function createDesk(api) {
       <div class="dk-card dk-shead"><div><b>${esc(c.name)}</b><small>${esc(c.team.name)}</small></div>
         <dl><div><dt>Last lap</dt><dd>${c.lastLap ? api.fmtLap(c.lastLap) : '–'}</dd></div><div><dt>Best lap</dt><dd>${isFinite(c.best) ? api.fmtLap(c.best) : '–'}</dd></div><div><dt>Gap ahead</dt><dd>${gapTo(R, c)}</dd></div></dl>
         <b class="dk-pos">${c.dnf ? 'OUT' : 'P' + c.pos}</b></div>
-      ${c.auto ? `<p class="dk-note">Your agents run ${esc(c.code)}. A call from you takes the car back.</p>` : ''}
+      ${takeBack(c)}
       ${c.plan?.lap && !c.pit && !dis ? `<div class="dk-card dk-window"><small>Next pit window</small><b>Lap ${Math.max(c.plan.lap, lap)}</b><span>${c.plan.next ? api.COMPOUNDS[c.plan.next].name + 's planned' : ''}</span></div>` : ''}
       <h4 class="dk-sub">Tyres for the next stop</h4><div class="dk-tyres">${tyres}</div>
       ${box}
@@ -372,6 +376,7 @@ export function createDesk(api) {
     const id = G.mineSel || 'you-0', c = R.byId.get(id);
     if (t.dataset.mine) { G.mineSel = t.dataset.mine; if ((G.chan || 'car') !== 'car') G.chan = 'car'; api.select(t.dataset.mine); }
     else if (t.dataset.pick) (G.boxPicks ||= {})[id] = t.dataset.pick;
+    else if (t.dataset.act === 'takeback') api.handTeam(false);
     else if (t.dataset.act === 'boxnow') api.cmd({ box: api.boxPick(c) });
     else if (t.dataset.act === 'cancel') api.cmd({ box: null });
     else if (t.dataset.act === 'boost') api.boostCar(c);
