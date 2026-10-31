@@ -244,9 +244,9 @@ export const idx = (T, s) => ((Math.floor(s) % T.N) + T.N) % T.N;
 const ONE = { lateral: 1, brake: 1, exit: 1, entry: 1 }, NEUTRAL = { lateral: 1, brake: 1, entry: 1, top: 1 };
 export function driverPlan(T, d, m) {
   d ||= ONE; m ||= NEUTRAL;
-  if (d.lateral === 1 && d.brake === 1 && d.exit === 1 && d.entry === 1 && m.lateral === 1 && m.brake === 1 && m.entry === 1 && m.top === 1) return { v: T.v, lapTime: T.lapTime };
+  if (d.lateral === 1 && d.brake === 1 && d.exit === 1 && d.entry === 1 && m.lateral === 1 && m.brake === 1 && m.entry === 1 && m.top === 1 && (m.pace || 1) === 1) return { v: T.v, lapTime: T.lapTime };
   T.plans ||= new Map();
-  const key = [d.lateral, d.brake, d.exit, d.entry, m.lateral, m.brake, m.entry, m.top].map((x) => x.toFixed(4)).join(':');
+  const key = [d.lateral, d.brake, d.exit, d.entry, m.lateral, m.brake, m.entry, m.top, m.pace || 1].map((x) => x.toFixed(4)).join(':');
   if (T.plans.has(key)) return T.plans.get(key);
   const N = T.N, k = T.k, vmax = T.vmax * m.top, v = new Float32Array(N);
   for (let i = 0; i < N; i++) {
@@ -262,6 +262,8 @@ export function driverPlan(T, d, m) {
     for (let i = 0; i < N; i++) { const a = (i - 1 + N) % N; v[i] = Math.min(v[i], Math.sqrt(v[a] * v[a] + 2 * accel(v[a]))); }
     for (let i = N - 1; i >= 0; i--) { const b = (i + 1) % N; v[i] = Math.min(v[i], Math.sqrt(v[b] * v[b] + 2 * brake)); }
   }
+  // a setup that suits the circuit (js/carspec.js setupPace) is a little quicker all the way round
+  if (m.pace && m.pace !== 1) for (let i = 0; i < N; i++) v[i] *= m.pace;
   let lapTime = 0; for (let i = 0; i < N; i++) lapTime += 1 / v[i];
   const plan = { v, lapTime };
   T.plans.set(key, plan);

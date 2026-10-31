@@ -3578,16 +3578,16 @@ function setupHTML() {
   if (!setupsOn()) return '<div class="sub">Car setup</div><p class="note">Standard setup: every car runs Balanced in this race, so it stays fair.</p>';
   const T = trackFor(G.venue), car = carModel() || 'falcon', R = rndState(S), base = setupLap(T, car, null);
   const pick = S.settings.setup && S.settings.setup.id ? S.settings.setup.id : 'auto', eng = bestSetup(T, car, R.open);
-  const gain = (st) => { const x = setupLap(T, car, st) - base; return Math.abs(x) < 0.005 ? 'Same lap time' : `${x < 0 ? '−' : '+'}${Math.abs(x).toFixed(2)} s a lap`; };
+  const laps = G.laps || 10, gain = (st) => { const x = (setupLap(T, car, st) - base) * laps; return Math.abs(x) < 0.05 ? 'No change here' : `${x < 0 ? '−' : '+'}${Math.abs(x).toFixed(1)} s over ${laps} laps`; };
   const lv = (id) => (id === 'balanced' ? '' : ` · L${levelOf(S, id)}`);
-  const btn = (id, name, note, st) => `<button type="button" data-setup="${id}" class="${pick === id ? 'on' : ''}"><b>${name}</b><span>${note}</span><span class="sd${setupLap(T, car, st) < base - 0.005 ? ' good' : ''}">${gain(st)}</span></button>`;
+  const btn = (id, name, note, st) => `<button type="button" data-setup="${id}" class="${pick === id ? 'on' : ''}"><b>${name}</b><span>${note}</span><span class="sd${(setupLap(T, car, st) - base) * laps < -0.05 ? ' good' : ''}">${gain(st)}</span></button>`;
   const ups = SETUPS.filter((x) => x.id !== 'balanced').map((x) => {
     const c = nextCost(S, x.id);
     return c == null ? `<span class="up-top">${x.name}: top level</span>` : `<button type="button" data-up="${x.id}" ${R.pts < c ? 'disabled' : ''}>${x.name} L${levelOf(S, x.id) + 1} · ${c} R&D</button>`;
   }).join('');
   return `<div class="sub">Car setup <span class="rnd-pts">🔧 ${R.pts} R&D</span></div>
     <div class="vpick setups">${btn('auto', 'Engineer’s pick', setupById(eng.id).name + (eng.id === 'balanced' ? '' : ' · L' + eng.level), eng)}${SETUPS.map((x) => btn(x.id, x.name + lv(x.id), x.note, { id: x.id, level: levelOf(S, x.id) })).join('')}</div>
-    <div class="rnd-up">${ups}</div>
+    <div class="rnd-up"><span class="up-top">Upgrade with R&D:</span>${ups}</div>
     <p class="note">Races earn R&D, your agent’s races too. A setup only moves time from one part of the lap to another: it helps on circuits that suit it and costs time on the rest.</p>`;
 }
 function wireSetups(sh, o) {
@@ -4439,6 +4439,7 @@ window.__agp = {
   get talk() { return talk; },
   voice, engineer: (id = 'you-0', kind = 'lap') => engUpdate(G.race, G.race.byId.get(id), kind, engState()),
   car(id) { S.settings.car = id || null; if (world) world.setModel(carModel()); },
+  get rnd() { return rndState(S); },
   info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, dpr }),
   get race() { return G.race; }, get world() { return world; }, renderer, camera, cams, THREE,
 };

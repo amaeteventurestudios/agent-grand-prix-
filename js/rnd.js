@@ -38,7 +38,7 @@ export function buyLevel(S, id) {
 
 // lap time of a car on a track with a setup (seconds), and the engineer's pick: the quickest
 // package (and level) you have open on this circuit
-export const setupLap = (T, car, setup) => driverPlan(T, null, carMods(car || 'falcon', setup)).lapTime;
+export const setupLap = (T, car, setup) => driverPlan(T, null, carMods(car || 'falcon', setup, T)).lapTime;
 export function bestSetup(T, car, levels = {}) {
   let best = { id: 'balanced', level: 1 }, bt = setupLap(T, car, best);
   for (const s of SETUPS) {

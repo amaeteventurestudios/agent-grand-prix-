@@ -1,5 +1,6 @@
 // The ten cars of the series: names, default liveries and their strengths. No Three.js here, so
 // the race engine and Node tests can read it.
+import { driverPlan } from './track.js';
 //
 // Each car trades one strength against another: corners (cornering grip), braking (braking power
 // and the speed it carries into a corner) and straights (top speed and pull). The three always add
@@ -29,11 +30,12 @@ const at = (k, t) => (t >= 0 ? 1 + t * (STEP[k][0] - 1) : 1 + -t * (STEP[k][1] -
 
 // what the engine needs from a car: multipliers on cornering grip, braking, corner entry and top
 // speed (js/track.js driverPlan). No car, or an unknown one, is neutral.
-export function carMods(id, setup = null) {
+export function carMods(id, setup = null, T = null) {
   const c = carById(id);
   if (!c) return null;
-  const t = setupTilt(setup);
-  return { lateral: at('lateral', c.corners + t.corners), brake: at('brake', c.braking + t.braking), entry: at('entry', c.braking + t.braking), top: at('top', c.straights + t.straights) };
+  const m = { lateral: at('lateral', c.corners), brake: at('brake', c.braking), entry: at('entry', c.braking), top: at('top', c.straights) };
+  if (setup && T) m.pace = 1 + setupGain(T, setup);
+  return m;
 }
 
 // ---------- setups, earned with R&D ----------
@@ -47,9 +49,24 @@ export const SETUPS = [
   { id: 'downforce', name: 'High downforce', note: 'More grip in corners, slower on the straights', corners: 1, braking: 0, straights: -1 },
   { id: 'braking', name: 'Late braking', note: 'Stops harder into corners, slower on the straights', corners: 0, braking: 1, straights: -1 },
 ];
-export const SETUP_LEVELS = [1, 2.5, 4];         // how far each level leans the car
+export const SETUP_LEVELS = [2, 4, 6];        // how far each level leans the car
 export const SETUP_COST = [0, 200, 500];            // R&D points to open each level
 export const setupById = (id) => SETUPS.find((s) => s.id === id) || SETUPS[0];
+// what one step of each strength is worth on this circuit (share of lap time). Averaged over the
+// calendar the three are equal (that is how STEP was solved), so a tilt that adds up to zero gains
+// on some circuits and loses on others, and nothing over a season.
+function feel(T) {
+  if (T.feel) return T.feel;
+  const lap = (m) => driverPlan(T, null, m).lapTime, base = lap(null);
+  const one = (lateral, brake, entry, top) => 1 - lap({ lateral, brake, entry, top }) / base;
+  T.feel = { corners: one(at('lateral', 1), 1, 1, 1), braking: one(1, at('brake', 1), at('entry', 1), 1), straights: one(1, 1, 1, at('top', 1)) };
+  return T.feel;
+}
+// a setup's share of lap time on a circuit: + is quicker
+export function setupGain(T, setup) {
+  const t = setupTilt(setup), f = feel(T);
+  return t.corners * f.corners + t.braking * f.braking + t.straights * f.straights;
+}
 export function setupTilt(setup) {
   if (!setup || !setup.id || setup.id === 'balanced') return { corners: 0, braking: 0, straights: 0 };
   const s = setupById(setup.id), k = SETUP_LEVELS[Math.max(0, Math.min(2, (setup.level || 1) - 1))];
