@@ -572,6 +572,7 @@ function tick() {
   stageCards(R, f);
   driverCards(R);
   rails(R);
+  sectorTicker(R);
   pitLine(R, f);
   boostBtn(R);
   boxBtn(R);
@@ -1260,6 +1261,43 @@ $('#drivers').addEventListener('click', (e) => {
   if (G.mineSel === id && G.sel === id && app.dataset.sheet === 'peek') { setTab('wall'); sheet('half'); }
   G.mineSel = id; select(id);
 });
+
+// sector times, F1 style: the lap in three, each sector purple when it's the fastest anyone has done,
+// green when it's the driver's own best, yellow when slower. Timed here from the cars' distances
+// (drawing only: the race engine never reads it). The strip shows the car of yours you're running.
+function sectorTicker(R) {
+  const el = $('#secTick');
+  if (G.attract || R.done || !R.started) { el.hidden = true; return; }
+  const L = R.track.L, S3 = L / 3;
+  const sec = G.sec ||= { cars: new Map(), best: [Infinity, Infinity, Infinity], flash: null };
+  for (const c of R.cars) {
+    if (c.dnf || c.finished) continue;
+    const st = sec.cars.get(c.id);
+    if (!st) { sec.cars.set(c.id, { k: Math.floor(c.dist / S3), at: R.t, d: c.dist, t: R.t, pb: [Infinity, Infinity, Infinity], cur: [null, null, null] }); continue; }
+    // every boundary crossed since the last frame, timed by where between the two frames it fell
+    while (c.dist >= (st.k + 1) * S3 && c.dist > st.d) {
+      const b = (st.k + 1) * S3, at = st.t + (R.t - st.t) * clamp((b - st.d) / (c.dist - st.d), 0, 1);
+      const n = st.k % 3, t = at - st.at;
+      if (st.k >= 3 && t > 3) {
+        const clean = !c.pit && !R.sc;
+        const purple = clean && t < sec.best[n], green = clean && t < st.pb[n];
+        if (purple) sec.best[n] = t;
+        if (green) st.pb[n] = t;
+        if (n === 0) st.cur = [null, null, null];
+        st.cur[n] = { t, cls: purple ? 'p' : green ? 'g' : 'y' };
+        if (purple && mine().includes(c.id)) sec.flash = { at: performance.now(), text: `${c.code} · fastest sector ${n + 1}` };
+      }
+      st.k++; st.at = at;
+    }
+    st.d = c.dist; st.t = R.t;
+  }
+  const id = G.mineSel || 'you-0', st = sec.cars.get(id), c = R.byId.get(id);
+  if (!st || !c || c.dnf) { el.hidden = true; return; }
+  const fl = sec.flash && performance.now() - sec.flash.at < 4000 ? sec.flash.text : '';
+  const html = `<b>${esc(c.code)}</b>${st.cur.map((x, i) => `<span class="${x ? x.cls : ''}"><small>S${i + 1}</small>${x ? x.t.toFixed(1) : '–'}</span>`).join('')}${fl ? `<em>${esc(fl)}</em>` : ''}`;
+  if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
+  el.hidden = false;
+}
 
 // phones: a slim rail at the side of the race for each of your cars, so the calls are a thumb away
 // and the track stays clear: pace, battery (with its charge) and how hard to fight, plus team orders
@@ -3810,7 +3848,7 @@ function startRace(picks, auto, saved = null) {
   // a Racing Academy lesson rides on this race when startLesson() asked for one
   G.lesson = saved ? null : G.nextLesson || null; G.nextLesson = null;
   G.stage = G.lesson ? G.lesson.def.race.stage : null; lessonCard(null);
-  G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set();
+  G.attract = false; G.ended = false; G.paused = false; G.acc = 0; G.evIdx = 0; G.assisted = false; G.forecastSaid = new Set(); G.sec = null;
   speedUI();
   app.classList.remove('attract');
   loadVenue(G.venue);

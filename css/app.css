@@ -1725,3 +1725,15 @@ html.dk .rails { display: none !important; }
 html.mob .wx-pop { top: calc(max(8px, var(--a-safe-t)) + 40px); right: max(8px, var(--a-safe-r)); }
 html.dk .fcast { margin-bottom: 4px; }
 html.dk .fcast li { background: var(--k-card2, rgba(255,255,255,.06)); }
+
+/* sector times for the car of yours you're running (js/main.js sectorTicker) */
+.sec-tick { position: absolute; left: 12px; bottom: 58px; z-index: 5; display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 10px; background: rgba(7, 13, 28, .78); color: #eef3ff; font: 700 13px var(--f-ui); pointer-events: none; font-variant-numeric: tabular-nums; }
+.sec-tick[hidden] { display: none; }
+.sec-tick b { padding: 0 4px; font: 800 italic 13px var(--f-display); }
+.sec-tick span { display: grid; justify-items: center; min-width: 44px; padding: 2px 6px; border-radius: 6px; background: rgba(255, 255, 255, .08); }
+.sec-tick span small { font: 700 9px var(--f-ui); opacity: .7; }
+.sec-tick span.p { background: #8b3cf6; color: #fff !important; } .sec-tick span.g { background: #16a34a; color: #fff !important; } .sec-tick span.y { background: #ca8a04; color: #111827; }
+.sec-tick em { font-style: normal; padding: 0 6px; color: #d8b4fe; white-space: nowrap; }
+html.dk .sec-tick { left: 16px; bottom: 74px; }
+@media (orientation: portrait) and (max-width: 1199px) { .sec-tick { left: 50%; transform: translateX(-50%); bottom: 176px; } }
+@media (max-height: 559px) and (orientation: landscape) { .sec-tick { display: none !important; } }
