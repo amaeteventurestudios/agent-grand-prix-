@@ -220,7 +220,10 @@ export class Stands {
   }
 }
 
-function makeCrowd(fans, r, weights, world) {
+// fans standing at the fences (js/trackside.js): the same figures, on their feet
+export function standingCrowd(fans, r, world) { return makeCrowd(fans, r, skinWeights(world.venue.region), world, true); }
+
+function makeCrowd(fans, r, weights, world, standing = false) {
   const n = fans.length;
   const g = new THREE.InstancedBufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0], 3));
@@ -245,7 +248,7 @@ function makeCrowd(fans, r, weights, world) {
   const hatCols = HATS.map((h) => new THREE.Color(h));
   const mat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      uTime: { value: 0 }, uCheer: { value: 0 }, uLight: { value: new THREE.Color(1, 1, 1) },
+      uTime: { value: 0 }, uCheer: { value: 0 }, uLight: { value: new THREE.Color(1, 1, 1) }, uStand: { value: standing ? 1 : 0 },
       uHats: { value: hatCols },
     }]),
     fog: true,
@@ -277,14 +280,14 @@ function makeCrowd(fans, r, weights, world) {
         #include <fog_vertex>
       }`,
     fragmentShader: /* glsl */`
-      uniform vec3 uLight; uniform vec3 uHats[6];
+      uniform vec3 uLight; uniform vec3 uHats[6]; uniform float uStand;
       varying vec2 vP; varying vec3 vShirt; varying vec3 vSkin; varying vec3 vPants; varying vec4 vMisc; varying float vUp; varying float vFront;
       #include <fog_pars_fragment>
       float box(vec2 p, vec2 c, vec2 h, float r) { vec2 d = abs(p - c) - h + r; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0) - r; }
       float seg(vec2 p, vec2 a, vec2 b, float r) { vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h) - r; }
       void main() {
         vec2 p = vP;
-        float lift = vUp * 0.36;
+        float lift = max(vUp, uStand) * 0.36;
         // standing up stretches the legs; everything above the lap rises
         float legTop = 0.64 + lift;
         vec2 u = vec2(p.x, p.y > 0.6 ? p.y - lift : p.y);

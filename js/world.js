@@ -9,6 +9,7 @@ import { COMPOUNDS } from './data.js';
 import { Paddock } from './paddock.js';
 import { Fleet, loadCar, loadGLB } from './cars.js';
 import { Stands, sweep } from './env.js';
+import { Trackside } from './trackside.js';
 import { towerShapes, facadeMaterial, streetLamps, cityKit } from './kit.js';
 import { treeGeo, mountainGeo, Boats, Clouds, rocks } from './nature.js';
 import { lagos, dakar, nairobi, capeTown, tokyo, iceland, singapore, shanghai, miami, lasVegas } from './landmarks.js';
@@ -227,6 +228,7 @@ export class World {
     this.buildPits(r);
     this.crowdLight = new THREE.Color().setScalar({ day: 1, dusk: 0.78, night: 0.82, midnight: 0.95 }[venue.time] ?? 1);
     this.buildStands(r);
+    this.trackside = new Trackside(this, rng(hashString(venue.id + '-trackside')));
     this.buildScenery(r);
     this.buildCars();
     this.buildFx();
@@ -546,6 +548,7 @@ export class World {
       const out = -Math.sign(T.k[i]);
       specs.push({ s0: i - 40, s1: i + 40, lat0: out * (h + runoff + 3), dir: out, rows: 10 });
     }
+    this.standCorners = used;
     this.stands = new Stands(this, r, specs);
   }
 
@@ -1381,6 +1384,7 @@ export class World {
     this.boats?.update(dt * speed); this.clouds?.update(dt * speed);
     if (this.landmarks) for (const l of this.landmarks) l.update(dt * speed);
     this.stands?.update(dt * speed, this.cheer || 0, this.crowdLight);
+    this.trackside?.update(dt * speed, this.cheer || 0, this.crowdLight);
     if (this.fleets?.size) {
       const lists = this.fleetLists ||= new Map();
       for (const k of this.fleets.keys()) { if (!lists.has(k)) lists.set(k, []); lists.get(k).length = 0; }
