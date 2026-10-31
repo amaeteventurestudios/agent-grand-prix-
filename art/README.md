@@ -2,10 +2,11 @@
 
 Cars are modelled by Python scripts that run inside Blender 4.2 LTS with no screen. Nothing is drawn by hand, so any car can be rebuilt from its script.
 
-- `cars/carkit.py`: shared helpers (lofted cross-sections, wings, fenders, wheels, livery mask). Cars use the game's car frame: X forward, Y left, Z up, wheels at x = ±1.55 and y = ±0.83, radius 0.34.
+- `cars/hyper.py`: the car kit (sharp-creased panels, wings, wheels, livery mask painted as distance to each colour's edge); `cars/base.py` holds shapes the cars share; `cars/carkit.py` the livery constants. See `docs/CARS.md`. Cars use the game's car frame: X forward, Y left, Z up, wheels at x = ±1.55 and y = ±0.83, radius 0.34.
 - `cars/<name>.py`: one car, built at three levels of detail.
 - `cars/build.py`: builds a car, saves `cars/<name>.blend` and exports `assets/vehicles/<name>/<name>.glb`.
 - `cars/render.py`: renders a four-view check sheet with a team livery.
+- `cars/thumb.py`: the garage picture (`assets/cars/<name>.webp`, cropped to 640×360).
 
 ```
 blender -b --factory-startup -P art/cars/build.py -- falcon
@@ -28,7 +29,7 @@ npx gltfpack@0.22.0 -i assets/vehicles/safety/safety.glb -o assets/vehicles/safe
 
 Livery mask: each vertex colour is R primary paint, G secondary paint, B light strip, and A finish (1 paint, 0.55 carbon, 0.8 metal, 0 rubber). `js/cars.js` tints it with each team's colours, so one file serves every livery.
 
-Budgets per car: LOD 0 at most 30k triangles, LOD 1 8k, LOD 2 1.5k, and 450 KB compressed. Blender's GPL licence doesn't apply to the models; gltfpack is MIT.
+Budgets per car: LOD 0 at most about 40k triangles, LOD 1 11k, LOD 2 3k, and 450 KB compressed. Blender's GPL licence doesn't apply to the models; gltfpack is MIT.
 
 ## People
 

@@ -27,17 +27,24 @@ blender -b art/cars/<car>.blend -P art/cars/thumb.py -- out.png c1 c2 glow      
 npx gltfpack@0.22.0 -i <glb> -o <glb> -cc -kn -km -vp 14 -vn 8 -vc 8                 # compress for the game
 ```
 
-Then base64 the compressed GLB into `<car>.glb.js` (hosts that won't serve `.glb` load that).
-Garage pictures are cropped to 640×360 WebP in `assets/cars/`.
+Garage pictures are cropped to 640×360 WebP in `assets/cars/`; home-screen pictures come from
+`hero.py` at 1200×675 in `assets/cars/hero/`.
 
-- `art/cars/carkit.py`: lofts, wings, wheels, fender shells, and the livery mask painter.
-- `art/cars/openwheel.py`: the shared builder. A car file gives its shape tables (monocoque,
-  sidepods), wing elements, fenders or wheel nacelles, extras, and paint rules.
-- Each car file (`falcon.py` … `tempest.py`) is shape tables plus paint rules.
+- `art/cars/hyper.py`: the car kit. Panels are lofted from key-point cross-sections with sharp
+  creases where a key is flagged sharp (so the body reads as cut panels, not soft tubes), and each
+  paint rule gets `Q(x, u, s, inner, cap)`: `u` is the position round the section in keys, so a
+  stripe can follow a crease. `build_car(SPEC, lod)` assembles body, sidepods with inlets, wheel
+  pods, arc fenders, floor, diffuser, wings, fin, airbox, canopy, halo, mirrors, suspension and
+  wheels.
+- `art/cars/base.py`: shared shapes on top of the kit (body rows, cockpit and engine cover, sidepods,
+  front and rear wings, wheel-pod rows, rear hoods).
+- `art/cars/carkit.py`: the livery constants and low-level helpers the kit uses.
+- Each car file (`falcon.py` … `tempest.py`) is a `SPEC`: shape tables plus paint rules.
 
-The livery mask is painted into vertex colours: R main colour, G accent, B lights, A finish. The game
-tints it per team (`js/cars.js`), with a one-pixel step at 0.5 so edges stay crisp. Three levels of
-detail per car: about 33–43k, 9–11k and 2–3k triangles.
+The livery mask is painted into vertex colours: R main colour, G accent, B lights, A finish. Each channel
+stores the distance to that colour's nearest edge, and the game (`js/cars.js`) tints it per team with
+a one-pixel step at 0.5, so stripes stay crisp; a stripe needs at least two vertices across. Three
+levels of detail per car: about 26–41k, 8–11k and 2–3k triangles, 190–270 KB compressed.
 
 ## Strengths
 

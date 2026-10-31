@@ -28,12 +28,12 @@ def front_fender(q):
     if q.inner: return CF
     if q.x < 62 and 0.15 < q.u < 0.6 and int(q.x / 7) % 2 == 0: return GLOW    # light dots down the leading edge
     if q.u < 0.4: return P2
-    return CF
+    return P1
 
 def rear_fender(q):
     if q.inner: return CF
     if q.u < 0.4 or q.x > 172: return P2
-    return CF
+    return P1
 
 SPEC = dict(
     BODY=BODY, body_segs=(2, 5, 12, 14), body_rule=body_rule,

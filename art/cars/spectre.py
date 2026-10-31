@@ -30,8 +30,9 @@ def pod_rule(q):
 def nac_rule(q):
     if q.inner: return P2 if q.x > 2.25 else CF                     # the mouth lined in the accent colour
     if q.cap: return GLOW if q.x > 2 else CF                        # its rim lit
-    if q.u < 1.0: return CF
-    if 1.0 < q.u < 1.14: return P2
+    e = 1.0 + 0.55 * max(0.0, min(1.0, (2.3 - q.x) / 0.9))          # a carbon sweep rising towards the wheel
+    if q.u < e: return CF
+    if q.u < e + 0.16: return P2
     return P1
 
 def hood_rule(q):

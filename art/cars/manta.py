@@ -31,6 +31,7 @@ def nac_rule(q):
     if q.cap: return P2 if q.x > 2 else CF
     if 2.1 < q.u < 2.4: return P2                                   # a stripe along the top
     if q.u < 1.0: return CF
+    if 1.6 < q.x < 2.45 and abs(q.u - (1.0 + 1.1 * abs(q.x - 2.02) / 0.43)) < 0.14: return P2   # a chevron on the wall
     return P1
 
 def hood_rule(q):

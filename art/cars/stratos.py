@@ -28,7 +28,7 @@ def nac_rule(q):
     if q.cap: return GLOW if q.x > 2 else CF                        # the mouth framed in light
     if q.x > 2.5 and (0.1 < q.u < 0.9 or 3.3 < q.u < 3.9): return GLOW   # strips down both walls
     if 1.7 < q.u < 2.15: return P2                                  # the band over the shoulder
-    if q.u < 1.0: return CF
+    if q.u < 1.0 + 0.5 * max(0.0, min(1.0, (q.x - 1.5) / 0.8)): return CF   # dark lower wall, deeper at the mouth
     return P1
 
 def hood_rule(q):
