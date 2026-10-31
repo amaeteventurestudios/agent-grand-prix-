@@ -1647,3 +1647,18 @@ details.tg summary.glow { border-color: color-mix(in srgb, var(--accent) 60%, va
 .resume-card.lp em { background: var(--accent, #1267f4); color: #fff; }
 @keyframes rcPulse { 70% { box-shadow: 0 0 0 7px rgba(225, 6, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(225, 6, 0, 0); } }
 @media (prefers-reduced-motion: reduce) { .resume-card .rc-k i { animation: none; } }
+
+/* tyre left on a driver card, as a traffic light: green, yellow to plan the stop, red to box, flashing when a puncture is near */
+.dc .tb { grid-column: 1 / -1; height: 4px; border-radius: 2px; margin-top: 3px; background: linear-gradient(90deg, var(--c) var(--l), rgba(255, 255, 255, .12) var(--l)); }
+.dc .tb.g { --c: #3ddc5a; } .dc .tb.y { --c: #ffd21f; } .dc .tb.r { --c: #ff3b3b; }
+.dc .tb.blink, .dk-bar.blink i { animation: tyreBlink .7s steps(2, start) infinite; }
+@keyframes tyreBlink { 50% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .dc .tb.blink, .dk-bar.blink i { animation: none; } }
+
+/* the sound button's panel: on or off, race and radio volume */
+.vol-pop { position: absolute; top: 58px; right: 10px; z-index: 12; display: grid; gap: 8px; min-width: 220px; padding: 12px 14px; border-radius: 14px; background: var(--hud); color: var(--hud-ink); box-shadow: 0 8px 24px rgba(0, 0, 0, .35); border: 1px solid rgba(140, 175, 255, .16); pointer-events: auto; font: 600 13px var(--f-ui); }
+.vol-pop[hidden] { display: none; }
+.vol-pop .vp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.vol-pop input[type=range] { flex: 1; accent-color: #d4ff3a; }
+.vol-pop input[type=checkbox] { width: 20px; height: 20px; accent-color: #d4ff3a; }
+.set-seg { flex: none; }

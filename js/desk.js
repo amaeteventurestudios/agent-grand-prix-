@@ -183,7 +183,7 @@ export function createDesk(api) {
         <div><dt>Gap behind</dt><dd>${gapBack(R, c)}</dd></div>
         <div><dt>Last lap</dt><dd>${c.lastLap ? api.fmtLap(c.lastLap) : '–'}</dd></div>
         <div><dt>Best lap</dt><dd>${isFinite(c.best) ? api.fmtLap(c.best) : '–'}</dd></div>
-        <div><dt>Tyres</dt><dd>${api.tyreHTML(c.tyre.c)} ${life}% <small>${Math.floor(c.tyre.laps || 0) ? `${Math.floor(c.tyre.laps)} lap${Math.floor(c.tyre.laps) > 1 ? 's' : ''} old` : 'new'}</small><span class="dk-bar ${life < 25 ? 'low' : life < 50 ? 'mid' : ''}"><i style="width:${life}%"></i></span></dd></div>
+        <div><dt>Tyres</dt><dd>${api.tyreHTML(c.tyre.c)} ${life}% <small>${Math.floor(c.tyre.laps || 0) ? `${Math.floor(c.tyre.laps)} lap${Math.floor(c.tyre.laps) > 1 ? 's' : ''} old` : 'new'}</small><span class="dk-bar ${life < 15 ? 'low blink' : life < 28 ? 'low' : life <= 50 ? 'mid' : ''}"><i style="width:${life}%"></i></span></dd></div>
         <div><dt>Tyre temperature</dt><dd>${tt}</dd></div>
         <div><dt>ERS battery</dt><dd>${e}%<span class="dk-bar ers ${e < 20 ? 'low' : ''}"><i style="width:${e}%"></i></span></dd></div>
       </dl>

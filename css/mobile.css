@@ -336,3 +336,12 @@ html.mob .screen:not(.appsc):not(.showroom):not(.dna) > .sheet > .actions:last-c
 /* Sign in on Home: top right of the race window (the other tabs have it in their top bar) */
 .ap-hero { position: relative; }
 .ma .ap-hero > .ac-chip { position: absolute; top: 12px; right: max(16px, var(--a-safe-r)); text-shadow: none; background: rgba(8, 16, 34, .78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+
+/* the top bar on a phone fits on one line: smaller chips, and the finish chip keeps just the times */
+html.mob .hud { flex-wrap: nowrap; gap: 4px; }
+html.mob .hud .hud-left, html.mob .hud .hud-right { flex-wrap: nowrap; gap: 4px; }
+html.mob .hud .chip { min-height: 32px; padding: 4px 7px; font-size: 13px; white-space: nowrap; }
+html.mob .hud .chip.icon { width: 32px; min-width: 32px; padding: 0; justify-content: center; }
+html.mob .hud .chip.fin > span[aria-hidden], html.mob .hud .chip.fin .fl { display: none; }
+@media (max-width: 400px) { html.mob .hud .chip.wx .sim { display: none; } html.mob .hud .chip { padding: 4px 6px; font-size: 12.5px; } }
+html.mob .vol-pop { top: calc(max(8px, var(--a-safe-t)) + 40px); right: max(8px, var(--a-safe-r)); }

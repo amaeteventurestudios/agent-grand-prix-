@@ -427,7 +427,6 @@ const driverVoice = (id) => DRIVER_VOICES.filter((v) => v !== voiceId())[id === 
 function reply(id, clip) { if (S.settings.replies !== false) say(['@' + driverVoice(id) + '/' + clip]); }
 const WHY_CLIPS = [['soaked', 'w_soaked'], ['wet out here', 'w_wet'], ['standing water', 'w_water'], ['overheating', 'w_wetshot'], ['dry line', 'w_dryline'],
   ['Safety car! Cheap', 'w_sc'], ['Virtual safety car. Box', 'w_vsc'], ['finished', 'w_finished'], ['second compound. Box now', 'w_second'], ['Pit window', 'w_window']];
-const FACT_CLIPS = ['w_finished', 'w_second', 'w_window', 'w_water'];
 const whyClip = (t) => (WHY_CLIPS.find(([k]) => t.includes(k)) || [])[1];
 // the crowd in the stands reacts to the same moments the crowd sound does
 let cheerBurst = 0;
@@ -437,7 +436,30 @@ function setSound(on) {
   S.settings.sound = on; store.save(); soundIcon();
   if (on && !G.attract) sound.start(lite); else sound.stop();
 }
-$('#soundBtn').addEventListener('click', () => setSound(S.settings.sound === false));
+// the sound button opens a small panel: sound on or off, and how loud the race and the radio are
+function volPanel(open = $('#volPop')?.hidden !== false) {
+  let el = $('#volPop');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'volPop'; el.className = 'vol-pop'; el.hidden = true;
+    el.innerHTML = `<label class="vp-row"><span>Sound</span><input type="checkbox" role="switch" data-v="on"></label>
+      <label class="vp-row"><span>Race</span><input type="range" min="0" max="1" step="0.05" data-v="vol" aria-label="Race volume"></label>
+      <label class="vp-row"><span>Radio</span><input type="range" min="0" max="1" step="0.05" data-v="rvol" aria-label="Radio volume"></label>`;
+    $('#stage').append(el);
+    el.addEventListener('input', (e) => {
+      const k = e.target.dataset.v;
+      if (k === 'on') return setSound(e.target.checked);
+      const v = +e.target.value; S.settings[k] = v; store.save();
+      if (k === 'vol') sound.setVol(v); else voice.setVol(v);
+      if (v > 0 && S.settings.sound === false) { setSound(true); el.querySelector('[data-v="on"]').checked = true; }
+    });
+    document.addEventListener('pointerdown', (e) => { if (!el.hidden && !e.target.closest('#volPop, #soundBtn')) el.hidden = true; });
+  }
+  el.querySelector('[data-v="on"]').checked = S.settings.sound !== false;
+  el.querySelector('[data-v="vol"]').value = S.settings.vol ?? sound.vol;
+  el.querySelector('[data-v="rvol"]').value = S.settings.rvol ?? 1;
+  el.hidden = !open;
+}
+$('#soundBtn').addEventListener('click', () => volPanel());
 soundIcon();
 document.addEventListener('visibilitychange', () => { if (!sound.ctx) return; if (document.hidden) sound.ctx.suspend(); else if (sound.on) sound.ctx.resume(); });
 document.addEventListener('keydown', (e) => {
@@ -1202,6 +1224,9 @@ function stageCards(R, f) {
   if (el.dataset.k !== html) { el.innerHTML = html; el.dataset.k = html; }
 }
 
+// tyre left as a traffic light: green while it's fine, yellow when it's time to plan the stop,
+// red when grip falls away (the engine's cliff at 72% wear), flashing red when a puncture is near
+const tyreLevel = (life) => (life > 0.5 ? 'g' : life > 0.28 ? 'y' : life > 0.15 ? 'r' : 'r blink');
 // phones: your two cars as cards across the top of the race; tap one to give it calls
 function driverCards(R) {
   const el = $('#drivers');
@@ -1214,9 +1239,9 @@ function driverCards(R) {
   ['you-0', 'you-1'].forEach((id, k) => {
     const c = R.byId.get(id), life = Math.round((1 - Math.min(1, c.tyre.wear)) * 100);
     const state = c.dnf ? 'Out' : c.finished ? 'Finished' : c.pit ? 'In the pits' : c.pitReq ? `Boxing · ${COMPOUNDS[c.pitReq].name}s` : c.auto ? 'Autonomous' : { push: 'Pushing', save: 'Saving tyres', normal: '' }[c.pace] + (c.battle !== 'neutral' ? (c.pace === 'normal' ? '' : ' · ') + (c.battle === 'attack' ? 'Attack' : 'Defend') : '');
-    const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 25 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
+    const b = el.children[k], cls = `dc${id === G.mineSel ? ' on' : ''}${life < 28 && !c.dnf ? ' low' : ''}${c.dnf ? ' out' : ''}${b.classList.contains('hl') ? ' hl' : ''}`;
     if (b._pk !== c.team.c1 + c.name) { b._pk = c.team.c1 + c.name; b._ps = portraitSVG(c, c.team, { size: 28, bg: false }); }
-    const html = `${b._ps}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}`;
+    const html = `${b._ps}<b>${c.dnf ? 'OUT' : 'P' + c.pos}</b><span class="nm">${esc(c.code)}</span>${tyreHTML(c.tyre.c)}<span class="lf">${life}%</span>${state ? `<small>${esc(state)}</small>` : ''}${c.dnf ? '' : `<i class="tb ${tyreLevel(life / 100)}" style="--l:${life}%"></i>`}`;
     if (b.className !== cls) b.className = cls;
     if (b.dataset.k !== html) { b.innerHTML = html; b.dataset.k = html; }
   });
@@ -1229,23 +1254,6 @@ $('#drivers').addEventListener('click', (e) => {
   G.mineSel = id; select(id);
 });
 
-// Team Principal mode: the engineer shows what matters (the fact, never an order) and gives a view
-// only when you ask. "Ask the engineer" gets the strategist's reading with the call on a button; the
-// call is still yours to make, so it goes through your own command path.
-function suggest(car, fact, action) {
-  const el = $('#suggest');
-  // a lesson teaches one thing at a time, so race info waits until it's over
-  if (!fact || car.dnf || car.finished || car.auto || (G.lesson && !G.lesson.done)) return;
-  coachHide();
-  const at = performance.now(); G.suggest = { id: car.id, at, action };
-  el.innerHTML = `<div class="ch"><span>📊 Race info · ${esc(car.code)}</span><button type="button" class="x" aria-label="Dismiss">×</button></div><p>${esc(fact)}</p>
-    <div class="acts"><button type="button" class="go">Ask the engineer</button><button type="button" class="no">OK</button></div>`;
-  el.hidden = false;
-  const close = () => { if (G.suggest && G.suggest.at === at) { el.hidden = true; G.suggest = null; } };
-  el.querySelector('.x').onclick = el.querySelector('.no').onclick = close;
-  el.querySelector('.go').onclick = () => { close(); askEngineer(car); };
-  setTimeout(close, 16000);
-}
 // you asked: the engineer's view in the same card, with the call ready if there is one
 function askEngineer(car) {
   const R = G.race; if (!R || car.dnf || car.finished || (G.lesson && !G.lesson.done)) return;
@@ -1297,14 +1305,15 @@ function pitLine(R, f) {
   now.textContent = step === 2 ? `Stationary ${Math.max(0, f.stopT).toFixed(1)} s` : step > 2 && f.stopTimes?.length ? `Stationary ${f.stopTimes.at(-1).toFixed(1)} s` : 'Stationary';
 }
 
-// temperatures in both scales
-const tempTxt = (c) => `${c}°C / ${Math.round(c * 9 / 5 + 32)}°F`;
+// temperatures in the scale the player picked in Settings (°F by default in the US, °C elsewhere)
+const units = () => S.settings.units || (/^en-US$/i.test(navigator.language || '') ? 'F' : 'C');
+const tempTxt = (c) => (units() === 'F' ? `${Math.round(c * 9 / 5 + 32)}°F` : `${c}°C`);
 function wetWord(w) { return w < 0.08 ? 'Dry' : w < 0.25 ? 'Damp' : w < 0.6 ? 'Wet' : 'Soaked'; }
 function weatherHTML(R) {
   const fc = nextRain(R);
   const icon = R.rain > 0.5 ? '🌧️' : R.rain > 0.05 ? '🌦️' : G.venue.time === 'night' ? '🌙' : G.venue.time === 'dusk' ? '🌇' : '☀️';
   // the weather is the race's own forecast, not the real one at the venue, and says so
-  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${G.venue.temp}°C<span class="tf"> / ${Math.round(G.venue.temp * 9 / 5 + 32)}°F</span>`;
+  let txt = `<span class="sim" title="Simulated weather, not the real forecast">SIM</span> ${icon} <span class="state">${wetWord(R.wet)}</span> ${tempTxt(G.venue.temp)}`;
   if (fc !== null && R.rain < 0.05) txt += ` <span class="fc">· rain in ~${fc} lap${fc > 1 ? 's' : ''}</span>`;
   return txt;
 }
@@ -1587,12 +1596,11 @@ function drainEvents() {
     const e = R.events[G.evIdx++];
     const isMine = e.car && my.includes(e.car), car = e.car && R.byId.get(e.car);
     if (e.type === 'advice' && isMine) {
-      // Team Principal mode: the fact only, spoken only when the clip is a plain reading (no "box now")
-      const fact = e.fact || e.text, clip = /Reminder/.test(e.text) ? 'w_second' : whyClip(e.text);
-      if (FACT_CLIPS.includes(clip)) say([carTag(e.car), clip], true);
+      // Team Principal mode: you make the calls, so the engineer stays out of your ear: the fact goes
+      // in the radio log only, and his view comes when you ask (Engineer tab, "Ask the engineer")
+      const fact = e.fact || e.text;
       addRadio({ from: 'race', text: `${car.code}: ${fact}` });
       desk?.advice(e, car, fact);
-      suggest(car, fact, e.action);
     } else if ((e.type === 'radio' || e.type === 'pit') && isMine) {
       const bx = /Boxing this lap for (\w)/.exec(e.text);
       if (bx) { say([carTag(e.car), whyClip(e.text), 'bb_' + bx[1]].filter(Boolean)); reply(e.car, 'r_box'); }
@@ -2207,16 +2215,20 @@ function rulesSheet(back) {
 // Settings: the few things players ask to change, kept on this device
 function settingsSheet(back) {
   const sw = (k, on, label, note) => `<div class="set-row"><span><b>${label}</b><small>${note}</small></span><button type="button" class="switch" role="switch" aria-checked="${on}" data-s="${k}" aria-label="${label}"></button></div>`;
+  const pick = (k, v, label, note, opts) => `<div class="set-row"><span><b>${label}</b><small>${note}</small></span><div class="seg set-seg" role="group" aria-label="${label}">${opts.map(([o, t]) => `<button type="button" data-p="${k}" data-o="${o}" class="${v === o ? 'on' : ''}" aria-pressed="${v === o}">${t}</button>`).join('')}</div></div>`;
   const draw = () => {
     const sh = show(`<h2>Settings</h2>
       ${sw('sound', S.settings.sound !== false, 'Sound', 'Engines, the crowd and the radio')}
       ${sw('voice', S.settings.voice !== false, 'Engineer’s voice', 'Your race engineer speaks the calls')}
       ${sw('coach', S.settings.coach !== false, 'Race coach', 'Tips during your first races and quick races')}
+      ${pick('units', units(), 'Temperature', 'Shown in the race’s top bar and the circuit cards', [['C', '°C'], ['F', '°F']])}
       <div class="set-row"><span><b>Language</b><small>English, Français, Español, Português, العربية, Naijá</small></span>${langPicker(true)}</div>
       ${installItem(true)}
       <div class="actions"><button class="btn" id="seBack" type="button">Done</button></div>`);
     sh.onclick = (e) => {
       if (e.target.closest('[data-go="install"]')) return doInstall(() => settingsSheet(back));
+      const p = e.target.closest('[data-p]');
+      if (p) { S.settings[p.dataset.p] = p.dataset.o; store.save(); if (G.race) $('#hudWx').innerHTML = weatherHTML(G.race); return draw(); }
       const b = e.target.closest('[data-s]'); if (!b) return;
       const k = b.dataset.s, on = b.getAttribute('aria-checked') !== 'true';
       if (k === 'sound') S.settings.sound = on;
@@ -3441,7 +3453,7 @@ function pre(o, step = o.venue ? 'car' : 'circuit') {
   const head = (title) => `<header class="wiz-head">${dots(i, steps.length)}<div class="sub">${label}</div>${o.venue && step !== 'circuit' ? `<h2>${o.venue.flag} ${esc(o.venue.city)} Grand Prix</h2>` : ''}${title}</header><div class="wiz-body">`;
 
   if (step === 'circuit') {
-    const vb = (v) => `<button type="button" data-v="${v.id}" class="${v.id === (o.venue && o.venue.id) ? 'next' : ''}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span><span>${tempTxt(v.temp).split(' /')[0]} · ${v.rain > 0.35 ? 'Rain likely' : v.rain > 0.15 ? 'Rain possible' : 'Usually dry'}${v.time === 'night' ? ' · Night' : ''}</span></button>`;
+    const vb = (v) => `<button type="button" data-v="${v.id}" class="${v.id === (o.venue && o.venue.id) ? 'next' : ''}"><b>${v.flag} ${esc(v.city)}</b><span>${esc(v.country)} · ${esc(v.circuit)}</span><span>${tempTxt(v.temp)} · ${v.rain > 0.35 ? 'Rain likely' : v.rain > 0.15 ? 'Rain possible' : 'Usually dry'}${v.time === 'night' ? ' · Night' : ''}</span></button>`;
     const sh = show(`${head('<h2>Pick a circuit</h2><p class="lede">No points, just racing. Good for practice.</p>')}
       <div class="sub">Featured</div>
       <div class="venues feat">${FEATURED.map((id) => vb(venueById(id))).join('')}</div>
@@ -3822,6 +3834,7 @@ function pauseMenu() {
       <button class="btn wide" id="pResume" type="button">Resume</button>
       ${appOn() && !fairRace() ? `<div class="seg pspeed" role="group" aria-label="Race speed">${[1, 2, 4, 8, 16].map((v) => `<button type="button" data-ps="${v}" class="${G.speed === v ? 'on' : ''}">${v}×</button>`).join('')}</div>` : ''}
       <button class="btn ghost wide" id="pVoice" type="button">Radio voices</button>
+      <button class="btn ghost wide" id="pSet" type="button">Settings</button>
       <button class="btn ghost wide" id="pDna" type="button">Driver DNA</button>
       <button class="btn ghost wide" id="pHelp" type="button">How to play</button>
       <button class="btn ghost wide" id="pAcademy" type="button">Racing Academy</button>
@@ -3831,6 +3844,7 @@ function pauseMenu() {
       <button class="btn ghost wide" id="pQuit" type="button">Quit to home</button></div>`);
   $('#pResume').addEventListener('click', resume);
   $$('[data-ps]', sh).forEach((x) => x.addEventListener('click', () => { $(`.hud [data-speed="${x.dataset.ps}"]`)?.click(); $$('[data-ps]', sh).forEach((y) => y.classList.toggle('on', y === x)); }));
+  $('#pSet').addEventListener('click', () => settingsSheet(pauseMenu));
   $('#pHelp').addEventListener('click', () => helpSheet(pauseMenu));
   $('#pVoice').addEventListener('click', () => voiceSheet(pauseMenu));
   $('#pDna').addEventListener('click', () => studio(pauseMenu, true));
@@ -3848,6 +3862,7 @@ function pauseDesk() {
   const R = G.race, lesson = G.kind === 'academy', live = !R.done && !lesson && myRunning().length > 0;
   const pct = (v) => Math.round(v * 100);
   const sw = (k, on, label) => `<label class="pm-sw"><span>${label}</span><input type="checkbox" role="switch" data-pm="${k}" ${on ? 'checked' : ''}></label>`;
+  const pmPick = (k, v, label, opts) => `<div class="pm-speed"><span>${label}</span><div class="seg" role="group" aria-label="${label}">${opts.map(([o, t]) => `<button type="button" data-pp="${k}" data-o="${o}" class="${v === o ? 'on' : ''}">${t}</button>`).join('')}</div></div>`;
   const row = (id, label, note, cls = '') => `<button type="button" class="pm-row ${cls}" id="${id}"><b>${label}</b>${note ? `<small>${note}</small>` : ''}</button>`;
   const sh = show(`<div class="pm-h"><div><small>Paused</small><h2>${G.venue.flag} ${esc(G.venue.city)}</h2><p>Lap ${R.leaderLap()} of ${R.laps}${G.kind ? ' · ' + esc({ daily: 'Daily Grand Prix', dailyfull: 'Daily · full distance', season: 'Season round', quick: 'Quick race', academy: 'Racing Academy', practice: 'Free practice', live: 'Live Grand Prix' }[G.kind] || '') : ''}</p></div>
       <button class="btn pm-go" id="pResume" type="button">Resume <small>Esc</small></button></div>
@@ -3866,6 +3881,7 @@ function pauseDesk() {
         ${row('pVoice', 'Radio voices', esc($('#voiceName').textContent || ''))}</section>
       <section><h3>AI and drivers</h3>
         ${row('pDna', 'Driver DNA', 'How each driver races')}
+        ${pmPick('units', units(), 'Temperature', [['C', '°C'], ['F', '°F']])}
         ${live ? row('pAgents', agentsOn() ? 'Take the team back' : 'Hand the team to my agents', agentsOn() ? 'You make the calls again' : 'Your agents make every call') : ''}</section>
       <section><h3>Help and learning</h3>
         ${row('pHelp', 'How to play', '')}
@@ -3873,6 +3889,7 @@ function pauseDesk() {
     </div>`, 'dkmenu');
   $('#pResume').addEventListener('click', resume);
   $$('[data-ps]', sh).forEach((x) => x.addEventListener('click', () => { $(`.hud [data-speed="${x.dataset.ps}"]`)?.click(); $$('[data-ps]', sh).forEach((y) => y.classList.toggle('on', y === x)); }));
+  $$('[data-pp]', sh).forEach((x) => x.addEventListener('click', () => { S.settings[x.dataset.pp] = x.dataset.o; store.save(); $$(`[data-pp="${x.dataset.pp}"]`, sh).forEach((y) => y.classList.toggle('on', y === x)); $('#hudWx').innerHTML = weatherHTML(R); }));
   $$('[data-pm]', sh).forEach((x) => x.addEventListener('change', () => { if (x.dataset.pm === 'sound') setSound(x.checked); else { S.settings.replies = x.checked; store.save(); } }));
   $$('[data-vol]', sh).forEach((x) => x.addEventListener('input', () => { const v = +x.value / 100; S.settings[x.dataset.vol] = v; if (x.dataset.vol === 'vol') sound.setVol(v); else voice.setVol(v); store.save(); }));
   $$('[data-vol]', sh).forEach((x) => x.addEventListener('change', () => { if (x.dataset.vol === 'rvol') reply('you-0', 'r_copy'); }));
