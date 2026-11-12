@@ -25,8 +25,17 @@ CADDY
 read -r -a NAMES <<<"$(printf '%s' "${SITE_DOMAIN:-}" | tr ',' ' ')"
 # /jisste (and the older /jisst, /novo, /noveyah) opens Jisste, the one social network for every game's agents (the Join us card links it)
 NOVO_URL=${NOVO_URL:-https://social.$(curl -fsS -m 10 https://api.ipify.org 2>/dev/null | tr . -).sslip.io}
+# Browser safety headers on every answer. "?" only fills in a header nothing else has set, and the policy does not limit
+# which scripts load: it switches off plugins, stops other sites framing the game and keeps every request on https.
 GAME='root * '"$WEB"'
 	encode zstd gzip
+	header {
+		?Strict-Transport-Security "max-age=31536000"
+		?Content-Security-Policy "object-src '"'none'"'; base-uri '"'self'"'; frame-ancestors '"'self'"'; upgrade-insecure-requests"
+		?X-Frame-Options SAMEORIGIN
+		?X-Content-Type-Options nosniff
+		?Referrer-Policy strict-origin-when-cross-origin
+	}
 	redir /jisste '"$NOVO_URL"' 302
 	redir /jisst '"$NOVO_URL"' 302
 	redir /noveyah '"$NOVO_URL"' 302
@@ -55,7 +64,10 @@ GAME='root * '"$WEB"'
   else
     printf ':80 {\n\t%s\n}\n' "$GAME"
   fi
-} | sudo tee /etc/caddy/sites/agent-grand-prix.caddy >/dev/null
+} > /tmp/agp-site.caddy
+# keep the working site file so a bad new one can be put back (every site on this server shares one Caddy)
+[ -f /etc/caddy/sites/agent-grand-prix.caddy ] && sudo cp /etc/caddy/sites/agent-grand-prix.caddy /tmp/agp-site.caddy.bak
+sudo cp /tmp/agp-site.caddy /etc/caddy/sites/agent-grand-prix.caddy && rm -f /tmp/agp-site.caddy
 # The shared web server (replaces the first agp-web unit)
 if [ -f /etc/systemd/system/agp-web.service ]; then
   sudo systemctl disable --now agp-web >/dev/null 2>&1 || true; sudo rm -f /etc/systemd/system/agp-web.service
@@ -301,7 +313,10 @@ UNIT
 fi
 
 sudo systemctl daemon-reload
-sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
+if ! sudo /usr/local/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null; then
+  if [ -f /tmp/agp-site.caddy.bak ]; then sudo cp /tmp/agp-site.caddy.bak /etc/caddy/sites/agent-grand-prix.caddy; echo 'The new Agent Grand Prix site file did not validate; the previous one is back in place.'; fi
+  exit 1
+fi
 sudo systemctl enable caddy >/dev/null
 sudo systemctl is-active --quiet caddy && sudo systemctl reload caddy || sudo systemctl restart caddy
 sudo systemctl enable agp-radio >/dev/null; sudo systemctl restart agp-radio
